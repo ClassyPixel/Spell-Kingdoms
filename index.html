@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spellcaster Academy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-root">
+    <div id="screen-container"></div>
+
+    <div id="hud" class="hidden">
+      <div id="hud-left">
+        <span id="hud-name">Student</span>
+        <span id="hud-level">Lv <span id="hud-level-val">1</span></span>
+      </div>
+      <div id="hud-right">
+        <span id="hud-gold">Gold: <span id="hud-gold-val">100</span></span>
+        <button id="hud-menu-btn" class="btn-hud">☰ Menu</button>
+      </div>
+    </div>
+
+    <div id="loading-screen">
+      <div class="loading-content">
+        <h1 class="title-glow">Spellcaster Academy</h1>
+        <p class="loading-sub">Preparing your studies...</p>
+        <div class="loading-bar"><div class="loading-fill" id="loading-fill"></div></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@
     "questId": "main_01",
     "title": "Enrollment Day",
     "type": "main",
-    "description": "Your first day at Spellcaster Academy. Get acquainted with your surroundings and meet your fellow students.",
+    "description": "Your first day at Arcane Card Kingdom. Get acquainted with your surroundings and meet your fellow students.",
     "objectives": [
       {
         "id": "m01_obj_01",

@@ -26,6 +26,12 @@ import ShopSystem, { setShopScreenRef } from './systems/ShopSystem.js';
 // Wire forward references
 import { setSceneScreenRef } from './screens/MapScreen.js';
 
+// Quick match data
+import { QUICK_MATCH_OPPONENTS, STARTER_DECKS } from './Data.js';
+
+// Quick match state
+let _quickMatchActive = false;
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Boot sequence
 // ──────────────────────────────────────────────────────────────────────────────
@@ -72,43 +78,25 @@ async function boot() {
 
 function animateLoading() {
   return new Promise(resolve => {
-    const fill = document.getElementById('loading-fill');
+    const fill    = document.getElementById('loading-fill');
     const loading = document.getElementById('loading-screen');
-    let progress = 0;
+    let progress  = 0;
 
-    const steps = [
-      { target: 30,  delay: 80  },
-      { target: 60,  delay: 60  },
-      { target: 85,  delay: 100 },
-      { target: 100, delay: 50  },
-    ];
+    const interval = setInterval(() => {
+      // Ease: move fast early, slow near 100
+      const step = progress < 50 ? 3 : progress < 80 ? 2 : 1;
+      progress = Math.min(100, progress + step);
+      if (fill) fill.style.width = progress + '%';
 
-    let stepIdx = 0;
-
-    function tick() {
-      const step = steps[stepIdx];
-      if (!step) {
-        // Fade out loading screen
+      if (progress >= 100) {
+        clearInterval(interval);
         loading.classList.add('fade-out');
         setTimeout(() => {
           loading.style.display = 'none';
           resolve();
         }, 500);
-        return;
       }
-
-      progress++;
-      if (fill) fill.style.width = progress + '%';
-
-      if (progress >= step.target) {
-        stepIdx++;
-        setTimeout(tick, step.delay * 2);
-      } else {
-        setTimeout(tick, step.delay / (step.target - (steps[stepIdx - 1]?.target ?? 0)));
-      }
-    }
-
-    setTimeout(tick, 200);
+    }, 30);
   });
 }
 
@@ -124,12 +112,12 @@ function showTitleScreen() {
       screen.className = 'title-screen fade-in';
 
       const h1 = document.createElement('h1');
-      h1.textContent = 'Spellcaster Academy';
+      h1.textContent = 'Arcane Card Kingdom';
       screen.appendChild(h1);
 
       const sub = document.createElement('p');
       sub.className = 'subtitle';
-      sub.textContent = 'A tale of magic, friendship, and forbidden secrets';
+      sub.textContent = 'Build your deck. Command your forces. Conquer the kingdom.';
       screen.appendChild(sub);
 
       // New Game
@@ -154,6 +142,13 @@ function showTitleScreen() {
       loadBtn.textContent = '💾 Load Game';
       loadBtn.addEventListener('click', () => showLoadScreen());
       screen.appendChild(loadBtn);
+
+      // Quick Match
+      const qmBtn = document.createElement('button');
+      qmBtn.className = 'title-btn secondary';
+      qmBtn.textContent = '⚡ Quick Match';
+      qmBtn.addEventListener('click', () => showQuickMatchOpponentSelect());
+      screen.appendChild(qmBtn);
 
       container.appendChild(screen);
     },
@@ -282,6 +277,211 @@ function showLoadScreen() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Quick Match screens
+// ──────────────────────────────────────────────────────────────────────────────
+
+function showQuickMatchOpponentSelect() {
+  const screen = { mount(c) { _buildQMOpponentSelect(c); }, unmount() {}, update() {} };
+  ScreenManager.clear(screen);
+  hideHUD();
+}
+
+function _buildQMOpponentSelect(container) {
+  container.innerHTML = '';
+  const root = document.createElement('div');
+  root.className = 'qm-screen fade-in';
+
+  root.innerHTML = `
+    <div class="qm-header">
+      <h2 class="qm-title">⚡ Quick Match</h2>
+      <p class="qm-subtitle">Choose your opponent</p>
+    </div>
+  `;
+
+  const grid = document.createElement('div');
+  grid.className = 'qm-opponent-grid';
+
+  const diffColors = ['', '#4a9a4a', '#c09030', '#c04040'];
+  QUICK_MATCH_OPPONENTS.forEach(opp => {
+    const card = document.createElement('div');
+    card.className = 'qm-opponent-card';
+    const stars = '★'.repeat(opp.difficulty) + '☆'.repeat(3 - opp.difficulty);
+    card.innerHTML = `
+      <div class="qm-opp-portrait">${opp.portrait}</div>
+      <div class="qm-opp-name">${opp.name}</div>
+      <div class="qm-opp-difficulty" style="color:${diffColors[opp.difficulty]}">${stars} ${opp.difficultyLabel}</div>
+      <div class="qm-opp-desc">${opp.description}</div>
+      <div class="qm-opp-challenge">Challenge ▶</div>
+    `;
+    card.addEventListener('click', () => showQuickMatchDeckSelect(opp.npcId));
+    grid.appendChild(card);
+  });
+
+  root.appendChild(grid);
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'title-btn secondary';
+  backBtn.textContent = '← Back';
+  backBtn.addEventListener('click', () => showTitleScreen());
+  root.appendChild(backBtn);
+
+  container.appendChild(root);
+}
+
+function showQuickMatchDeckSelect(npcId) {
+  const screen = { mount(c) { _buildQMDeckSelect(c, npcId); }, unmount() {}, update() {} };
+  ScreenManager.clear(screen);
+}
+
+function _buildQMDeckSelect(container, npcId) {
+  const opp = QUICK_MATCH_OPPONENTS.find(o => o.npcId === npcId);
+  container.innerHTML = '';
+  const root = document.createElement('div');
+  root.className = 'qm-screen fade-in';
+
+  root.innerHTML = `
+    <div class="qm-header">
+      <h2 class="qm-title">Select Starter Deck</h2>
+      <p class="qm-subtitle">vs <span class="qm-vs-label">${opp?.portrait ?? '?'} ${opp?.name ?? 'Opponent'}</span></p>
+    </div>
+  `;
+
+  const deckGrid = document.createElement('div');
+  deckGrid.className = 'qm-deck-grid';
+
+  STARTER_DECKS.forEach(deck => {
+    const card = document.createElement('div');
+    card.className = 'qm-deck-card';
+    card.style.setProperty('--deck-color', deck.color);
+    card.innerHTML = `
+      <div class="qm-deck-art">${deck.art}</div>
+      <div class="qm-deck-name">${deck.name}</div>
+      <div class="qm-deck-desc">${deck.description}</div>
+      <div class="qm-deck-counts">
+        <span>🐉 ${deck.elites.length} elites</span>
+        <span>✨ ${deck.summons.length} summons</span>
+        <span>🔮 ${deck.spells.length} spells</span>
+      </div>
+      <div class="qm-deck-cta">Preview Deck ▶</div>
+    `;
+    card.addEventListener('click', () => showQuickMatchDeckPreview(npcId, deck));
+    deckGrid.appendChild(card);
+  });
+
+  root.appendChild(deckGrid);
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'title-btn secondary';
+  backBtn.textContent = '← Back';
+  backBtn.addEventListener('click', () => showQuickMatchOpponentSelect());
+  root.appendChild(backBtn);
+
+  container.appendChild(root);
+}
+
+function showQuickMatchDeckPreview(npcId, deckConfig) {
+  const screen = { mount(c) { _buildQMDeckPreview(c, npcId, deckConfig); }, unmount() {}, update() {} };
+  ScreenManager.clear(screen);
+}
+
+function _buildQMDeckPreview(container, npcId, deckConfig) {
+  const opp = QUICK_MATCH_OPPONENTS.find(o => o.npcId === npcId);
+  container.innerHTML = '';
+  const root = document.createElement('div');
+  root.className = 'qm-screen qm-preview-screen fade-in';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'qm-header';
+  header.innerHTML = `
+    <h2 class="qm-title">${deckConfig.art} ${deckConfig.name} — Deck List</h2>
+    <p class="qm-subtitle">vs ${opp?.portrait ?? ''} ${opp?.name ?? 'Opponent'} · ${deckConfig.description}</p>
+  `;
+  root.appendChild(header);
+
+  // Scrollable card content
+  const content = document.createElement('div');
+  content.className = 'qm-preview-content';
+
+  const sections = [
+    { label: '⚔️ Champions',      cards: deckConfig.champions, type: 'champion' },
+    { label: '🐉 Elite Summons',  cards: deckConfig.elites,    type: 'elite'    },
+    { label: '✨ Summon Cards',   cards: deckConfig.summons,   type: 'summon'   },
+    { label: '🔮 Spell Cards',    cards: deckConfig.spells,    type: 'spell'    },
+  ];
+
+  sections.forEach(({ label, cards, type }) => {
+    if (!cards?.length) return;
+
+    // Deduplicate by cardId, count copies
+    const grouped = [];
+    const seen = new Map();
+    cards.forEach(card => {
+      if (seen.has(card.cardId)) { seen.get(card.cardId).count++; }
+      else { const entry = { card, count: 1 }; seen.set(card.cardId, entry); grouped.push(entry); }
+    });
+
+    const sec = document.createElement('div');
+    sec.className = 'qm-card-section';
+
+    const title = document.createElement('div');
+    title.className = 'qm-section-title';
+    title.textContent = `${label}  (${cards.length})`;
+    sec.appendChild(title);
+
+    const cardGrid = document.createElement('div');
+    cardGrid.className = 'qm-cards-grid';
+
+    grouped.forEach(({ card, count }) => {
+      const item = document.createElement('div');
+      item.className = `qm-card-item qm-card-${type}`;
+
+      let stats = '';
+      if (type === 'champion') stats = `HP ${card.hp}`;
+      else if (type === 'elite')  stats = `HP ${card.hp} · ⚔ ${card.power}`;
+      else if (type === 'summon') stats = `Cost ${card.summonCost} · HP ${card.hp} · ⚔ ${card.power}`;
+      else if (type === 'spell')  stats = card.description ?? '';
+
+      item.innerHTML = `
+        <div class="qm-ci-art">${card.art ?? '?'}</div>
+        <div class="qm-ci-name">${card.name}</div>
+        <div class="qm-ci-stats">${stats}</div>
+        ${count > 1 ? `<div class="qm-ci-count">×${count}</div>` : ''}
+      `;
+      cardGrid.appendChild(item);
+    });
+
+    sec.appendChild(cardGrid);
+    content.appendChild(sec);
+  });
+
+  root.appendChild(content);
+
+  // Action buttons
+  const actions = document.createElement('div');
+  actions.className = 'qm-preview-actions';
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'title-btn';
+  confirmBtn.textContent = '✓ Confirm & Begin Match';
+  confirmBtn.addEventListener('click', () => {
+    _quickMatchActive = true;
+    hideHUD();
+    EventBus.emit('cardgame:start', { npcId, deck: deckConfig });
+  });
+  actions.appendChild(confirmBtn);
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'title-btn secondary';
+  backBtn.textContent = '← Back to Deck Selection';
+  backBtn.addEventListener('click', () => showQuickMatchDeckSelect(npcId));
+  actions.appendChild(backBtn);
+
+  root.appendChild(actions);
+  container.appendChild(root);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Game entry points
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -344,6 +544,10 @@ function setupGlobalEvents() {
     showTitleScreen();
   });
 
+  // Hide/restore HUD during card game
+  EventBus.on('hud:hide', () => document.getElementById('hud').classList.add('hidden'));
+  EventBus.on('hud:show', () => { if (GameState.player.name) document.getElementById('hud').classList.remove('hidden'); });
+
   // Toast notifications
   const toastContainer = document.createElement('div');
   toastContainer.className = 'toast-container';
@@ -355,7 +559,25 @@ function setupGlobalEvents() {
   });
 
   // Update HUD whenever gold/level changes
-  EventBus.on('cardgame:result',     () => updateHUD());
+  EventBus.on('cardgame:result',     ({ win, npcId }) => {
+    updateHUD();
+    if (_quickMatchActive) {
+      // Quick match: pop card game screen, return to opponent select
+      _quickMatchActive = false;
+      setTimeout(() => {
+        EventBus.emit('screen:pop');
+        setTimeout(() => showQuickMatchOpponentSelect(), 200);
+      }, 100);
+    } else {
+      // Story mode: pop frozen dialogue screen, then start post-game dialogue
+      setTimeout(() => {
+        EventBus.emit('screen:pop');
+        setTimeout(() => {
+          EventBus.emit('dialogue:start', { npcId, nodeOverride: win ? 'post_win' : 'post_lose' });
+        }, 200);
+      }, 100);
+    }
+  });
   EventBus.on('shop:purchased',      () => updateHUD());
   EventBus.on('quest:completed',     () => updateHUD());
   EventBus.on('screen:changed',      () => updateHUD());

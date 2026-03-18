@@ -1,372 +1,776 @@
 /**
- * CardSystem — pure card game logic (no rendering).
- * Drives the state machine in GameState.cardGame.
+ * CardSystem — Grid-based tactical card game logic.
  *
- * Listens:
- *   cardgame:start           { npcId }
- *   cardgame:player:playCard  { cardIdx }
- *   cardgame:player:endTurn   {}
- *   cardgame:surrender        {}
+ * Phases: initialize → draw → conjure → strategy → end → (opponent turn) → draw …
  *
- * Emits:
- *   cardgame:stateChanged  {}
- *   cardgame:floatText     { x, y, text, color }
- *   cardgame:result        { win, npcId }
- *   screen:push            (CardGameScreen)
- *   screen:pop             ()
+ * Initialize sub-steps:
+ *   place_champions → place_elites → done
+ *
+ * Strategy: every player elite may act (attack OR retreat) once per turn.
+ * Phase auto-advances: draw→conjure, end→opponent.
  */
-import EventBus  from '../EventBus.js';
-import GameState from '../GameState.js';
-import { CARDS, NPCS } from '../Data.js';
+import EventBus from '../EventBus.js';
+import { CHAMPION_CARDS, ELITE_CARD_DECK, SUMMON_CARD_DECK, SPELL_CARD_DECK } from '../Data.js';
 
-function buildCardMap(cards) {
-  const m = {};
-  cards.forEach(c => { m[c.cardId] = c; });
-  return m;
+const ROWS = 6;
+const COLS = 5;
+const PLAYER_ROW  = 5;
+const OPP_ROW     = 0;
+const P_ELITE_ROW = 4;
+const O_ELITE_ROW = 1;
+
+let _uid = 0;
+function uid()   { return `c${++_uid}`; }
+function inst(t) {
+  const hasSummons = t.type === 'elite' || t.type === 'champion';
+  return { ...t, iid: uid(), hp: t.hp ?? undefined, maxHp: t.hp ?? undefined,
+    summons: hasSummons ? [] : undefined };
 }
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
+function shuffle(a) {
+  const b = [...a];
+  for (let i = b.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [b[i], b[j]] = [b[j], b[i]];
   }
-  return a;
+  return b;
+}
+function rollD6() { return Math.floor(Math.random() * 6) + 1; }
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function gridElite(s, row, col) {
+  const c = s.grid[row]?.[col];
+  return c?.type === 'elite' ? c : null;
+}
+function findEliteOnGrid(s, owner) {
+  const out = [];
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (s.grid[r][c]?.type === 'elite' && s.grid[r][c]?.owner === owner)
+        out.push({ row: r, col: c, elite: s.grid[r][c] });
+  return out;
+}
+function totalPower(elite) {
+  const ep = (elite.power ?? 0) + (elite.tempPowerBonus ?? 0);
+  return Math.max(0, ep) + (elite.summons ?? []).reduce((s, c) => s + (c.power ?? 0), 0);
+}
+function allElitesActed(s) {
+  const elites = findEliteOnGrid(s, 'player');
+  return elites.length > 0 && elites.every(({ elite }) => s.strategy.actedIids.has(elite.iid));
+}
+function log(s, msg) {
+  s.log.push(msg);
+  if (s.log.length > 30) s.log.shift();
 }
 
-const AI_THINK_DELAY = 900; // ms
+// ── State factory ──────────────────────────────────────────────────────────────
+function makeState(npcId, deckOverride) {
+  const elites  = deckOverride?.elites  ?? ELITE_CARD_DECK;
+  const summons = deckOverride?.summons ?? SUMMON_CARD_DECK;
+  const spells  = deckOverride?.spells  ?? SPELL_CARD_DECK;
+  return {
+    npcId,
+    grid: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
 
+    playerChampions:   [],
+    opponentChampions: [],
+
+    playerEliteDeck:    shuffle(elites.map(inst)),
+    playerSummonDeck:   shuffle(summons.map(inst)),
+    playerSpellDeck:    shuffle(spells.map(t => ({ ...t, iid: uid() }))),
+    opponentEliteDeck:  shuffle(ELITE_CARD_DECK.map(inst)),
+    opponentSummonDeck: shuffle(SUMMON_CARD_DECK.map(inst)),
+    opponentSpellDeck:  shuffle(SPELL_CARD_DECK.map(t => ({ ...t, iid: uid() }))),
+
+    // Hand starts with the 3 champion cards for placement
+    playerHand:   CHAMPION_CARDS.map(inst),
+    opponentHand: [],
+    playerCrypt:  [],
+    opponentCrypt:[],
+
+    phase:       'initialize',
+    initSubStep: 'place_champions',   // place_champions | place_elites | done
+
+    diceResult:   null,
+    diceRolled:   false,
+    matchingHand: [],
+    pendingSpell: null,
+
+    strategy: {
+      selectedRow: null,
+      selectedCol: null,
+      ralliedIids: new Set(),
+      actedIids:   new Set(),   // elites that have attacked or retreated this turn
+      attackMode:  false,
+    },
+
+    log:        [],
+    turnNumber: 1,
+    gameOver:   false,
+    winner:     null,
+  };
+}
+
+// ── CardSystem ─────────────────────────────────────────────────────────────────
 const CardSystem = {
-  _cardMap: {},
-  _aiTimeout: null,
-  _CardGameScreen: null,
+  state: null,
+  _screen: null,
 
-  setCardGameScreen(screen) {
-    this._CardGameScreen = screen;
-  },
+  setCardGameScreen(screen) { this._screen = screen; },
 
   init() {
-    this._cardMap = buildCardMap(CARDS);
-
-    EventBus.on('cardgame:start',           (d) => this._startGame(d.npcId));
-    EventBus.on('cardgame:player:playCard',  (d) => this._playerPlayCard(d.cardIdx));
-    EventBus.on('cardgame:player:endTurn',   ()  => this._playerEndTurn());
-    EventBus.on('cardgame:surrender',        ()  => this._surrender());
+    EventBus.on('cardgame:start',           (d) => this._startGame(d.npcId, d.deck));
+    EventBus.on('cardgame:placeChampion',   (d) => this._placeChampion(d.col, d.handIdx));
+    EventBus.on('cardgame:placeElite',      (d) => this._placeElite(d.handIdx, d.col));
+    EventBus.on('cardgame:rollDice',        ()  => this._rollDice());
+    EventBus.on('cardgame:stackOnChampion', (d) => this._stackOnChampion(d.handIdx, d.col));
+    EventBus.on('cardgame:playFromChampion',(d) => this._playFromChampion(d.champCol, d.summonIdx, d.eliteRow, d.eliteCol));
+    EventBus.on('cardgame:playToElite',     (d) => this._playToElite(d.handIdx, d.row, d.col));
+    EventBus.on('cardgame:playSpell',       (d) => this._playSpell(d.handIdx));
+    EventBus.on('cardgame:spellTarget',     (d) => this._spellTarget(d.row, d.col));
+    EventBus.on('cardgame:cancelSpell',     ()  => this._cancelSpell());
+    EventBus.on('cardgame:selectElite',     (d) => this._selectElite(d.row, d.col));
+    EventBus.on('cardgame:rally',           (d) => this._rally(d.direction));
+    EventBus.on('cardgame:retreat',         ()  => this._retreat());
+    EventBus.on('cardgame:enableAttack',    ()  => this._enableAttack());
+    EventBus.on('cardgame:attackTarget',    (d) => this._attackTarget(d.row, d.col));
+    EventBus.on('cardgame:nextPhase',       ()  => this._nextPhase());
+    EventBus.on('cardgame:surrender',       ()  => this._endGame(false));
   },
 
-  _startGame(npcId) {
-    const npc = NPCS.find(n => n.id === npcId);
-    const opponentDeck = shuffle(npc?.deck ?? this._defaultOpponentDeck());
-    const playerDeck   = shuffle([...GameState.deck.activeDeck]);
+  // ── Initialize ──────────────────────────────────────────────────────────────
 
-    const cg = GameState.cardGame;
-    cg.active          = true;
-    cg.opponentNpcId   = npcId;
-    cg.playerDeck      = playerDeck;
-    cg.opponentDeck    = opponentDeck;
-    cg.playerHand      = [];
-    cg.opponentHand    = [];
-    cg.playerDiscard   = [];
-    cg.opponentDiscard = [];
-    cg.playerHP        = 20;
-    cg.opponentHP      = 20;
-    cg.playerMaxHP     = 20;
-    cg.opponentMaxHP   = 20;
-    cg.playerMana      = 1;
-    cg.playerMaxMana   = 1;
-    cg.opponentMana    = 1;
-    cg.opponentMaxMana = 1;
-    cg.playerShield    = 0;
-    cg.opponentShield  = 0;
-    cg.turn            = 'player';
-    cg.turnNumber      = 1;
-    cg.log             = [`Duel vs ${npc?.name ?? npcId} begins!`];
-    cg.selectedCardIdx = null;
+  _startGame(npcId, deckOverride) {
+    _uid = 0;
+    this.state = makeState(npcId, deckOverride);
+    const s = this.state;
 
-    // Draw initial hands (5 cards each)
-    for (let i = 0; i < 5; i++) {
-      this._drawCard('player');
-      this._drawCard('opponent');
+    // Opponent setup (champions cols 1-3, elites in front, 6-card hand)
+    [1, 2, 3].forEach((col, i) => {
+      const ch = inst(CHAMPION_CARDS[i]);
+      ch.col = col; ch.owner = 'opponent';
+      s.opponentChampions.push(ch);
+    });
+    s.opponentChampions.forEach(ch => {
+      const el = s.opponentEliteDeck.shift();
+      el.owner = 'opponent'; el.row = O_ELITE_ROW; el.col = ch.col;
+      s.grid[O_ELITE_ROW][ch.col] = el;
+    });
+    for (let i = 0; i < 6; i++) {
+      const c = s.opponentSummonDeck.shift();
+      if (c) s.opponentHand.push(c);
     }
 
-    EventBus.emit('screen:push', { screen: this._CardGameScreen, params: { npcId } });
-    EventBus.emit('cardgame:stateChanged');
+    log(s, 'Game started! Drag your 3 champions to the bottom row.');
+    if (this._screen) EventBus.emit('screen:push', { screen: this._screen, params: { npcId } });
+    this._emit();
   },
 
-  _drawCard(who) {
-    const cg = GameState.cardGame;
-    const deck    = who === 'player' ? cg.playerDeck    : cg.opponentDeck;
-    const hand    = who === 'player' ? cg.playerHand    : cg.opponentHand;
-    const discard = who === 'player' ? cg.playerDiscard : cg.opponentDiscard;
+  _placeChampion(col, handIdx) {
+    const s = this.state;
+    if (s.phase !== 'initialize' || s.initSubStep !== 'place_champions') return;
+    if (col < 0 || col >= COLS) return;
+    if (s.playerChampions.find(c => c.col === col)) { log(s, 'Column already taken.'); this._emit(); return; }
+    if (handIdx === undefined || handIdx === null) return;
 
-    if (deck.length === 0) {
-      if (discard.length === 0) return false; // no cards left
-      // Reshuffle discard
-      const reshuffled = shuffle(discard);
-      if (who === 'player') { cg.playerDeck = reshuffled; cg.playerDiscard = []; }
-      else { cg.opponentDeck = reshuffled; cg.opponentDiscard = []; }
-      return this._drawCard(who);
+    const card = s.playerHand[handIdx];
+    if (!card || card.type !== 'champion') { log(s, 'Select a champion card.'); this._emit(); return; }
+
+    const ch = s.playerHand.splice(handIdx, 1)[0];
+    ch.col = col; ch.owner = 'player';
+    s.playerChampions.push(ch);
+    log(s, `${ch.name} placed in column ${col + 1}.`);
+
+    if (s.playerChampions.length === 3) this._afterChampionsPlaced();
+    this._emit();
+  },
+
+  _afterChampionsPlaced() {
+    const s = this.state;
+    s.initSubStep = 'place_elites';
+    for (let i = 0; i < 3; i++) {
+      const el = s.playerEliteDeck.shift();
+      if (el) { el.owner = 'player'; s.playerHand.push(el); }
+    }
+    log(s, 'Champions placed! Drag your elite cards in front of each champion.');
+  },
+
+  _placeElite(handIdx, col) {
+    const s = this.state;
+    if (s.gameOver) return;
+    // Allow during init (place_elites step) OR any mid-game phase when an elite is in hand
+    const isInit = s.phase === 'initialize' && s.initSubStep === 'place_elites';
+    const isMidGame = s.phase !== 'initialize';
+    if (!isInit && !isMidGame) return;
+    if (col < 0 || col >= COLS) return;
+
+    const card = s.playerHand[handIdx];
+    if (!card || card.type !== 'elite') { log(s, 'Select an elite card.'); this._emit(); return; }
+    if (!s.playerChampions.find(c => c.col === col)) { log(s, 'No champion in that column.'); this._emit(); return; }
+    if (s.grid[P_ELITE_ROW][col]) { log(s, 'Elite already placed here.'); this._emit(); return; }
+
+    const el = s.playerHand.splice(handIdx, 1)[0];
+    el.row = P_ELITE_ROW; el.col = col;
+    s.grid[P_ELITE_ROW][col] = el;
+    log(s, `${el.name} placed in column ${col + 1}.`);
+
+    if (s.phase === 'initialize') {
+      const allPlaced = s.playerChampions.every(ch => s.grid[P_ELITE_ROW][ch.col]);
+      if (allPlaced) this._finishInitialize();
+    }
+    this._emit();
+  },
+
+  _finishInitialize() {
+    const s = this.state;
+    s.initSubStep = 'done';
+    for (let i = 0; i < 6; i++) {
+      const c = s.playerSummonDeck.shift();
+      if (c) s.playerHand.push(c);
+    }
+    log(s, 'All placed! Starting first turn…');
+    this._emit();
+    EventBus.emit('cardgame:beginMatch');
+    const thisState = this.state;
+    setTimeout(() => {
+      if (this.state === thisState) this._nextPhase();  // init → draw (auto-advances to conjure)
+    }, 2200);
+  },
+
+  // ── Conjure Phase ─────────────────────────────────────────────────────────────
+
+  _rollDice() {
+    const s = this.state;
+    if (s.phase !== 'conjure') return;
+    if (s.diceRolled) { log(s, 'Already rolled. Play a Second Wind to roll again.'); this._emit(); return; }
+
+    const d1 = rollD6(), d2 = rollD6();
+    const total = d1 + d2;
+    s.diceResult = [d1, d2];
+    s.diceRolled = true;
+
+    if (total === 7) {
+      const spell = s.playerSpellDeck.shift();
+      if (spell) { s.playerHand.push(spell); log(s, `🎲 ${d1}+${d2}=7 — Arcane surge! Drew: ${spell.name}.`); }
+      else log(s, `🎲 ${d1}+${d2}=7 — Arcane surge! (Spell deck empty.)`);
+      s.matchingHand = [];
+    } else {
+      s.matchingHand = s.playerHand
+        .map((c, i) => (c.type === 'summon' && c.summonCost === total) ? i : -1)
+        .filter(i => i !== -1);
+      log(s, `🎲 ${d1}+${d2}=${total}. ${s.matchingHand.length} summon card(s) match!`);
+    }
+    this._emit();
+  },
+
+  _playToElite(handIdx, row, col) {
+    const s = this.state;
+    if (s.phase !== 'conjure') return;
+    if (!s.diceResult) { log(s, 'Roll the dice first!'); this._emit(); return; }
+    if (!s.matchingHand.includes(handIdx)) { log(s, 'Card does not match the dice roll.'); this._emit(); return; }
+
+    const elite = gridElite(s, row, col);
+    if (!elite || elite.owner !== 'player') { log(s, 'Target must be a player elite.'); this._emit(); return; }
+
+    const card = s.playerHand.splice(handIdx, 1)[0];
+    elite.summons.push(card);
+    s.matchingHand = s.matchingHand.filter(i => i !== handIdx).map(i => i > handIdx ? i - 1 : i);
+    log(s, `${card.name} stacked under ${elite.name}.`);
+    this._emit();
+    EventBus.emit('cardgame:summonAssigned', { row, col, art: card.art ?? '✨', power: card.power ?? 0 });
+  },
+
+  _stackOnChampion(handIdx, col) {
+    const s = this.state;
+    if (s.phase !== 'conjure' || !s.diceResult) return;
+    if (!s.matchingHand.includes(handIdx)) { log(s, 'Card does not match dice roll.'); this._emit(); return; }
+    const champ = s.playerChampions.find(c => c.col === col);
+    if (!champ) return;
+    if (!champ.summons) champ.summons = [];
+    const card = s.playerHand.splice(handIdx, 1)[0];
+    champ.summons.push(card);
+    s.matchingHand = s.matchingHand.filter(i => i !== handIdx).map(i => i > handIdx ? i - 1 : i);
+    log(s, `${card.name} stacked on ${champ.name}. Click champion to assign to an elite.`);
+    this._emit();
+  },
+
+  _playFromChampion(champCol, summonIdx, eliteRow, eliteCol) {
+    const s = this.state;
+    const champ = s.playerChampions.find(c => c.col === champCol);
+    if (!champ?.summons?.[summonIdx]) return;
+    const elite = s.grid[eliteRow]?.[eliteCol];
+    if (!elite || elite.type !== 'elite' || elite.owner !== 'player') return;
+    const card = champ.summons.splice(summonIdx, 1)[0];
+    elite.summons.push(card);
+    log(s, `${card.name} assigned to ${elite.name}.`);
+    this._emit();
+    EventBus.emit('cardgame:summonAssigned', { row: eliteRow, col: eliteCol, art: card.art ?? '✨', power: card.power ?? 0 });
+  },
+
+  // ── Spell logic ───────────────────────────────────────────────────────────────
+
+  _playSpell(handIdx) {
+    const s = this.state;
+    if (s.phase !== 'conjure') return;
+    const card = s.playerHand[handIdx];
+    if (!card || card.type !== 'spell') return;
+
+    if (card.needsTarget) {
+      s.pendingSpell = { handIdx, card };
+      log(s, `${card.name}: ${card.description} — Click a target.`);
+      this._emit();
+    } else {
+      s.playerHand.splice(handIdx, 1);
+      s.matchingHand = s.matchingHand.filter(i => i !== handIdx).map(i => i > handIdx ? i - 1 : i);
+      this._applySpellEffect(card.effect, null, null);
+      log(s, `Cast ${card.name}!`);
+      this._emit();
+    }
+  },
+
+  _spellTarget(row, col) {
+    const s = this.state;
+    if (!s.pendingSpell) return;
+    const { handIdx, card } = s.pendingSpell;
+    const needsTarget = card.needsTarget;
+
+    if (needsTarget === 'player_elite') {
+      const e = gridElite(s, row, col);
+      if (!e || e.owner !== 'player') { log(s, 'Invalid target — click a player elite.'); this._emit(); return; }
+    } else if (needsTarget === 'player_champion') {
+      if (row !== PLAYER_ROW) { log(s, 'Invalid target — click a player champion.'); this._emit(); return; }
+      if (!s.playerChampions.find(c => c.col === col)) { log(s, 'No champion there.'); this._emit(); return; }
+    } else if (needsTarget === 'opponent_elite') {
+      const e = gridElite(s, row, col);
+      if (!e || e.owner !== 'opponent') { log(s, 'Invalid target — click an opponent elite.'); this._emit(); return; }
     }
 
-    hand.push(deck.shift());
-    return true;
+    s.playerHand.splice(handIdx, 1);
+    s.matchingHand = s.matchingHand.filter(i => i !== handIdx).map(i => i > handIdx ? i - 1 : i);
+    s.pendingSpell = null;
+    this._applySpellEffect(card.effect, row, col);
+    log(s, `Cast ${card.name}!`);
+    this._emit();
   },
 
-  _playerPlayCard(cardIdx) {
-    const cg = GameState.cardGame;
-    if (cg.turn !== 'player') return;
-    if (cardIdx < 0 || cardIdx >= cg.playerHand.length) return;
-
-    const cardId = cg.playerHand[cardIdx];
-    const card   = this._cardMap[cardId];
-    if (!card) return;
-
-    if (cg.playerMana < (card.manaCost ?? 0)) {
-      EventBus.emit('toast', { message: 'Not enough mana!', type: 'error' });
-      return;
-    }
-
-    // Spend mana, remove from hand
-    cg.playerMana -= card.manaCost ?? 0;
-    cg.playerHand.splice(cardIdx, 1);
-    cg.playerDiscard.push(cardId);
-    cg.selectedCardIdx = null;
-
-    this._resolveCard(card, 'player');
-    this._log(`You play ${card.name}.`);
-
-    this._checkWinLoss();
-    EventBus.emit('cardgame:stateChanged');
+  _cancelSpell() {
+    const s = this.state;
+    if (!s.pendingSpell) return;
+    log(s, `Cancelled ${s.pendingSpell.card.name}.`);
+    s.pendingSpell = null;
+    this._emit();
   },
 
-  _playerEndTurn() {
-    const cg = GameState.cardGame;
-    if (cg.turn !== 'player') return;
-
-    // Clear player shields at end of turn (only one-turn shields)
-    // cg.playerShield = 0;  // keep shields between turns for now
-
-    this._log('You end your turn.');
-    cg.turn = 'opponent';
-
-    EventBus.emit('cardgame:stateChanged');
-
-    // AI plays after a delay
-    clearTimeout(this._aiTimeout);
-    this._aiTimeout = setTimeout(() => this._aiTurn(), AI_THINK_DELAY);
-  },
-
-  _aiTurn() {
-    const cg = GameState.cardGame;
-    if (cg.turn !== 'opponent') return;
-
-    cg.turnNumber++;
-    cg.opponentMaxMana = Math.min(10, cg.opponentMaxMana + 1);
-    cg.opponentMana    = cg.opponentMaxMana;
-    this._drawCard('opponent');
-
-    // Play cards using AI priority
-    let played = 0;
-    const MAX_PLAYS = 3;
-
-    while (played < MAX_PLAYS && cg.opponentHand.length > 0) {
-      const choice = this._aiChooseCard();
-      if (choice === -1) break;
-
-      const cardId = cg.opponentHand[choice];
-      const card   = this._cardMap[cardId];
-      cg.opponentMana -= card.manaCost ?? 0;
-      cg.opponentHand.splice(choice, 1);
-      cg.opponentDiscard.push(cardId);
-
-      this._resolveCard(card, 'opponent');
-      this._log(`Opponent plays ${card.name}.`);
-      played++;
-
-      if (this._checkWinLoss()) return;
-    }
-
-    this._log('Opponent ends their turn.');
-    // Switch back to player
-    cg.turn = 'player';
-    cg.playerMaxMana = Math.min(10, cg.playerMaxMana + 1);
-    cg.playerMana    = cg.playerMaxMana;
-    this._drawCard('player');
-
-    EventBus.emit('cardgame:stateChanged');
-  },
-
-  _aiChooseCard() {
-    const cg = GameState.cardGame;
-    const hand = cg.opponentHand;
-    if (!hand.length) return -1;
-
-    // Build playable cards list
-    const playable = hand
-      .map((cardId, idx) => ({ cardId, idx, card: this._cardMap[cardId] }))
-      .filter(({ card }) => card && (card.manaCost ?? 0) <= cg.opponentMana);
-
-    if (!playable.length) return -1;
-
-    // Priority: attack if player low HP, defend if own HP low, else highest power
-    const attacks = playable.filter(({ card }) => card.type === 'attack');
-    const defends = playable.filter(({ card }) => card.type === 'defense' || card.type === 'heal');
-
-    if (cg.playerHP <= 5 && attacks.length) {
-      // Go for the kill
-      return attacks.reduce((best, cur) =>
-        (cur.card.power ?? 0) > (best.card.power ?? 0) ? cur : best
-      ).idx;
-    }
-
-    if (cg.opponentHP <= 8 && defends.length) {
-      return defends[0].idx;
-    }
-
-    // Play highest-power affordable card
-    return playable.reduce((best, cur) =>
-      (cur.card.power ?? 0) > (best.card.power ?? 0) ? cur : best
-    ).idx;
-  },
-
-  _resolveCard(card, who) {
-    const cg = GameState.cardGame;
-    const effect = card.effect;
-    if (!effect) return;
-
-    const isPlayer = who === 'player';
-
+  _applySpellEffect(effect, row, col) {
+    const s = this.state;
     switch (effect.type) {
-      case 'damage': {
-        const target  = effect.target === 'opponent' ? (isPlayer ? 'opponent' : 'player') : (isPlayer ? 'player' : 'opponent');
-        const shield  = target === 'player' ? cg.playerShield : cg.opponentShield;
-        const damage  = Math.max(0, (effect.value ?? card.power ?? 0) - shield);
-        if (target === 'player')   cg.playerHP   = Math.max(0, cg.playerHP   - damage);
-        else                       cg.opponentHP = Math.max(0, cg.opponentHP - damage);
-        if (shield > 0) {
-          const absorbed = Math.min(shield, effect.value ?? card.power ?? 0);
-          if (target === 'player')   cg.playerShield   = Math.max(0, cg.playerShield   - absorbed);
-          else                       cg.opponentShield = Math.max(0, cg.opponentShield - absorbed);
+      case 'extra_roll':
+        s.diceResult = null; s.diceRolled = false; s.matchingHand = [];
+        log(s, 'Second Wind! Roll again.');
+        break;
+      case 'revive':
+        if (!s.playerCrypt.length) { log(s, 'Crypt is empty.'); break; }
+        const rev = s.playerCrypt.pop();
+        if (rev.maxHp !== undefined) rev.hp = rev.maxHp;
+        s.playerHand.push(rev);
+        log(s, `${rev.name} revived!`);
+        break;
+      case 'draw_cards':
+        let drew = 0;
+        for (let i = 0; i < (effect.count ?? 1); i++) {
+          const c = s.playerSummonDeck.shift();
+          if (c) { s.playerHand.push(c); drew++; }
         }
-        // Float text hint (approximate positions)
-        EventBus.emit('cardgame:floatText', {
-          x:     target === 'player' ? 120 : 600,
-          y:     target === 'player' ? 400 : 200,
-          text:  `-${damage}`,
-          color: '#ff4444',
-        });
+        log(s, `Drew ${drew} summon card(s).`);
+        break;
+      case 'boost_elite': {
+        const e = gridElite(s, row, col);
+        if (e) { e.tempPowerBonus = (e.tempPowerBonus ?? 0) + (effect.amount ?? 3); log(s, `${e.name} +${effect.amount} power!`); }
         break;
       }
-      case 'heal': {
-        const target = effect.target === 'self' ? who : (isPlayer ? 'opponent' : 'player');
-        const amount = effect.value ?? card.power ?? 0;
-        if (target === 'player') cg.playerHP   = Math.min(cg.playerMaxHP,   cg.playerHP   + amount);
-        else                     cg.opponentHP = Math.min(cg.opponentMaxHP, cg.opponentHP + amount);
-        EventBus.emit('cardgame:floatText', {
-          x: target === 'player' ? 120 : 600, y: target === 'player' ? 400 : 200,
-          text: `+${amount}`, color: '#4ab87c',
-        });
+      case 'heal_champion': {
+        const ch = s.playerChampions.find(c => c.col === col);
+        if (ch) { const b = ch.hp; ch.hp = Math.min(ch.maxHp, ch.hp + (effect.amount ?? 5)); log(s, `${ch.name} healed ${ch.hp - b} HP.`); }
         break;
       }
-      case 'shield': {
-        const amount = effect.value ?? card.power ?? 0;
-        if (isPlayer) cg.playerShield   += amount;
-        else          cg.opponentShield += amount;
-        EventBus.emit('cardgame:floatText', {
-          x: isPlayer ? 120 : 600, y: isPlayer ? 400 : 200,
-          text: `🛡+${amount}`, color: '#4ab0d0',
-        });
+      case 'teleport_elite': {
+        const e = gridElite(s, row, col);
+        if (!e) break;
+        let tCol = null;
+        const sc = s.playerChampions.find(c => c.col === e.col);
+        if (sc && !s.grid[P_ELITE_ROW][sc.col]) tCol = sc.col;
+        else for (const ch of s.playerChampions) { if (!s.grid[P_ELITE_ROW][ch.col]) { tCol = ch.col; break; } }
+        if (tCol === null) { log(s, 'No open front row.'); break; }
+        s.grid[e.row][e.col] = null;
+        e.row = P_ELITE_ROW; e.col = tCol;
+        s.grid[P_ELITE_ROW][tCol] = e;
+        log(s, `${e.name} teleported to col ${tCol + 1}!`);
         break;
       }
-      case 'draw': {
-        const count = effect.value ?? 1;
-        for (let i = 0; i < count; i++) this._drawCard(who);
+      case 'shield_elite': {
+        const e = gridElite(s, row, col);
+        if (e) { e.hp += (effect.amount ?? 5); e.maxHp += (effect.amount ?? 5); log(s, `${e.name} +${effect.amount} max HP!`); }
         break;
       }
-      case 'mana': {
-        const amount = effect.value ?? 1;
-        if (isPlayer) cg.playerMana   = Math.min(cg.playerMaxMana,   cg.playerMana   + amount);
-        else          cg.opponentMana = Math.min(cg.opponentMaxMana, cg.opponentMana + amount);
+      case 'weaken_elite': {
+        const e = gridElite(s, row, col);
+        if (e) { e.tempPowerBonus = (e.tempPowerBonus ?? 0) - (effect.amount ?? 3); log(s, `${e.name} -${effect.amount} power!`); }
         break;
+      }
+      default: log(s, `Unknown spell: ${effect.type}`);
+    }
+  },
+
+  // ── Strategy Phase ────────────────────────────────────────────────────────────
+
+  _selectElite(row, col) {
+    const s = this.state;
+    if (s.phase !== 'strategy') return;
+    const elite = gridElite(s, row, col);
+    if (!elite || elite.owner !== 'player') return;
+    if (s.strategy.actedIids.has(elite.iid)) return;  // already acted
+
+    if (s.strategy.selectedRow === row && s.strategy.selectedCol === col) {
+      s.strategy.selectedRow = null; s.strategy.selectedCol = null;
+      s.strategy.attackMode  = false;
+    } else {
+      s.strategy.selectedRow = row; s.strategy.selectedCol = col;
+      s.strategy.attackMode  = false;
+    }
+    this._emit();
+  },
+
+  _rally(direction) {
+    const s = this.state;
+    if (s.phase !== 'strategy') return;
+    const { selectedRow: row, selectedCol: col } = s.strategy;
+    if (row === null) { log(s, 'Select an elite first.'); this._emit(); return; }
+
+    const elite = gridElite(s, row, col);
+    if (!elite) return;
+    if (s.strategy.actedIids.has(elite.iid))   { log(s, 'This elite has already acted.'); this._emit(); return; }
+    if (s.strategy.ralliedIids.has(elite.iid)) { log(s, 'This elite has already rallied.'); this._emit(); return; }
+
+    const dr = { up: -1, down: 1, left: 0,  right: 0  }[direction] ?? 0;
+    const dc = { up: 0,  down: 0, left: -1, right: 1  }[direction] ?? 0;
+    const nr = row + dr, nc = col + dc;
+
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) { log(s, 'Cannot move outside grid.'); this._emit(); return; }
+    if (nr === PLAYER_ROW || nr === OPP_ROW)           { log(s, 'Elites cannot enter champion rows.'); this._emit(); return; }
+    if (s.grid[nr][nc] !== null)                       { log(s, 'Cell is occupied.'); this._emit(); return; }
+
+    s.grid[row][col] = null;
+    elite.row = nr; elite.col = nc;
+    s.grid[nr][nc] = elite;
+    s.strategy.ralliedIids.add(elite.iid);
+    s.strategy.selectedRow = nr;
+    s.strategy.selectedCol = nc;
+    log(s, `${elite.name} rallied ${direction}.`);
+    this._emit();
+  },
+
+  _retreat() {
+    const s = this.state;
+    if (s.phase !== 'strategy') return;
+    const { selectedRow: row, selectedCol: col } = s.strategy;
+    if (row === null) { log(s, 'Select an elite first.'); this._emit(); return; }
+
+    const elite = gridElite(s, row, col);
+    if (!elite) return;
+    if (s.strategy.actedIids.has(elite.iid)) { log(s, 'This elite has already acted.'); this._emit(); return; }
+    if (row > 2) { log(s, 'Retreat only available in opponent territory (rows 1-2).'); this._emit(); return; }
+
+    const nr = Math.min(row + 2, PLAYER_ROW - 1);
+    if (s.grid[nr][col] !== null) { log(s, 'Retreat path blocked.'); this._emit(); return; }
+
+    s.grid[row][col] = null;
+    elite.row = nr; elite.col = col;
+    s.grid[nr][col] = elite;
+    s.strategy.actedIids.add(elite.iid);
+    s.strategy.selectedRow = null;
+    s.strategy.selectedCol = null;
+    log(s, `${elite.name} retreated.`);
+
+    const thisState = this.state;
+    if (allElitesActed(s)) {
+      log(s, 'All elites have acted!');
+      this._emit();
+      setTimeout(() => { if (this.state === thisState) this._endStrategyPhase(); }, 600);
+    } else {
+      this._emit();
+    }
+  },
+
+  _enableAttack() {
+    const s = this.state;
+    if (s.phase !== 'strategy') return;
+    if (s.strategy.selectedRow === null) { log(s, 'Select an elite first.'); this._emit(); return; }
+    const elite = gridElite(s, s.strategy.selectedRow, s.strategy.selectedCol);
+    if (elite && s.strategy.actedIids.has(elite.iid)) { log(s, 'Elite has already acted.'); this._emit(); return; }
+    s.strategy.attackMode = true;
+    log(s, 'Attack mode: click a target.');
+    this._emit();
+  },
+
+  _attackTarget(row, col) {
+    const s = this.state;
+    if (s.phase !== 'strategy' || !s.strategy.attackMode) return;
+
+    const { selectedRow: aRow, selectedCol: aCol } = s.strategy;
+    if (aRow === null) return;
+
+    const attacker = gridElite(s, aRow, aCol);
+    if (!attacker) return;
+    if (s.strategy.actedIids.has(attacker.iid)) return;
+    const atkPow = totalPower(attacker);
+
+    const _markActed = () => {
+      s.strategy.actedIids.add(attacker.iid);
+      s.strategy.attackMode  = false;
+      s.strategy.selectedRow = null;
+      s.strategy.selectedCol = null;
+      const thisState = this.state;
+      if (!this._checkWin()) {
+        if (allElitesActed(s)) {
+          log(s, 'All elites have acted!');
+          this._emit();
+          setTimeout(() => { if (this.state === thisState) this._endStrategyPhase(); }, 600);
+        } else {
+          log(s, 'Select another elite to act.');
+          this._emit();
+        }
+      }
+    };
+
+    // ── Attack opponent elite ──────────────────────────────────────────────────
+    const target = gridElite(s, row, col);
+    if (target && target.owner === 'opponent') {
+      const adjVertical   = Math.abs(aRow - row) === 1 && aCol === col;
+      const adjHorizontal = aRow === row && Math.abs(aCol - col) === 1;
+      if (!adjVertical && !adjHorizontal) {
+        log(s, 'Must be adjacent (above/below or left/right) to attack an elite.'); this._emit(); return;
+      }
+      log(s, `${attacker.name} (${atkPow}) attacks ${target.name}!`);
+      EventBus.emit('cardgame:attackPerformed', { attackerRow: aRow, attackerCol: aCol, targetRow: row, targetCol: col, art: attacker.art ?? '⚔️' });
+      let dmg = atkPow;
+      while (dmg > 0 && target.summons.length > 0) {
+        const sm = target.summons[target.summons.length - 1];
+        if (dmg >= sm.hp) { dmg -= sm.hp; s.opponentCrypt.push(target.summons.pop()); log(s, `${sm.name} destroyed!`); }
+        else              { sm.hp -= dmg; dmg = 0; }
+      }
+      if (dmg > 0) {
+        target.hp -= dmg;
+        log(s, `${target.name} takes ${dmg}! (${Math.max(0, target.hp)}/${target.maxHp} HP)`);
+        if (target.hp <= 0) {
+          log(s, `${target.name} destroyed!`); s.opponentCrypt.push(target); s.grid[row][col] = null;
+          this._spawnOpponentElite(col);
+        }
+      }
+      _markActed(); return;
+    }
+
+    // ── Attack opponent champion ───────────────────────────────────────────────
+    if (row === OPP_ROW) {
+      const champ = s.opponentChampions.find(c => c.col === col);
+      if (!champ) { this._emit(); return; }
+      if (aRow !== OPP_ROW + 1 || aCol !== col) {
+        log(s, 'Must be in front of the champion to attack.'); this._emit(); return;
+      }
+      EventBus.emit('cardgame:attackPerformed', { attackerRow: aRow, attackerCol: aCol, targetRow: row, targetCol: col, art: attacker.art ?? '⚔️' });
+      champ.hp -= atkPow;
+      log(s, `${attacker.name} attacks ${champ.name} for ${atkPow}! (${Math.max(0,champ.hp)}/${champ.maxHp} HP)`);
+      if (champ.hp <= 0) {
+        log(s, `${champ.name} destroyed!`);
+        s.opponentChampions = s.opponentChampions.filter(c => c !== champ);
+        const ef = gridElite(s, O_ELITE_ROW, col);
+        if (ef?.owner === 'opponent') { s.opponentCrypt.push(ef); s.grid[O_ELITE_ROW][col] = null; }
+      }
+      _markActed(); return;
+    }
+
+    log(s, 'Invalid target.'); this._emit();
+  },
+
+  _spawnOpponentElite(col) {
+    const s = this.state;
+    if (!s.opponentEliteDeck.length) return;
+    for (const ch of s.opponentChampions) {
+      if (!s.grid[O_ELITE_ROW][ch.col]) {
+        const el = s.opponentEliteDeck.shift();
+        el.owner = 'opponent'; el.row = O_ELITE_ROW; el.col = ch.col;
+        s.grid[O_ELITE_ROW][ch.col] = el;
+        log(s, `Opponent draws ${el.name}!`);
+        return;
       }
     }
   },
 
-  _checkWinLoss() {
-    const cg = GameState.cardGame;
-    if (cg.opponentHP <= 0) {
-      this._endGame(true);
-      return true;
+  _spawnPlayerElite(col) {
+    const s = this.state;
+    if (!s.playerEliteDeck.length) { log(s, 'No more elite cards!'); return; }
+    const el = s.playerEliteDeck.shift();
+    el.owner = 'player';
+    s.playerHand.push(el);
+    log(s, `${el.name} drawn to hand — place it on a champion!`);
+  },
+
+  // ── Phase transitions ──────────────────────────────────────────────────────
+
+  _nextPhase() {
+    const s = this.state;
+    if (s.gameOver) return;
+    if (s.phase === 'initialize') {
+      if (s.initSubStep !== 'done') { log(s, 'Finish placing all cards first!'); this._emit(); return; }
+      s.phase = 'draw';
+      this._drawPhase();
+    } else if (s.phase === 'draw') {
+      s.phase = 'conjure'; s.diceResult = null; s.diceRolled = false;
+      s.matchingHand = []; s.pendingSpell = null;
+      log(s, 'Conjure Phase — roll the dice!');
+      this._emit();
+    } else if (s.phase === 'conjure') {
+      s.pendingSpell = null;
+      s.phase = 'strategy';
+      s.strategy = { selectedRow: null, selectedCol: null, ralliedIids: new Set(), actedIids: new Set(), attackMode: false };
+      log(s, 'Strategy Phase — select an elite to act.');
+      this._emit();
+    } else if (s.phase === 'strategy') {
+      this._endStrategyPhase();
+    } else if (s.phase === 'end') {
+      this._opponentTurn();
     }
-    if (cg.playerHP <= 0) {
-      this._endGame(false);
-      return true;
+  },
+
+  _drawPhase() {
+    const s = this.state;
+    // Clear temp bonuses at start of each player turn
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (s.grid[r]?.[c]) delete s.grid[r][c].tempPowerBonus;
+
+    const card = s.playerSummonDeck.shift();
+    if (card) { s.playerHand.push(card); log(s, `Drew: ${card.name} (Cost ${card.summonCost}).`); }
+    else log(s, 'Summon deck empty!');
+    EventBus.emit('cardgame:cardDrawn');
+    this._emit();
+
+    // Auto-advance to conjure
+    const thisState = this.state;
+    setTimeout(() => {
+      if (this.state === thisState && s.phase === 'draw') this._nextPhase();
+    }, 800);
+  },
+
+  _endStrategyPhase() {
+    const s = this.state;
+    s.strategy = { selectedRow: null, selectedCol: null, ralliedIids: new Set(), actedIids: new Set(), attackMode: false };
+    s.phase = 'end';
+    log(s, 'End Phase — passing to opponent…');
+    this._emit();
+    const thisState = this.state;
+    setTimeout(() => {
+      if (this.state === thisState && s.phase === 'end') this._opponentTurn();
+    }, 800);
+  },
+
+  // ── Opponent AI ───────────────────────────────────────────────────────────────
+
+  _opponentTurn() {
+    const s = this.state;
+    log(s, '── Opponent\'s Turn ──');
+
+    const card = s.opponentSummonDeck.shift();
+    if (card) s.opponentHand.push(card);
+
+    const d1 = rollD6(), d2 = rollD6(), total = d1 + d2;
+    log(s, `Opponent rolls: ${d1}+${d2}=${total}`);
+    if (total !== 7) {
+      s.opponentHand.filter(c => c.type === 'summon' && c.summonCost === total).forEach(card => {
+        const elites = findEliteOnGrid(s, 'opponent');
+        if (!elites.length) return;
+        const t = elites.reduce((a, b) => a.elite.summons.length <= b.elite.summons.length ? a : b);
+        t.elite.summons.push(card);
+        s.opponentHand = s.opponentHand.filter(c => c !== card);
+        log(s, `Opponent summons ${card.name}.`);
+      });
+    } else {
+      const spell = s.opponentSpellDeck.shift();
+      if (spell) log(s, `Opponent drew spell: ${spell.name}.`);
     }
-    // Check deck depletion — loss if player has no cards and hand is empty
-    if (cg.playerHand.length === 0 && cg.playerDeck.length === 0 && cg.playerDiscard.length === 0) {
-      this._endGame(false);
-      return true;
+
+    const oppElites = findEliteOnGrid(s, 'opponent').sort((a, b) => b.row - a.row);
+    let attacked = false;
+    for (const { row, col, elite } of oppElites) {
+      if (attacked) break;
+      const atkPow = totalPower(elite);
+      const nextRow = row + 1;
+
+      if (row === P_ELITE_ROW) {
+        const pChamp = s.playerChampions.find(c => c.col === col);
+        if (pChamp) {
+          pChamp.hp -= atkPow;
+          log(s, `${elite.name} attacks your ${pChamp.name} for ${atkPow}! (${Math.max(0,pChamp.hp)}/${pChamp.maxHp} HP)`);
+          if (pChamp.hp <= 0) { log(s, `${pChamp.name} defeated!`); s.playerChampions = s.playerChampions.filter(c => c !== pChamp); }
+          attacked = true; if (this._checkWin()) return; continue;
+        }
+      }
+
+      const pElite = nextRow < ROWS ? gridElite(s, nextRow, col) : null;
+      if (pElite?.owner === 'player') {
+        let dmg = atkPow;
+        while (dmg > 0 && pElite.summons.length > 0) {
+          const sm = pElite.summons[pElite.summons.length - 1];
+          if (dmg >= sm.hp) { dmg -= sm.hp; s.playerCrypt.push(pElite.summons.pop()); log(s, `Your ${sm.name} destroyed!`); }
+          else              { sm.hp -= dmg; dmg = 0; }
+        }
+        if (dmg > 0) {
+          pElite.hp -= dmg;
+          log(s, `${elite.name} attacks your ${pElite.name} for ${dmg}! (${Math.max(0,pElite.hp)}/${pElite.maxHp} HP)`);
+          if (pElite.hp <= 0) {
+            log(s, `Your ${pElite.name} destroyed!`); s.playerCrypt.push(pElite);
+            s.grid[nextRow][col] = null; this._spawnPlayerElite(col);
+          }
+        }
+        attacked = true; if (this._checkWin()) return; continue;
+      }
+
+      if (nextRow < PLAYER_ROW && s.grid[nextRow][col] === null) {
+        s.grid[row][col] = null; elite.row = nextRow; elite.col = col;
+        s.grid[nextRow][col] = elite; log(s, `${elite.name} advances.`);
+      }
     }
+
+    s.turnNumber++; s.phase = 'draw';
+    log(s, `── Your Turn (round ${s.turnNumber}) ──`);
+    this._drawPhase();
+  },
+
+  // ── Win condition ──────────────────────────────────────────────────────────
+
+  _checkWin() {
+    const s = this.state;
+    if (s.opponentChampions.length === 0) { this._endGame(true);  return true; }
+    if (s.playerChampions.length   === 0) { this._endGame(false); return true; }
+    const hasOppElites = findEliteOnGrid(s, 'opponent').length > 0;
+    if (!hasOppElites && !s.opponentEliteDeck.length) { this._endGame(true);  return true; }
+    const hasPlrElites = findEliteOnGrid(s, 'player').length > 0;
+    if (!hasPlrElites && !s.playerEliteDeck.length)   { this._endGame(false); return true; }
     return false;
   },
 
   _endGame(win) {
-    const cg = GameState.cardGame;
-    cg.active = false;
-
-    this._log(win ? 'You win!' : 'You lose...');
-    EventBus.emit('cardgame:stateChanged');
-
-    const npcId = cg.opponentNpcId;
-    EventBus.emit('cardgame:result', { win, npcId });
-
-    // Show result modal then pop
+    const s = this.state;
+    s.gameOver = true; s.winner = win ? 'player' : 'opponent'; s.phase = 'gameover';
+    log(s, win ? '🎉 Victory!' : '💀 Defeat!');
+    EventBus.emit('cardgame:gameOver', { win });
+    this._emit();
+    const npcId = s.npcId;
     setTimeout(() => {
-      const msg = win
-        ? `You defeated ${npcId}! Victory!`
-        : `You were defeated by ${npcId}...`;
-      this._showResultModal(win, msg);
-    }, 400);
+      EventBus.emit('cardgame:result', { win, npcId });
+      EventBus.emit('screen:pop');  // pop card game screen
+    }, 2500);
   },
 
-  _showResultModal(win, msg) {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    const box = document.createElement('div');
-    box.className = 'modal-box';
-    box.innerHTML = `
-      <h3 style="color:${win ? 'var(--color-success)' : 'var(--color-danger)'}">${win ? '🏆 Victory!' : '💀 Defeat'}</h3>
-      <p>${msg}</p>
-    `;
-    const btn = document.createElement('button');
-    btn.className = 'btn-primary';
-    btn.textContent = 'Continue';
-    btn.addEventListener('click', () => {
-      overlay.remove();
-      EventBus.emit('screen:pop');  // pop CardGameScreen
-    });
-    box.appendChild(btn);
-    overlay.appendChild(box);
-    document.getElementById('screen-container').appendChild(overlay);
-  },
-
-  _surrender() {
-    const cg = GameState.cardGame;
-    if (!cg.active) return;
-    cg.playerHP = 0;
-    this._endGame(false);
-  },
-
-  _log(msg) {
-    const cg = GameState.cardGame;
-    cg.log.push(msg);
-    if (cg.log.length > 20) cg.log.shift();
-  },
-
-  _defaultOpponentDeck() {
-    return ['ember_bolt', 'ember_bolt', 'frost_shard', 'frost_shard',
-            'shield_wall', 'shield_wall', 'healing_light', 'healing_light'];
-  },
+  _emit() { EventBus.emit('cardgame:stateChanged', { state: this.state }); },
 };
 
 export default CardSystem;

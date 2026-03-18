@@ -53,23 +53,23 @@ const DialogueSystem = {
   _npcPortrait:  null,
 
   init() {
-    EventBus.on('dialogue:start',   (d) => this._start(d.npcId));
+    EventBus.on('dialogue:start',   (d) => this._start(d.npcId, d.nodeOverride));
     EventBus.on('dialogue:advance', ()  => this._advance());
     EventBus.on('dialogue:choice',  (d) => this._choose(d.index));
   },
 
-  _start(npcId) {
+  _start(npcId, nodeOverride) {
     const data = loadDialogue(npcId);
     this._npcId   = npcId;
     this._nodes   = data.nodes ?? {};
     this._npcPortrait = data.portrait ?? GameState.relationships[npcId]?.portrait ?? '🧙';
 
-    // Pick the right entry node based on flags/tier
-    const entryNode = this._resolveEntry(data);
-    this._goTo(entryNode);
-
-    // Push dialogue screen
+    // Push dialogue screen first so its listeners are registered before dialogue:show fires
     EventBus.emit('screen:push', { screen: DialogueScreen_ref, params: { npcId } });
+
+    // Now start dialogue — dialogue:show will be caught by the mounted screen
+    const entryNode = nodeOverride ?? this._resolveEntry(data);
+    this._goTo(entryNode);
   },
 
   _resolveEntry(data) {

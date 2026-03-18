@@ -10,7 +10,7 @@ export const CHAPTERS = [
     number: 1,
     title: 'A Spark of Potential',
     subtitle: 'Every great mage begins somewhere.',
-    intro: 'The iron gates of Spellcaster Academy swing open before you, revealing a world unlike anything you have known. The courtyard hums with restless energy — students practising incantations, sparks of arcane light tracing patterns in the morning air. You are a scholarship student: no noble bloodline, no legendary mentor. Just potential, and the stubborn belief that it is enough.\n\nThis is where your story begins.',
+    intro: 'The iron gates of Arcane Card Kingdom swing open before you, revealing a world unlike anything you have known. The courtyard hums with restless energy — students practising incantations, sparks of arcane light tracing patterns in the morning air. You are a scholarship student: no noble bloodline, no legendary mentor. Just potential, and the stubborn belief that it is enough.\n\nThis is where your story begins.',
     triggerFlag: null,
     completionFlag: 'main_01_complete',
     scenes: [
@@ -86,7 +86,7 @@ export const CHAPTERS = [
 ];
 
 export const LOCATIONS = [
-  { id: 'academy_courtyard', name: 'Academy Courtyard', tag: 'Starting Area', description: 'The central hub of Spellcaster Academy. Students gather here between classes.', icon: '🏛️', bgIcon: '🏛️' },
+  { id: 'academy_courtyard', name: 'Academy Courtyard', tag: 'Starting Area', description: 'The central hub of Arcane Card Kingdom. Students gather here between classes.', icon: '🏛️', bgIcon: '🏛️' },
   { id: 'library',           name: 'Grand Library',     tag: 'Study',         description: 'Ancient tomes line every shelf. Knowledge awaits those who seek it.',           icon: '📚', bgIcon: '📚' },
   { id: 'dueling_grounds',   name: 'Dueling Grounds',   tag: 'Combat',        description: 'A ring of ancient stones where students test their spells in controlled duels.', icon: '⚔️', bgIcon: '⚔️' },
   { id: 'market',            name: 'Academy Market',    tag: 'Shopping',      description: 'Merchants hawking spell components, potions, and rare cards.',                  icon: '🛒', bgIcon: '🛒' },
@@ -144,7 +144,7 @@ export const ITEMS = [
 export const QUESTS = [
   {
     questId: 'main_01', title: 'Enrollment Day', type: 'main',
-    description: 'Your first day at Spellcaster Academy. Get acquainted with your surroundings and meet your fellow students.',
+    description: 'Your first day at Arcane Card Kingdom. Get acquainted with your surroundings and meet your fellow students.',
     objectives: [
       { id: 'm01_obj_01', type: 'dialogue',     description: 'Speak with Aria in the Courtyard',                    target: { npcId: 'aria',          flag: 'met_aria' } },
       { id: 'm01_obj_02', type: 'dialogue',     description: 'Visit the Grand Library and speak with Master Aldric', target: { npcId: 'master_aldric', flag: 'met_aldric' } },
@@ -197,7 +197,7 @@ export const DIALOGUES = {
     nodes: {
       start: {
         speaker: 'Aria', portrait: '🧙‍♀️',
-        text: "Oh! A new student? Welcome to Spellcaster Academy. I'm Aria — second year, fire specialisation. Word of advice: don't wander into the Dueling Grounds alone on your first day.",
+        text: "Oh! A new student? Welcome to Arcane Card Kingdom. I'm Aria — second year, fire specialisation. Word of advice: don't wander into the Dueling Grounds alone on your first day.",
         choices: [
           { label: 'Thanks for the warning. Nice to meet you!', effects: [{ type: 'setFlag', flag: 'met_aria' }, { type: 'relationship', value: 3 }, { type: 'completeObjective', objectiveId: 'm01_obj_01' }], next: 'aria_intro_response' },
           { label: 'I think I can handle myself.',              effects: [{ type: 'setFlag', flag: 'met_aria' }, { type: 'relationship', value: 1 }, { type: 'completeObjective', objectiveId: 'm01_obj_01' }], next: 'aria_intro_bold' },
@@ -285,6 +285,32 @@ export const DIALOGUES = {
         text: "When I first met you, I thought you were just another wide-eyed first-year. I had no idea you'd become this important to me. Whatever happens — I'm glad you're by my side.",
         choices: [{ label: 'Me too, Aria. Always.', effects: [{ type: 'relationship', value: 1 }], next: null }],
       },
+      post_win: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "*breathless* That was... incredible. I didn't hold back, and you still beat me. I don't hand out compliments lightly, but — well done. Genuinely.",
+        choices: [
+          { label: 'You pushed me hard. That was a great duel.', effects: [{ type: 'relationship', value: 4 }, { type: 'setFlag', flag: 'beat_aria' }], next: 'aria_post_win_follow' },
+          { label: 'I got lucky.', effects: [{ type: 'relationship', value: 2 }, { type: 'setFlag', flag: 'beat_aria' }], next: null },
+        ],
+      },
+      aria_post_win_follow: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "Lucky? No. You read my moves and countered them. You earned this. *pauses* Come find me again soon — I want a rematch.",
+        choices: [],
+      },
+      post_lose: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "*extends a hand* You fought well. Most first-years don't even land a hit. Don't be discouraged — keep training and come back when you're ready.",
+        choices: [
+          { label: 'I will. Thank you for the challenge.', effects: [{ type: 'relationship', value: 2 }], next: null },
+          { label: 'Next time will be different.', effects: [{ type: 'relationship', value: 1 }], next: 'aria_post_lose_response' },
+        ],
+      },
+      aria_post_lose_response: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "*smiles* I'm counting on it.",
+        choices: [],
+      },
     },
   },
 
@@ -371,6 +397,26 @@ export const DIALOGUES = {
         text: "In thirty years at this Academy, I have never met a student who reminded me so much of who I was before the politics ground me down. Don't let this place take that from you.",
         choices: [{ label: "I won't. Thank you.", effects: [{ type: 'relationship', value: 2 }], next: null }],
       },
+      post_win: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "*sets down his quill* Impressive. You approached the duel with discipline — reading the board before acting. I have nothing further to teach you about patience. *a rare nod*",
+        choices: [
+          { label: "Your teachings made the difference.", effects: [{ type: 'relationship', value: 3 }], next: null },
+          { label: "I had a good teacher.", effects: [{ type: 'relationship', value: 4 }], next: 'aldric_post_win_response' },
+        ],
+      },
+      aldric_post_win_response: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "*slight smile* A good student makes a good teacher. Don't let that go to your head.",
+        choices: [],
+      },
+      post_lose: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "Defeat is not failure — it is data. Analyse what happened. Where did your strategy break down? Come back when you have an answer, and we'll discuss it.",
+        choices: [
+          { label: "I'll study and return.", effects: [{ type: 'relationship', value: 2 }], next: null },
+        ],
+      },
     },
   },
 
@@ -439,6 +485,20 @@ export const DIALOGUES = {
         text: "*quiet laugh* When I set up this stall, I told myself I was just watching. Not getting involved again. You ruined that rather thoroughly. I'm glad you did.",
         choices: [{ label: 'So am I, Zephyr.', effects: [{ type: 'relationship', value: 2 }], next: null }],
       },
+      post_win: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*leans back, impressed* Hm. You actually won. I had... well, let's say I didn't bet against you. *slides something across the counter* A small bonus for the entertainment.",
+        choices: [
+          { label: 'Thanks, Zephyr.', effects: [{ type: 'relationship', value: 3 }, { type: 'addItem', itemId: 'mana_crystal', quantity: 2 }], next: null },
+        ],
+      },
+      post_lose: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*doesn't look up* I saw you fight. The cards weren't with you today. Come back, restock, try again. *taps the counter* That's what the shop is for.",
+        choices: [
+          { label: "I'll be back better prepared.", effects: [{ type: 'relationship', value: 1 }], next: null },
+        ],
+      },
     },
   },
 
@@ -453,6 +513,229 @@ export const DIALOGUES = {
           { label: 'Leave it alone.', next: null },
         ],
       },
+      post_win: {
+        speaker: 'Training Dummy', portrait: '🪆',
+        text: "*The dummy's enchanted eyes glow briefly. A chime sounds — Victory recorded. Congratulations, duelist. Your performance has been logged.*",
+        choices: [
+          { label: 'Train again.', effects: [{ type: 'triggerCardGame', npcId: 'training_dummy' }], next: null },
+          { label: 'Leave.', next: null },
+        ],
+      },
+      post_lose: {
+        speaker: 'Training Dummy', portrait: '🪆',
+        text: "*The dummy resets with a soft click. A chime sounds — Defeat recorded. Do not be discouraged. Every loss is a lesson.*",
+        choices: [
+          { label: 'Try again.', effects: [{ type: 'triggerCardGame', npcId: 'training_dummy' }], next: null },
+          { label: 'Leave.', next: null },
+        ],
+      },
     },
   },
 };
+
+// ── Grid Card Game Data ───────────────────────────────────────────────────────
+
+export const CHAMPION_CARDS = [
+  { cardId: 'champ_arcane', type: 'champion', name: 'Arcane Champion', hp: 20, maxHp: 20, art: '🔮' },
+  { cardId: 'champ_fire',   type: 'champion', name: 'Fire Champion',   hp: 20, maxHp: 20, art: '🔥' },
+  { cardId: 'champ_frost',  type: 'champion', name: 'Frost Champion',  hp: 20, maxHp: 20, art: '❄️' },
+];
+
+export const ELITE_CARD_DECK = [
+  { cardId: 'elite_golem',   type: 'elite', name: 'Stone Golem',   hp: 15, power: 4, art: '🗿' },
+  { cardId: 'elite_phoenix', type: 'elite', name: 'Phoenix',       hp: 10, power: 7, art: '🦅' },
+  { cardId: 'elite_dragon',  type: 'elite', name: 'Shadow Dragon', hp: 12, power: 8, art: '🐉' },
+  { cardId: 'elite_knight',  type: 'elite', name: 'Iron Knight',   hp: 18, power: 3, art: '🛡️' },
+  { cardId: 'elite_witch',   type: 'elite', name: 'Dark Witch',    hp: 8,  power: 9, art: '🧙' },
+  { cardId: 'elite_golem',   type: 'elite', name: 'Stone Golem',   hp: 15, power: 4, art: '🗿' },
+  { cardId: 'elite_phoenix', type: 'elite', name: 'Phoenix',       hp: 10, power: 7, art: '🦅' },
+  { cardId: 'elite_dragon',  type: 'elite', name: 'Shadow Dragon', hp: 12, power: 8, art: '🐉' },
+  { cardId: 'elite_knight',  type: 'elite', name: 'Iron Knight',   hp: 18, power: 3, art: '🛡️' },
+  { cardId: 'elite_witch',   type: 'elite', name: 'Dark Witch',    hp: 8,  power: 9, art: '🧙' },
+];
+
+export const SUMMON_CARD_DECK = [
+  // Cost 2 (×2)
+  { cardId: 'sum_imp',       type: 'summon', name: 'Fire Imp',       hp: 1, power: 1, summonCost: 2,  art: '👺' },
+  { cardId: 'sum_wisp',      type: 'summon', name: 'Arcane Wisp',    hp: 1, power: 1, summonCost: 2,  art: '✨' },
+  // Cost 3 (×4)
+  { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 2, power: 1, summonCost: 3,  art: '🧊' },
+  { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 1, power: 2, summonCost: 3,  art: '🦇' },
+  { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 2, power: 1, summonCost: 3,  art: '🧊' },
+  { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 1, power: 2, summonCost: 3,  art: '🦇' },
+  // Cost 4 (×5)
+  { cardId: 'sum_shaman',    type: 'summon', name: 'Earth Shaman',   hp: 3, power: 2, summonCost: 4,  art: '🌿' },
+  { cardId: 'sum_hawk',      type: 'summon', name: 'Storm Hawk',     hp: 2, power: 3, summonCost: 4,  art: '🦅' },
+  { cardId: 'sum_shaman',    type: 'summon', name: 'Earth Shaman',   hp: 3, power: 2, summonCost: 4,  art: '🌿' },
+  { cardId: 'sum_hawk',      type: 'summon', name: 'Storm Hawk',     hp: 2, power: 3, summonCost: 4,  art: '🦅' },
+  { cardId: 'sum_hawk',      type: 'summon', name: 'Storm Hawk',     hp: 2, power: 3, summonCost: 4,  art: '🦅' },
+  // Cost 5 (×5)
+  { cardId: 'sum_bear',      type: 'summon', name: 'Forest Bear',    hp: 4, power: 2, summonCost: 5,  art: '🐻' },
+  { cardId: 'sum_djinn',     type: 'summon', name: 'Fire Djinn',     hp: 2, power: 4, summonCost: 5,  art: '🌋' },
+  { cardId: 'sum_bear',      type: 'summon', name: 'Forest Bear',    hp: 4, power: 2, summonCost: 5,  art: '🐻' },
+  { cardId: 'sum_djinn',     type: 'summon', name: 'Fire Djinn',     hp: 2, power: 4, summonCost: 5,  art: '🌋' },
+  { cardId: 'sum_bear',      type: 'summon', name: 'Forest Bear',    hp: 4, power: 2, summonCost: 5,  art: '🐻' },
+  // Cost 6 (×6)
+  { cardId: 'sum_sentinel',  type: 'summon', name: 'Stone Sentinel', hp: 4, power: 3, summonCost: 6,  art: '🗿' },
+  { cardId: 'sum_fox',       type: 'summon', name: 'Lightning Fox',  hp: 3, power: 4, summonCost: 6,  art: '🦊' },
+  { cardId: 'sum_sentinel',  type: 'summon', name: 'Stone Sentinel', hp: 4, power: 3, summonCost: 6,  art: '🗿' },
+  { cardId: 'sum_fox',       type: 'summon', name: 'Lightning Fox',  hp: 3, power: 4, summonCost: 6,  art: '🦊' },
+  { cardId: 'sum_sentinel',  type: 'summon', name: 'Stone Sentinel', hp: 4, power: 3, summonCost: 6,  art: '🗿' },
+  { cardId: 'sum_fox',       type: 'summon', name: 'Lightning Fox',  hp: 3, power: 4, summonCost: 6,  art: '🦊' },
+  // Cost 8 (×5)  [No cost-7 cards — a roll of 7 draws from the spell deck instead]
+  { cardId: 'sum_titan',     type: 'summon', name: 'Arcane Titan',   hp: 4, power: 5, summonCost: 8,  art: '💥' },
+  { cardId: 'sum_titan',     type: 'summon', name: 'Arcane Titan',   hp: 4, power: 5, summonCost: 8,  art: '💥' },
+  { cardId: 'sum_titan',     type: 'summon', name: 'Arcane Titan',   hp: 4, power: 5, summonCost: 8,  art: '💥' },
+  { cardId: 'sum_titan',     type: 'summon', name: 'Arcane Titan',   hp: 4, power: 5, summonCost: 8,  art: '💥' },
+  { cardId: 'sum_titan',     type: 'summon', name: 'Arcane Titan',   hp: 4, power: 5, summonCost: 8,  art: '💥' },
+  // Cost 9 (×4)
+  { cardId: 'sum_wyrm',      type: 'summon', name: 'Frost Wyrm',     hp: 5, power: 5, summonCost: 9,  art: '🐲' },
+  { cardId: 'sum_wyrm',      type: 'summon', name: 'Frost Wyrm',     hp: 5, power: 5, summonCost: 9,  art: '🐲' },
+  { cardId: 'sum_wyrm',      type: 'summon', name: 'Frost Wyrm',     hp: 5, power: 5, summonCost: 9,  art: '🐲' },
+  { cardId: 'sum_wyrm',      type: 'summon', name: 'Frost Wyrm',     hp: 5, power: 5, summonCost: 9,  art: '🐲' },
+  // Cost 10 (×2)
+  { cardId: 'sum_leviathan', type: 'summon', name: 'Void Leviathan', hp: 6, power: 6, summonCost: 10, art: '🌊' },
+  { cardId: 'sum_leviathan', type: 'summon', name: 'Void Leviathan', hp: 6, power: 6, summonCost: 10, art: '🌊' },
+  // Cost 11 (×1)
+  { cardId: 'sum_ephoenix',  type: 'summon', name: 'Elder Phoenix',  hp: 6, power: 7, summonCost: 11, art: '🦅' },
+  // Cost 12 (×1)
+  { cardId: 'sum_adragon',   type: 'summon', name: 'Ancient Dragon', hp: 7, power: 8, summonCost: 12, art: '🐉' },
+];
+
+// Rolling a 7 draws from this deck instead of matching summon cards.
+// Spell cards have no summonCost, HP, or power — only a special effect.
+export const SPELL_CARD_DECK = [
+  // ×2 each for most cards, giving a 10-card deck
+  { cardId: 'spell_double_roll', type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                  effect: { type: 'extra_roll' } },
+  { cardId: 'spell_double_roll', type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                  effect: { type: 'extra_roll' } },
+  { cardId: 'spell_revive',      type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
+  { cardId: 'spell_revive',      type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
+  { cardId: 'spell_draw',        type: 'spell', name: 'Arcane Draw',   art: '📖', description: 'Draw 2 summon cards from your deck.',                                     effect: { type: 'draw_cards', count: 2 } },
+  { cardId: 'spell_boost_elite', type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',               effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+  { cardId: 'spell_heal_champ',  type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                 effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+  { cardId: 'spell_teleport',    type: 'spell', name: 'Arcane Gate',   art: '🌀', description: 'Teleport target player elite to the front of its nearest champion.',     effect: { type: 'teleport_elite' }, needsTarget: 'player_elite' },
+  { cardId: 'spell_shield',      type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                   effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
+  { cardId: 'spell_weaken',      type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',       effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
+];
+
+// ── Quick Match ───────────────────────────────────────────────────────────────
+
+export const QUICK_MATCH_OPPONENTS = [
+  { npcId: 'training_dummy', name: 'Training Dummy', portrait: '🪆', difficulty: 1, difficultyLabel: 'Beginner', description: 'A magical training construct. Perfect for first-timers and warm-up rounds.' },
+  { npcId: 'aria',           name: 'Aria',           portrait: '🧙‍♀️', difficulty: 2, difficultyLabel: 'Medium',   description: 'Aggressive fire specialist. Expects to win fast — do not let her.' },
+  { npcId: 'zephyr',         name: 'Zephyr',         portrait: '🧝', difficulty: 2, difficultyLabel: 'Medium',   description: 'Void and ice tactics. Unpredictable and hard to read until it\'s too late.' },
+  { npcId: 'master_aldric',  name: 'Master Aldric',  portrait: '🧓', difficulty: 3, difficultyLabel: 'Expert',   description: 'Arcane grandmaster. Controls the board with surgical, patient precision.' },
+];
+
+export const STARTER_DECKS = [
+  {
+    id: 'blitz_rush', name: 'Blitz Rush', art: '⚡', color: '#8a2010',
+    description: 'Overwhelm your foe with relentless aggression. Cheap summons flood the field and high-power elites close out the game fast.',
+    champions: CHAMPION_CARDS,
+    elites: [
+      { cardId: 'elite_phoenix', type: 'elite', name: 'Phoenix',       hp: 10, power: 7, art: '🦅' },
+      { cardId: 'elite_phoenix', type: 'elite', name: 'Phoenix',       hp: 10, power: 7, art: '🦅' },
+      { cardId: 'elite_dragon',  type: 'elite', name: 'Shadow Dragon', hp: 12, power: 8, art: '🐉' },
+      { cardId: 'elite_dragon',  type: 'elite', name: 'Shadow Dragon', hp: 12, power: 8, art: '🐉' },
+      { cardId: 'elite_witch',   type: 'elite', name: 'Dark Witch',    hp: 8,  power: 9, art: '🧙' },
+      { cardId: 'elite_witch',   type: 'elite', name: 'Dark Witch',    hp: 8,  power: 9, art: '🧙' },
+    ],
+    summons: [
+      { cardId: 'sum_imp',   type: 'summon', name: 'Fire Imp',     hp: 1, power: 1, summonCost: 2, art: '👺' },
+      { cardId: 'sum_imp',   type: 'summon', name: 'Fire Imp',     hp: 1, power: 1, summonCost: 2, art: '👺' },
+      { cardId: 'sum_bat',   type: 'summon', name: 'Shadow Bat',   hp: 1, power: 2, summonCost: 3, art: '🦇' },
+      { cardId: 'sum_bat',   type: 'summon', name: 'Shadow Bat',   hp: 1, power: 2, summonCost: 3, art: '🦇' },
+      { cardId: 'sum_bat',   type: 'summon', name: 'Shadow Bat',   hp: 1, power: 2, summonCost: 3, art: '🦇' },
+      { cardId: 'sum_bat',   type: 'summon', name: 'Shadow Bat',   hp: 1, power: 2, summonCost: 3, art: '🦇' },
+      { cardId: 'sum_hawk',  type: 'summon', name: 'Storm Hawk',   hp: 2, power: 3, summonCost: 4, art: '🦅' },
+      { cardId: 'sum_hawk',  type: 'summon', name: 'Storm Hawk',   hp: 2, power: 3, summonCost: 4, art: '🦅' },
+      { cardId: 'sum_hawk',  type: 'summon', name: 'Storm Hawk',   hp: 2, power: 3, summonCost: 4, art: '🦅' },
+      { cardId: 'sum_djinn', type: 'summon', name: 'Fire Djinn',   hp: 2, power: 4, summonCost: 5, art: '🌋' },
+      { cardId: 'sum_djinn', type: 'summon', name: 'Fire Djinn',   hp: 2, power: 4, summonCost: 5, art: '🌋' },
+      { cardId: 'sum_djinn', type: 'summon', name: 'Fire Djinn',   hp: 2, power: 4, summonCost: 5, art: '🌋' },
+      { cardId: 'sum_fox',   type: 'summon', name: 'Lightning Fox', hp: 3, power: 4, summonCost: 6, art: '🦊' },
+      { cardId: 'sum_fox',   type: 'summon', name: 'Lightning Fox', hp: 3, power: 4, summonCost: 6, art: '🦊' },
+      { cardId: 'sum_fox',   type: 'summon', name: 'Lightning Fox', hp: 3, power: 4, summonCost: 6, art: '🦊' },
+      { cardId: 'sum_titan', type: 'summon', name: 'Arcane Titan',  hp: 4, power: 5, summonCost: 8, art: '💥' },
+      { cardId: 'sum_titan', type: 'summon', name: 'Arcane Titan',  hp: 4, power: 5, summonCost: 8, art: '💥' },
+      { cardId: 'sum_titan', type: 'summon', name: 'Arcane Titan',  hp: 4, power: 5, summonCost: 8, art: '💥' },
+    ],
+    spells: [
+      { cardId: 'spell_double_roll', type: 'spell', name: 'Second Wind', art: '🎲', description: 'Roll the dice one more time this turn.', effect: { type: 'extra_roll' } },
+      { cardId: 'spell_double_roll', type: 'spell', name: 'Second Wind', art: '🎲', description: 'Roll the dice one more time this turn.', effect: { type: 'extra_roll' } },
+      { cardId: 'spell_draw',        type: 'spell', name: 'Arcane Draw', art: '📖', description: 'Draw 2 summon cards from your deck.', effect: { type: 'draw_cards', count: 2 } },
+      { cardId: 'spell_boost_elite', type: 'spell', name: 'Battle Fury', art: '⚡', description: 'Target player elite gains +3 power until your next turn.', effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_boost_elite', type: 'spell', name: 'Battle Fury', art: '⚡', description: 'Target player elite gains +3 power until your next turn.', effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+    ],
+  },
+  {
+    id: 'iron_bulwark', name: 'Iron Bulwark', art: '🛡️', color: '#0e3060',
+    description: 'Outlast your opponent through sheer endurance. Tanky elites absorb punishment while healing keeps your champions standing.',
+    champions: CHAMPION_CARDS,
+    elites: [
+      { cardId: 'elite_golem',  type: 'elite', name: 'Stone Golem', hp: 15, power: 4, art: '🗿' },
+      { cardId: 'elite_golem',  type: 'elite', name: 'Stone Golem', hp: 15, power: 4, art: '🗿' },
+      { cardId: 'elite_golem',  type: 'elite', name: 'Stone Golem', hp: 15, power: 4, art: '🗿' },
+      { cardId: 'elite_knight', type: 'elite', name: 'Iron Knight', hp: 18, power: 3, art: '🛡️' },
+      { cardId: 'elite_knight', type: 'elite', name: 'Iron Knight', hp: 18, power: 3, art: '🛡️' },
+      { cardId: 'elite_knight', type: 'elite', name: 'Iron Knight', hp: 18, power: 3, art: '🛡️' },
+    ],
+    summons: [
+      { cardId: 'sum_wisp',     type: 'summon', name: 'Arcane Wisp',    hp: 1, power: 1, summonCost: 2, art: '✨' },
+      { cardId: 'sum_wisp',     type: 'summon', name: 'Arcane Wisp',    hp: 1, power: 1, summonCost: 2, art: '✨' },
+      { cardId: 'sum_sprite',   type: 'summon', name: 'Frost Sprite',   hp: 2, power: 1, summonCost: 3, art: '🧊' },
+      { cardId: 'sum_sprite',   type: 'summon', name: 'Frost Sprite',   hp: 2, power: 1, summonCost: 3, art: '🧊' },
+      { cardId: 'sum_sprite',   type: 'summon', name: 'Frost Sprite',   hp: 2, power: 1, summonCost: 3, art: '🧊' },
+      { cardId: 'sum_sprite',   type: 'summon', name: 'Frost Sprite',   hp: 2, power: 1, summonCost: 3, art: '🧊' },
+      { cardId: 'sum_shaman',   type: 'summon', name: 'Earth Shaman',   hp: 3, power: 2, summonCost: 4, art: '🌿' },
+      { cardId: 'sum_shaman',   type: 'summon', name: 'Earth Shaman',   hp: 3, power: 2, summonCost: 4, art: '🌿' },
+      { cardId: 'sum_shaman',   type: 'summon', name: 'Earth Shaman',   hp: 3, power: 2, summonCost: 4, art: '🌿' },
+      { cardId: 'sum_shaman',   type: 'summon', name: 'Earth Shaman',   hp: 3, power: 2, summonCost: 4, art: '🌿' },
+      { cardId: 'sum_bear',     type: 'summon', name: 'Forest Bear',    hp: 4, power: 2, summonCost: 5, art: '🐻' },
+      { cardId: 'sum_bear',     type: 'summon', name: 'Forest Bear',    hp: 4, power: 2, summonCost: 5, art: '🐻' },
+      { cardId: 'sum_bear',     type: 'summon', name: 'Forest Bear',    hp: 4, power: 2, summonCost: 5, art: '🐻' },
+      { cardId: 'sum_sentinel', type: 'summon', name: 'Stone Sentinel', hp: 4, power: 3, summonCost: 6, art: '🗿' },
+      { cardId: 'sum_sentinel', type: 'summon', name: 'Stone Sentinel', hp: 4, power: 3, summonCost: 6, art: '🗿' },
+      { cardId: 'sum_sentinel', type: 'summon', name: 'Stone Sentinel', hp: 4, power: 3, summonCost: 6, art: '🗿' },
+      { cardId: 'sum_wyrm',     type: 'summon', name: 'Frost Wyrm',     hp: 5, power: 5, summonCost: 9, art: '🐲' },
+      { cardId: 'sum_wyrm',     type: 'summon', name: 'Frost Wyrm',     hp: 5, power: 5, summonCost: 9, art: '🐲' },
+    ],
+    spells: [
+      { cardId: 'spell_revive',     type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.', effect: { type: 'revive' } },
+      { cardId: 'spell_revive',     type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.', effect: { type: 'revive' } },
+      { cardId: 'spell_heal_champ', type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion.', effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+      { cardId: 'spell_heal_champ', type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion.', effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+      { cardId: 'spell_shield',     type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.', effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_shield',     type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.', effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
+    ],
+  },
+  {
+    id: 'arcane_balance', name: 'Arcane Balance', art: '🔮', color: '#301858',
+    description: 'A versatile toolkit with answers to every situation. Balanced offense and defense backed by the full spell collection.',
+    champions: CHAMPION_CARDS,
+    elites: ELITE_CARD_DECK,
+    summons: [
+      { cardId: 'sum_imp',       type: 'summon', name: 'Fire Imp',       hp: 1, power: 1, summonCost: 2,  art: '👺' },
+      { cardId: 'sum_wisp',      type: 'summon', name: 'Arcane Wisp',    hp: 1, power: 1, summonCost: 2,  art: '✨' },
+      { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 2, power: 1, summonCost: 3,  art: '🧊' },
+      { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 1, power: 2, summonCost: 3,  art: '🦇' },
+      { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 2, power: 1, summonCost: 3,  art: '🧊' },
+      { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 1, power: 2, summonCost: 3,  art: '🦇' },
+      { cardId: 'sum_shaman',    type: 'summon', name: 'Earth Shaman',   hp: 3, power: 2, summonCost: 4,  art: '🌿' },
+      { cardId: 'sum_hawk',      type: 'summon', name: 'Storm Hawk',     hp: 2, power: 3, summonCost: 4,  art: '🦅' },
+      { cardId: 'sum_shaman',    type: 'summon', name: 'Earth Shaman',   hp: 3, power: 2, summonCost: 4,  art: '🌿' },
+      { cardId: 'sum_hawk',      type: 'summon', name: 'Storm Hawk',     hp: 2, power: 3, summonCost: 4,  art: '🦅' },
+      { cardId: 'sum_bear',      type: 'summon', name: 'Forest Bear',    hp: 4, power: 2, summonCost: 5,  art: '🐻' },
+      { cardId: 'sum_djinn',     type: 'summon', name: 'Fire Djinn',     hp: 2, power: 4, summonCost: 5,  art: '🌋' },
+      { cardId: 'sum_bear',      type: 'summon', name: 'Forest Bear',    hp: 4, power: 2, summonCost: 5,  art: '🐻' },
+      { cardId: 'sum_djinn',     type: 'summon', name: 'Fire Djinn',     hp: 2, power: 4, summonCost: 5,  art: '🌋' },
+      { cardId: 'sum_sentinel',  type: 'summon', name: 'Stone Sentinel', hp: 4, power: 3, summonCost: 6,  art: '🗿' },
+      { cardId: 'sum_fox',       type: 'summon', name: 'Lightning Fox',  hp: 3, power: 4, summonCost: 6,  art: '🦊' },
+      { cardId: 'sum_sentinel',  type: 'summon', name: 'Stone Sentinel', hp: 4, power: 3, summonCost: 6,  art: '🗿' },
+      { cardId: 'sum_fox',       type: 'summon', name: 'Lightning Fox',  hp: 3, power: 4, summonCost: 6,  art: '🦊' },
+      { cardId: 'sum_titan',     type: 'summon', name: 'Arcane Titan',   hp: 4, power: 5, summonCost: 8,  art: '💥' },
+      { cardId: 'sum_titan',     type: 'summon', name: 'Arcane Titan',   hp: 4, power: 5, summonCost: 8,  art: '💥' },
+    ],
+    spells: SPELL_CARD_DECK,
+  },
+];

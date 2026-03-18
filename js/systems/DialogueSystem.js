@@ -1,0 +1,236 @@
+/**
+ * DialogueSystem — parses per-NPC dialogue JSON, evaluates conditions,
+ * applies effects, and drives DialogueScreen via EventBus.
+ *
+ * Listens:
+ *   dialogue:start    { npcId }
+ *   dialogue:advance  {}
+ *   dialogue:choice   { index }
+ *
+ * Emits:
+ *   dialogue:show  { speaker, portrait, text, choices, canContinue }
+ *   dialogue:end   {}
+ *   + any effect events (cardgame:start, shop:open, quest:trigger, ...)
+ */
+import EventBus from '../EventBus.js';
+import GameState from '../GameState.js';
+import SaveSystem from '../SaveSystem.js';
+import { DIALOGUES } from '../Data.js';
+
+const TIER_NAMES = ['Stranger', 'Acquaintance', 'Friend', 'Close Friend', 'Bonded'];
+
+function loadDialogue(npcId) {
+  return DIALOGUES[npcId] ?? { npcId, nodes: { start: { speaker: npcId, text: '...', choices: [] } } };
+}
+
+const DialogueSystem = {
+  _npcId:        null,
+  _nodes:        null,
+  _currentNode:  null,
+  _npcPortrait:  null,
+
+  init() {
+    EventBus.on('dialogue:start',   (d) => this._start(d.npcId));
+    EventBus.on('dialogue:advance', ()  => this._advance());
+    EventBus.on('dialogue:choice',  (d) => this._choose(d.index));
+  },
+
+  _start(npcId) {
+    const data = loadDialogue(npcId);
+    this._npcId   = npcId;
+    this._nodes   = data.nodes ?? {};
+    this._npcPortrait = data.portrait ?? GameState.relationships[npcId]?.portrait ?? '🧙';
+
+    // Pick the right entry node based on flags/tier
+    const entryNode = this._resolveEntry(data);
+    this._goTo(entryNode);
+
+    // Push dialogue screen
+    EventBus.emit('screen:push', { screen: DialogueScreen_ref, params: { npcId } });
+  },
+
+  _resolveEntry(data) {
+    // Allow NPCs to declare conditional entry points
+    if (data.entries) {
+      for (const entry of data.entries) {
+        if (this._checkRequires(entry.requires)) return entry.node;
+      }
+    }
+    return 'start';
+  },
+
+  _goTo(nodeId) {
+    if (!nodeId || !this._nodes[nodeId]) {
+      this._end();
+      return;
+    }
+    this._currentNode = nodeId;
+    const node = this._nodes[nodeId];
+
+    // Apply on-enter effects
+    if (node.effects) node.effects.forEach(e => this._applyEffect(e));
+
+    // Build choices visible to player
+    const choices = (node.choices ?? []).map(ch => {
+      const locked = !this._checkRequires(ch.requires);
+      return {
+        label:           ch.label,
+        locked,
+        requirementText: locked ? this._requirementLabel(ch.requires) : null,
+        _raw:            ch,
+      };
+    }).filter(ch => !ch._raw.hidden || !ch.locked);
+
+    const canContinue = !choices.length && !!node.next;
+
+    EventBus.emit('dialogue:show', {
+      speaker:     node.speaker ?? this._npcId,
+      portrait:    node.portrait ?? this._npcPortrait,
+      text:        node.text ?? '',
+      choices,
+      canContinue,
+    });
+  },
+
+  _advance() {
+    const node = this._nodes[this._currentNode];
+    if (!node) { this._end(); return; }
+    if (node.next) {
+      this._goTo(node.next);
+    } else {
+      this._end();
+    }
+  },
+
+  _choose(index) {
+    const node = this._nodes[this._currentNode];
+    if (!node) return;
+    const choices = (node.choices ?? []).filter(ch => !ch.hidden || this._checkRequires(ch.requires));
+    const choice  = choices[index];
+    if (!choice || !this._checkRequires(choice.requires)) return;
+
+    // Apply choice effects
+    (choice.effects ?? []).forEach(e => this._applyEffect(e));
+
+    if (choice.next) {
+      this._goTo(choice.next);
+    } else {
+      this._end();
+    }
+  },
+
+  _end() {
+    // Autosave after every dialogue completion
+    SaveSystem.autosave();
+    EventBus.emit('dialogue:end');
+  },
+
+  // ──────────────────────────────────────────
+  // Condition evaluation
+  // ──────────────────────────────────────────
+
+  _checkRequires(req) {
+    if (!req) return true;
+
+    if (req.flag !== undefined) {
+      const expected = req.flag_value ?? true;
+      if (GameState.getFlag(req.flag) !== expected) return false;
+    }
+
+    if (req.flag_unset) {
+      if (GameState.getFlag(req.flag_unset)) return false;
+    }
+
+    if (req.relationship_tier !== undefined) {
+      const rel = GameState.getRelationship(this._npcId);
+      if (!rel || rel.tier < req.relationship_tier) return false;
+    }
+
+    if (req.has_item) {
+      if (!GameState.hasItem(req.has_item)) return false;
+    }
+
+    if (req.min_gold !== undefined) {
+      if (GameState.player.gold < req.min_gold) return false;
+    }
+
+    if (req.quest_active) {
+      if (!GameState.quests.active.includes(req.quest_active)) return false;
+    }
+
+    if (req.quest_completed) {
+      if (!GameState.quests.completed.includes(req.quest_completed)) return false;
+    }
+
+    return true;
+  },
+
+  _requirementLabel(req) {
+    if (!req) return null;
+    if (req.relationship_tier !== undefined) {
+      return `[${TIER_NAMES[req.relationship_tier] ?? `Tier ${req.relationship_tier}`} needed]`;
+    }
+    if (req.flag) return `[Requires: ${req.flag}]`;
+    if (req.has_item) return `[Need: ${req.has_item}]`;
+    if (req.min_gold !== undefined) return `[Need: ${req.min_gold}g]`;
+    return '[Locked]';
+  },
+
+  // ──────────────────────────────────────────
+  // Effect execution
+  // ──────────────────────────────────────────
+
+  _applyEffect(effect) {
+    switch (effect.type) {
+      case 'relationship':
+        GameState.addRelationshipPoints(effect.npcId ?? this._npcId, effect.value ?? 1);
+        EventBus.emit('relationship:changed', { npcId: effect.npcId ?? this._npcId });
+        break;
+
+      case 'setFlag':
+        GameState.setFlag(effect.flag, effect.value ?? true);
+        break;
+
+      case 'addItem':
+        GameState.addItem(effect.itemId, effect.quantity ?? 1);
+        EventBus.emit('toast', { message: `Received: ${effect.itemId}`, type: 'info' });
+        break;
+
+      case 'addGold':
+        GameState.addGold(effect.amount ?? 0);
+        EventBus.emit('toast', { message: `Received ${effect.amount}g`, type: 'success' });
+        break;
+
+      case 'triggerCardGame':
+        // End dialogue, then start card game
+        EventBus.emit('cardgame:start', { npcId: effect.npcId ?? this._npcId });
+        break;
+
+      case 'openShop':
+        EventBus.emit('shop:open', { shopId: effect.shopId, shopName: effect.shopName });
+        break;
+
+      case 'triggerQuest':
+        EventBus.emit('quest:trigger', { questId: effect.questId });
+        break;
+
+      case 'completeObjective':
+        GameState.setFlag(`obj_done_${effect.objectiveId}`, true);
+        EventBus.emit('quest:objectiveComplete', { objectiveId: effect.objectiveId });
+        break;
+
+      case 'unlockLocation':
+        GameState.unlockLocation(effect.locationId);
+        EventBus.emit('toast', { message: `New location: ${effect.locationId}`, type: 'info' });
+        break;
+
+      default:
+        console.warn('[DialogueSystem] Unknown effect type:', effect.type);
+    }
+  },
+};
+
+let DialogueScreen_ref = null;
+export function setDialogueScreenRef(ref) { DialogueScreen_ref = ref; }
+
+export default DialogueSystem;

@@ -1,0 +1,21 @@
+[
+  {
+    "shopId": "general_shop",
+    "name": "Zephyr's Wares",
+    "stock": [
+      { "itemId": "health_potion",       "price": 20,  "stock": -1 },
+      { "itemId": "greater_health_potion","price": 40, "stock": -1 },
+      { "itemId": "mana_crystal",         "price": 30, "stock": -1 },
+      { "itemId": "spell_scroll_arcane",  "price": 75, "stock": 3  },
+      { "itemId": "tome_of_ice",          "price": 80, "stock": 2  }
+    ]
+  },
+  {
+    "shopId": "card_shop",
+    "name": "Card Emporium",
+    "stock": [
+      { "itemId": "health_potion",        "price": 25, "stock": -1 },
+      { "itemId": "mana_crystal",         "price": 35, "stock": -1 }
+    ]
+  }
+]

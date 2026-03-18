@@ -1,0 +1,240 @@
+{
+  "npcId": "aria",
+  "portrait": "🧙‍♀️",
+  "entries": [
+    { "requires": { "flag": "aria_bonded" }, "node": "bonded_greeting" },
+    { "requires": { "flag": "aria_story_scene" }, "node": "story_scene_greeting" },
+    { "requires": { "flag": "aria_friend_quest" }, "node": "friend_greeting" },
+    { "requires": { "flag": "aria_challenged" }, "node": "post_challenge_check" },
+    { "requires": { "flag": "met_aria" }, "node": "returning_greeting" }
+  ],
+  "nodes": {
+    "start": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Oh! A new student? Welcome to Spellcaster Academy. I'm Aria — second year, fire specialisation. Word of advice: don't wander into the Dueling Grounds alone on your first day.",
+      "choices": [
+        {
+          "label": "Thanks for the warning. I'm [Player].",
+          "effects": [
+            { "type": "setFlag", "flag": "met_aria" },
+            { "type": "relationship", "value": 3 },
+            { "type": "completeObjective", "objectiveId": "m01_obj_01" }
+          ],
+          "next": "aria_intro_response"
+        },
+        {
+          "label": "I think I can handle myself.",
+          "effects": [
+            { "type": "setFlag", "flag": "met_aria" },
+            { "type": "relationship", "value": 1 },
+            { "type": "completeObjective", "objectiveId": "m01_obj_01" }
+          ],
+          "next": "aria_intro_bold"
+        }
+      ]
+    },
+
+    "aria_intro_response": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Nice to meet you, [Player]. Hmm, there's something about you... You might actually be interesting. Come find me when you're settled in — I have a feeling we'll be seeing a lot of each other.",
+      "choices": [
+        {
+          "label": "I look forward to it.",
+          "next": "aria_intro_end"
+        },
+        {
+          "label": "Is that a challenge?",
+          "effects": [{ "type": "relationship", "value": 1 }],
+          "next": "aria_intro_challenge_tease"
+        }
+      ]
+    },
+
+    "aria_intro_bold": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Ha! Confident. I like that. Most first-years are practically shaking on arrival. Alright, prove it then — come find me at the Dueling Grounds sometime.",
+      "next": "aria_intro_end"
+    },
+
+    "aria_intro_challenge_tease": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "*grins* Maybe it is. We'll see how strong you are once you've got your bearings.",
+      "next": "aria_intro_end"
+    },
+
+    "aria_intro_end": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Anyway, I should get back to my studies. See you around, [Player].",
+      "choices": []
+    },
+
+    "returning_greeting": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Hey, [Player]! Settling in alright? The first week is always overwhelming, but you'll find your footing.",
+      "choices": [
+        {
+          "label": "Can you tell me more about the Academy?",
+          "next": "aria_about_academy"
+        },
+        {
+          "label": "I'd like to challenge you to a duel.",
+          "effects": [
+            { "type": "setFlag", "flag": "aria_challenged" },
+            { "type": "triggerQuest", "questId": "side_01" }
+          ],
+          "next": "aria_challenge_accept"
+        },
+        {
+          "label": "Just checking in.",
+          "next": "aria_just_checking"
+        }
+      ]
+    },
+
+    "aria_about_academy": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "The Academy is divided into four specialisations: Fire, Ice, Arcane, and Light. Each has its own wing and faculty. Most students have a natural affinity, but some are elementally neutral — which means they can learn from all schools.",
+      "choices": [
+        {
+          "label": "Which is the strongest element?",
+          "next": "aria_elements_debate"
+        },
+        {
+          "label": "Thanks, that's helpful.",
+          "effects": [{ "type": "relationship", "value": 1 }],
+          "next": null
+        }
+      ]
+    },
+
+    "aria_elements_debate": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Fire, obviously. Speed, aggression, and pure damage. Ice is defensive but slow. Arcane is powerful but mana-hungry. Light is healing — useful, but not exactly intimidating.",
+      "next": null
+    },
+
+    "aria_challenge_accept": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Oh! Finally! I was starting to think you'd never ask. Meet me on the Dueling Grounds — we'll see what you're made of. I won't hold back!",
+      "choices": [
+        {
+          "label": "Let's go right now!",
+          "effects": [{ "type": "triggerCardGame", "npcId": "aria" }],
+          "next": null
+        },
+        {
+          "label": "I'll come prepared.",
+          "next": null
+        }
+      ]
+    },
+
+    "post_challenge_check": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Still thinking about our duel? I'm ready whenever you are.",
+      "choices": [
+        {
+          "label": "Let's duel!",
+          "effects": [{ "type": "triggerCardGame", "npcId": "aria" }],
+          "next": null
+        },
+        {
+          "label": "Not yet.",
+          "next": null
+        }
+      ]
+    },
+
+    "aria_just_checking": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Ha, sure. I'll be here. Come find me when you want to talk — or duel.",
+      "choices": []
+    },
+
+    "friend_greeting": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Oh, [Player]! I'm glad you're here. I've been thinking... you know how I always push myself so hard? The truth is, I'm trying to prove myself to someone. My older sister was the top student here, and everyone expects me to surpass her.",
+      "choices": [
+        {
+          "label": "That sounds like a lot of pressure.",
+          "effects": [{ "type": "relationship", "value": 3 }],
+          "next": "aria_friend_pressure"
+        },
+        {
+          "label": "You should just focus on yourself.",
+          "effects": [{ "type": "relationship", "value": 2 }],
+          "next": "aria_friend_focus"
+        }
+      ]
+    },
+
+    "aria_friend_pressure": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "Yeah... it really is. But talking to you about it helps. Thanks for listening. *she smiles warmly* You're a good friend, [Player].",
+      "choices": []
+    },
+
+    "aria_friend_focus": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "You're right. I... I know. It's easier said than done, but you're right. Maybe I should stop competing with her ghost and just be myself.",
+      "choices": []
+    },
+
+    "story_scene_greeting": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "I've been looking for you. There's something I need to tell you — something I haven't told anyone. About my sister, and why she really left the Academy.",
+      "effects": [{ "type": "setFlag", "flag": "aria_story_told" }],
+      "choices": [
+        {
+          "label": "Tell me everything.",
+          "effects": [{ "type": "relationship", "value": 5 }],
+          "next": "aria_story_reveal"
+        }
+      ]
+    },
+
+    "aria_story_reveal": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "She didn't just leave. She was expelled. For using forbidden magic. The headmaster covered it up to protect the Academy's reputation. I've been trying to figure out why she did it — and I think it has something to do with the sealed vault beneath the library.",
+      "choices": [
+        {
+          "label": "I'll help you find out the truth.",
+          "effects": [
+            { "type": "relationship", "value": 3 },
+            { "type": "setFlag", "flag": "vault_investigation" }
+          ],
+          "next": null
+        }
+      ]
+    },
+
+    "bonded_greeting": {
+      "speaker": "Aria",
+      "portrait": "🧙‍♀️",
+      "text": "[Player]... you know, when I first met you, I thought you were just another wide-eyed first-year. I had no idea you'd become this important to me. Whatever happens with the vault — I'm glad you're by my side.",
+      "choices": [
+        {
+          "label": "Me too, Aria. Always.",
+          "effects": [{ "type": "relationship", "value": 1 }],
+          "next": null
+        }
+      ]
+    }
+  }
+}

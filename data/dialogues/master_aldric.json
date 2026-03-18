@@ -1,0 +1,228 @@
+{
+  "npcId": "master_aldric",
+  "portrait": "🧓",
+  "entries": [
+    { "requires": { "flag": "aldric_final_arc" }, "node": "aldric_final" },
+    { "requires": { "flag": "aldric_secret" }, "node": "aldric_secret_greeting" },
+    { "requires": { "flag": "aldric_lessons" }, "node": "aldric_lessons_greeting" },
+    { "requires": { "flag": "returned_tome" }, "node": "aldric_tome_done" },
+    { "requires": { "flag": "asked_zephyr_tome" }, "node": "aldric_tome_return" },
+    { "requires": { "flag": "met_aldric" }, "node": "aldric_returning" }
+  ],
+  "nodes": {
+    "start": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Hmm. A new student, wandering into my library without so much as a knock. Most first-years don't find their way here until their second month. You must be curious — that's good. My name is Aldric. I teach Arcane Theory.",
+      "choices": [
+        {
+          "label": "I'm [Player]. I'm eager to learn.",
+          "effects": [
+            { "type": "setFlag", "flag": "met_aldric" },
+            { "type": "relationship", "value": 3 },
+            { "type": "completeObjective", "objectiveId": "m01_obj_02" }
+          ],
+          "next": "aldric_eager"
+        },
+        {
+          "label": "Sorry to intrude. I was just looking around.",
+          "effects": [
+            { "type": "setFlag", "flag": "met_aldric" },
+            { "type": "relationship", "value": 1 },
+            { "type": "completeObjective", "objectiveId": "m01_obj_02" }
+          ],
+          "next": "aldric_polite"
+        }
+      ]
+    },
+
+    "aldric_eager": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Eager. Good. But eagerness without discipline is dangerous. Come to my lectures with an open mind and a closed mouth, and you may yet learn something. Now — is there something specific you need?",
+      "choices": [
+        {
+          "label": "Can you tell me about Arcane Theory?",
+          "next": "aldric_arcane_theory"
+        },
+        {
+          "label": "I'll come back when I have a question.",
+          "next": null
+        }
+      ]
+    },
+
+    "aldric_polite": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "At least you have the decency to admit it. The library is open to all students. Just be careful with the ancient texts — some of them bite. Metaphorically. Mostly.",
+      "choices": [
+        {
+          "label": "Wait — mostly?",
+          "next": "aldric_biting_books"
+        },
+        {
+          "label": "I'll be careful.",
+          "next": null
+        }
+      ]
+    },
+
+    "aldric_biting_books": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "The Grimoire of Unbound Shadows is... temperamental. Don't touch the red shelf. *he returns to his reading*",
+      "choices": []
+    },
+
+    "aldric_arcane_theory": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Arcane Theory is the foundation of all magic. Every spell, every card, every enchantment draws on the same fundamental force — mana. Understanding how mana flows and accumulates is the key to mastering any element. Most students ignore this and wonder why their spells fizzle.",
+      "next": null
+    },
+
+    "aldric_returning": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Ah, [Player]. Back again. I was beginning to wonder if you'd gotten lost. What brings you to the library today?",
+      "choices": [
+        {
+          "label": "I wanted to ask about the lost tome.",
+          "requires": { "flag_unset": "asked_zephyr_tome" },
+          "effects": [{ "type": "triggerQuest", "questId": "side_02" }],
+          "next": "aldric_lost_tome"
+        },
+        {
+          "label": "Just looking for some guidance.",
+          "next": "aldric_guidance"
+        },
+        {
+          "label": "Nothing in particular.",
+          "next": null
+        }
+      ]
+    },
+
+    "aldric_lost_tome": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "The tome... yes. I've been trying not to dwell on it. 'Foundations of Elemental Convergence' — irreplaceable. I misplaced it several days ago and it's been gnawing at me. If you see it in your travels, I would be most grateful for its return. Try asking around — perhaps that peculiar merchant at the market has seen it.",
+      "choices": []
+    },
+
+    "aldric_guidance": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Guidance. *sighs* Very well. My advice: spend less time socialising and more time in here. The Academy's libraries hold wisdom that most graduates never tap into. Every answer you need is in a book — you just have to know which one to read.",
+      "choices": []
+    },
+
+    "aldric_tome_return": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Have you spoken with Zephyr about the tome yet? I suspect they may know something — they seem to know everything that passes through the market.",
+      "choices": [
+        {
+          "label": "I have the tome right here.",
+          "requires": { "flag": "found_tome" },
+          "effects": [
+            { "type": "setFlag", "flag": "returned_tome" },
+            { "type": "relationship", "value": 5 },
+            { "type": "completeObjective", "objectiveId": "s02_obj_02" }
+          ],
+          "next": "aldric_tome_returned"
+        },
+        {
+          "label": "Not yet. I'll go ask them.",
+          "next": null
+        }
+      ]
+    },
+
+    "aldric_tome_returned": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "My tome! *he clutches it with visible relief* I... thank you, [Player]. Truly. I know I can seem cold, but this book represents decades of my research. Your help means more than you know.",
+      "choices": []
+    },
+
+    "aldric_tome_done": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Ah, [Player]. Your assistance with the tome was... I don't say this often, but it was exemplary. I'm adjusting my assessment of you upward.",
+      "choices": [
+        {
+          "label": "Thank you, Master Aldric.",
+          "effects": [{ "type": "relationship", "value": 2 }],
+          "next": null
+        }
+      ]
+    },
+
+    "aldric_lessons_greeting": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Ah, [Player]. I've been reviewing your progress. I think you're ready for some advanced theory. Shall we begin?",
+      "choices": [
+        {
+          "label": "Let's do it.",
+          "effects": [
+            { "type": "relationship", "value": 3 },
+            { "type": "addItem", "itemId": "spell_scroll_arcane" }
+          ],
+          "next": "aldric_lesson_done"
+        }
+      ]
+    },
+
+    "aldric_lesson_done": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Excellent. I've prepared a scroll containing one of my more... accessible advanced spells. Consider it homework. *he hands you the Arcane Scroll*",
+      "choices": []
+    },
+
+    "aldric_secret_greeting": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "[Player]... I need to speak with you about something that doesn't leave this library. The vault beneath us — the sealed one — it contains records the headmaster doesn't want students to find. I've been here long enough to know something is wrong.",
+      "choices": [
+        {
+          "label": "What kind of records?",
+          "effects": [{ "type": "relationship", "value": 3 }],
+          "next": "aldric_vault_records"
+        }
+      ]
+    },
+
+    "aldric_vault_records": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "Expulsion records. Disciplinary actions. Students who were silenced. I believe Aria's sister wasn't the only one. There may be dozens of cases the Academy buried. I need someone I can trust — someone without an official stake — to help me investigate.",
+      "choices": [
+        {
+          "label": "I'll help you.",
+          "effects": [
+            { "type": "setFlag", "flag": "aldric_investigation_partner" },
+            { "type": "relationship", "value": 5 }
+          ],
+          "next": null
+        }
+      ]
+    },
+
+    "aldric_final": {
+      "speaker": "Master Aldric",
+      "portrait": "🧓",
+      "text": "[Player]. I've spent thirty years at this Academy, and in all that time, I have never met a student who reminded me so much of who I was before the politics ground me down. Don't let this place take that from you.",
+      "choices": [
+        {
+          "label": "I won't. Thank you, Master Aldric.",
+          "effects": [{ "type": "relationship", "value": 2 }],
+          "next": null
+        }
+      ]
+    }
+  }
+}

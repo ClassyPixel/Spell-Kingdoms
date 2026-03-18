@@ -1,0 +1,76 @@
+[
+  {
+    "questId": "main_01",
+    "title": "Enrollment Day",
+    "type": "main",
+    "description": "Your first day at Spellcaster Academy. Get acquainted with your surroundings and meet your fellow students.",
+    "objectives": [
+      {
+        "id": "m01_obj_01",
+        "type": "dialogue",
+        "description": "Speak with Aria in the Courtyard",
+        "target": { "npcId": "aria", "flag": "met_aria" }
+      },
+      {
+        "id": "m01_obj_02",
+        "type": "dialogue",
+        "description": "Visit the Grand Library and speak with Master Aldric",
+        "target": { "npcId": "master_aldric", "flag": "met_aldric" }
+      },
+      {
+        "id": "m01_obj_03",
+        "type": "dialogue",
+        "description": "Explore the Academy Market and meet Zephyr",
+        "target": { "npcId": "zephyr", "flag": "met_zephyr" }
+      }
+    ],
+    "rewards": {
+      "gold": 50,
+      "cards": ["mana_surge"],
+      "unlockLocations": ["dueling_grounds", "dormitory", "headmaster_office"]
+    }
+  },
+  {
+    "questId": "side_01",
+    "title": "Aria's Challenge",
+    "type": "side",
+    "description": "Aria has challenged you to a card duel. Prove your worth by defeating her on the Dueling Grounds.",
+    "objectives": [
+      {
+        "id": "s01_obj_01",
+        "type": "card_victory",
+        "description": "Defeat Aria in a card duel",
+        "target": { "npcId": "aria" }
+      }
+    ],
+    "rewards": {
+      "gold": 30,
+      "cards": ["flame_shield"]
+    }
+  },
+  {
+    "questId": "side_02",
+    "title": "The Lost Tome",
+    "type": "side",
+    "description": "Master Aldric has lost a precious tome somewhere in the Academy. He asks for your help finding it.",
+    "objectives": [
+      {
+        "id": "s02_obj_01",
+        "type": "dialogue",
+        "description": "Ask Zephyr if they've seen the tome",
+        "target": { "npcId": "zephyr", "flag": "asked_zephyr_tome" }
+      },
+      {
+        "id": "s02_obj_02",
+        "type": "dialogue",
+        "description": "Return the tome to Master Aldric",
+        "target": { "npcId": "master_aldric", "flag": "returned_tome" }
+      }
+    ],
+    "rewards": {
+      "gold": 40,
+      "cards": ["arcane_mastery"],
+      "items": ["greater_health_potion"]
+    }
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "npcId": "training_dummy",
+  "portrait": "🪆",
+  "nodes": {
+    "start": {
+      "speaker": "Training Dummy",
+      "portrait": "🪆",
+      "text": "*The training dummy stands motionless, pulsing faintly with magical energy. A sign reads: 'Practice Duels — Win or Lose, XP is awarded.'*",
+      "choices": [
+        {
+          "label": "Start a practice duel.",
+          "effects": [{ "type": "triggerCardGame", "npcId": "training_dummy" }],
+          "next": null
+        },
+        {
+          "label": "Leave it alone.",
+          "next": null
+        }
+      ]
+    }
+  }
+}

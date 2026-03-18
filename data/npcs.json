@@ -1,0 +1,34 @@
+[
+  {
+    "id": "aria",
+    "name": "Aria",
+    "portrait": "🧙‍♀️",
+    "location": "academy_courtyard",
+    "description": "A confident second-year student with fire-elemental magic. Competitive but warm-hearted.",
+    "deck": ["ember_bolt", "ember_bolt", "ember_bolt", "phoenix_feather", "flame_shield", "healing_light", "frost_shard", "thunder_strike", "arcane_blast", "ember_bolt"]
+  },
+  {
+    "id": "master_aldric",
+    "name": "Master Aldric",
+    "portrait": "🧓",
+    "location": "library",
+    "description": "The Academy's senior arcane theory professor. Stern, but genuinely cares about his students.",
+    "deck": ["arcane_blast", "arcane_blast", "arcane_blast", "mana_surge", "mana_surge", "shield_wall", "shield_wall", "frost_shard", "healing_light", "arcane_mastery"]
+  },
+  {
+    "id": "zephyr",
+    "name": "Zephyr",
+    "portrait": "🧝",
+    "location": "market",
+    "description": "A mysterious figure who runs a peculiar stall at the market. Their past is unknown.",
+    "deck": ["void_step", "frost_shard", "frost_shard", "shield_wall", "arcane_blast", "thunder_strike", "healing_light", "mana_surge", "frost_shard", "shield_wall"]
+  },
+  {
+    "id": "training_dummy",
+    "name": "Training Dummy",
+    "portrait": "🪆",
+    "location": "dueling_grounds",
+    "description": "A magical training construct. Good for practicing card duels.",
+    "deck": ["ember_bolt", "ember_bolt", "shield_wall", "frost_shard", "healing_light", "ember_bolt", "frost_shard", "shield_wall", "ember_bolt", "frost_shard"]
+  }
+]

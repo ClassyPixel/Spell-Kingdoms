@@ -1,0 +1,191 @@
+{
+  "npcId": "zephyr",
+  "portrait": "🧝",
+  "entries": [
+    { "requires": { "flag": "zephyr_final_arc" }, "node": "zephyr_final" },
+    { "requires": { "flag": "zephyr_secret" }, "node": "zephyr_secret_greeting" },
+    { "requires": { "flag": "zephyr_tip" }, "node": "zephyr_tip_greeting" },
+    { "requires": { "flag": "met_zephyr" }, "node": "zephyr_returning" }
+  ],
+  "nodes": {
+    "start": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "*looks up slowly* A customer. How refreshing. Or are you just browsing? I sell rare components, unique cards, and occasionally... information. Name's Zephyr. You look like a first-year.",
+      "choices": [
+        {
+          "label": "That obvious?",
+          "effects": [
+            { "type": "setFlag", "flag": "met_zephyr" },
+            { "type": "relationship", "value": 2 },
+            { "type": "completeObjective", "objectiveId": "m01_obj_03" }
+          ],
+          "next": "zephyr_obvious"
+        },
+        {
+          "label": "I'm [Player]. What do you sell?",
+          "effects": [
+            { "type": "setFlag", "flag": "met_zephyr" },
+            { "type": "relationship", "value": 1 },
+            { "type": "completeObjective", "objectiveId": "m01_obj_03" }
+          ],
+          "next": "zephyr_wares"
+        }
+      ]
+    },
+
+    "zephyr_obvious": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "*smiles faintly* The wide eyes. The slightly-lost expression. The way you looked at the market sign for five seconds before entering. Yes, fairly obvious. But obvious isn't the same as unremarkable. Come back when you need something.",
+      "choices": [
+        {
+          "label": "What do you sell?",
+          "next": "zephyr_wares"
+        },
+        {
+          "label": "Fair enough. See you around.",
+          "next": null
+        }
+      ]
+    },
+
+    "zephyr_wares": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "Potions, mana crystals, spell scrolls, and the occasional tome of dubious provenance. I also take special orders if you know what you're looking for. Standard Academy caveats: no illegal enchantments, no mind-affecting components, no questions about my suppliers.",
+      "choices": [
+        {
+          "label": "I'd like to see your shop.",
+          "effects": [{ "type": "openShop", "shopId": "general_shop", "shopName": "Zephyr's Wares" }],
+          "next": null
+        },
+        {
+          "label": "Maybe later.",
+          "next": null
+        }
+      ]
+    },
+
+    "zephyr_returning": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "[Player]. Back again. What is it this time — supplies, or something more?",
+      "choices": [
+        {
+          "label": "Have you seen a lost tome? Master Aldric is looking for it.",
+          "requires": { "flag": "side_02_active" },
+          "effects": [
+            { "type": "setFlag", "flag": "asked_zephyr_tome" },
+            { "type": "completeObjective", "objectiveId": "s02_obj_01" },
+            { "type": "relationship", "value": 2 }
+          ],
+          "next": "zephyr_tome_info"
+        },
+        {
+          "label": "I'd like to browse your shop.",
+          "effects": [{ "type": "openShop", "shopId": "general_shop", "shopName": "Zephyr's Wares" }],
+          "next": null
+        },
+        {
+          "label": "Just passing by.",
+          "next": "zephyr_passing"
+        }
+      ]
+    },
+
+    "zephyr_tome_info": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "*pauses* 'Foundations of Elemental Convergence'? Yes, I saw it. A student — third year, tall, wearing a grey cloak — left it here by accident two days ago. I set it aside... *reaches under the counter* Here. Return it to Aldric with my regards.",
+      "effects": [{ "type": "setFlag", "flag": "found_tome" }],
+      "choices": [
+        {
+          "label": "Thank you, Zephyr.",
+          "effects": [{ "type": "relationship", "value": 3 }],
+          "next": null
+        }
+      ]
+    },
+
+    "zephyr_passing": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "Of course. The stall will be here. *they go back to arranging vials with practiced precision*",
+      "choices": []
+    },
+
+    "zephyr_tip_greeting": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "[Player]. I've been thinking about you. *leans forward slightly* I hear things at this market. Not everything I hear is meant for sharing — but there's something you should know. The dueling bracket next month? It's rigged. The finalists are pre-selected.",
+      "choices": [
+        {
+          "label": "How do you know that?",
+          "effects": [{ "type": "relationship", "value": 3 }],
+          "next": "zephyr_source"
+        },
+        {
+          "label": "That's a serious accusation.",
+          "next": "zephyr_serious"
+        }
+      ]
+    },
+
+    "zephyr_source": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "I have my sources. That's all I'll say. Whether you believe me or not... I just thought you deserved to know before you trained for it. *returns to their work*",
+      "choices": []
+    },
+
+    "zephyr_serious": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "*shrugs* They all are, at a place like this. I'm not asking you to do anything about it. Just... be aware. The Academy isn't as clean as it looks.",
+      "choices": []
+    },
+
+    "zephyr_secret_greeting": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "*waits until no one is nearby, then speaks quietly* [Player]. I trust you, which is not something I say often — or at all, really. So I'm going to tell you something true: my name isn't Zephyr. Or rather, it is now, but it wasn't always.",
+      "choices": [
+        {
+          "label": "Who were you before?",
+          "effects": [{ "type": "relationship", "value": 5 }],
+          "next": "zephyr_identity"
+        }
+      ]
+    },
+
+    "zephyr_identity": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "A student. Here, actually. Years ago. I was expelled — officially for 'conduct unbecoming'. Unofficially for asking too many questions about the sealed vault. I never left the city. I built a new life, a new name. But I've been waiting for someone willing to ask the same questions I asked.",
+      "choices": [
+        {
+          "label": "I want to know what's in that vault.",
+          "effects": [
+            { "type": "setFlag", "flag": "zephyr_ally" },
+            { "type": "relationship", "value": 5 }
+          ],
+          "next": null
+        }
+      ]
+    },
+
+    "zephyr_final": {
+      "speaker": "Zephyr",
+      "portrait": "🧝",
+      "text": "*looks at you for a long moment* You know, when I set up this stall, I told myself I was just watching. Waiting. Not getting involved again. *quiet laugh* You ruined that rather thoroughly, [Player]. I'm glad you did.",
+      "choices": [
+        {
+          "label": "So am I, Zephyr.",
+          "effects": [{ "type": "relationship", "value": 2 }],
+          "next": null
+        }
+      ]
+    }
+  }
+}

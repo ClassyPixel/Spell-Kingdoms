@@ -1,0 +1,134 @@
+[
+  {
+    "cardId": "ember_bolt",
+    "name": "Ember Bolt",
+    "type": "attack",
+    "element": "fire",
+    "manaCost": 1,
+    "power": 3,
+    "art": "🔥",
+    "description": "Hurl a bolt of searing flame. Deals 3 damage.",
+    "effect": { "type": "damage", "target": "opponent", "value": 3 }
+  },
+  {
+    "cardId": "frost_shard",
+    "name": "Frost Shard",
+    "type": "attack",
+    "element": "ice",
+    "manaCost": 2,
+    "power": 4,
+    "art": "❄️",
+    "description": "Launch a razor-sharp ice shard. Deals 4 damage.",
+    "effect": { "type": "damage", "target": "opponent", "value": 4 }
+  },
+  {
+    "cardId": "shield_wall",
+    "name": "Shield Wall",
+    "type": "defense",
+    "element": "arcane",
+    "manaCost": 1,
+    "power": 3,
+    "art": "🛡️",
+    "description": "Erect a magical barrier. Gain 3 shield.",
+    "effect": { "type": "shield", "value": 3 }
+  },
+  {
+    "cardId": "healing_light",
+    "name": "Healing Light",
+    "type": "heal",
+    "element": "light",
+    "manaCost": 2,
+    "power": 4,
+    "art": "✨",
+    "description": "Bathe yourself in restorative light. Heal 4 HP.",
+    "effect": { "type": "heal", "target": "self", "value": 4 }
+  },
+  {
+    "cardId": "arcane_blast",
+    "name": "Arcane Blast",
+    "type": "attack",
+    "element": "arcane",
+    "manaCost": 3,
+    "power": 6,
+    "art": "💥",
+    "description": "Unleash raw magical force. Deals 6 damage.",
+    "effect": { "type": "damage", "target": "opponent", "value": 6 }
+  },
+  {
+    "cardId": "thunder_strike",
+    "name": "Thunder Strike",
+    "type": "attack",
+    "element": "arcane",
+    "manaCost": 3,
+    "power": 5,
+    "art": "⚡",
+    "description": "Call lightning down on your foe. Deals 5 damage.",
+    "effect": { "type": "damage", "target": "opponent", "value": 5 }
+  },
+  {
+    "cardId": "mana_surge",
+    "name": "Mana Surge",
+    "type": "utility",
+    "element": "arcane",
+    "manaCost": 0,
+    "power": 2,
+    "art": "🌀",
+    "description": "Tap into raw mana. Gain 2 mana immediately.",
+    "effect": { "type": "mana", "value": 2 }
+  },
+  {
+    "cardId": "ice_barrier",
+    "name": "Ice Barrier",
+    "type": "defense",
+    "element": "ice",
+    "manaCost": 2,
+    "power": 5,
+    "art": "🧊",
+    "description": "Encase yourself in ice. Gain 5 shield.",
+    "effect": { "type": "shield", "value": 5 }
+  },
+  {
+    "cardId": "flame_shield",
+    "name": "Flame Shield",
+    "type": "defense",
+    "element": "fire",
+    "manaCost": 2,
+    "power": 4,
+    "art": "🔶",
+    "description": "Surround yourself with burning flames. Gain 4 shield.",
+    "effect": { "type": "shield", "value": 4 }
+  },
+  {
+    "cardId": "arcane_mastery",
+    "name": "Arcane Mastery",
+    "type": "attack",
+    "element": "arcane",
+    "manaCost": 4,
+    "power": 9,
+    "art": "🔮",
+    "description": "Channel the full force of arcane mastery. Deals 9 damage.",
+    "effect": { "type": "damage", "target": "opponent", "value": 9 }
+  },
+  {
+    "cardId": "phoenix_feather",
+    "name": "Phoenix Feather",
+    "type": "heal",
+    "element": "fire",
+    "manaCost": 3,
+    "power": 8,
+    "art": "🦅",
+    "description": "A phoenix rises from your spirit. Heal 8 HP.",
+    "effect": { "type": "heal", "target": "self", "value": 8 }
+  },
+  {
+    "cardId": "void_step",
+    "name": "Void Step",
+    "type": "utility",
+    "element": "arcane",
+    "manaCost": 2,
+    "power": 3,
+    "art": "🌑",
+    "description": "Phase through the void, drawing 3 cards.",
+    "effect": { "type": "draw", "value": 3 }
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "academy_courtyard",
+    "name": "Academy Courtyard",
+    "tag": "Starting Area",
+    "description": "The central hub of Spellcaster Academy. Students gather here between classes.",
+    "icon": "🏛️",
+    "bgIcon": "🏛️"
+  },
+  {
+    "id": "library",
+    "name": "Grand Library",
+    "tag": "Study",
+    "description": "Ancient tomes line every shelf. Knowledge awaits those who seek it.",
+    "icon": "📚",
+    "bgIcon": "📚"
+  },
+  {
+    "id": "dueling_grounds",
+    "name": "Dueling Grounds",
+    "tag": "Combat",
+    "description": "A ring of ancient stones where students test their spells in controlled duels.",
+    "icon": "⚔️",
+    "bgIcon": "⚔️"
+  },
+  {
+    "id": "market",
+    "name": "Academy Market",
+    "tag": "Shopping",
+    "description": "Merchants hawking spell components, potions, and rare cards.",
+    "icon": "🛒",
+    "bgIcon": "🛒"
+  },
+  {
+    "id": "dormitory",
+    "name": "Student Dormitory",
+    "tag": "Rest",
+    "description": "A quiet place to rest and reflect. Your room is here.",
+    "icon": "🛏️",
+    "bgIcon": "🛏️"
+  },
+  {
+    "id": "headmaster_office",
+    "name": "Headmaster's Office",
+    "tag": "Main Quest",
+    "description": "The imposing office of the Academy's headmaster. Enter only when summoned.",
+    "icon": "🗝️",
+    "bgIcon": "🗝️"
+  }
+]

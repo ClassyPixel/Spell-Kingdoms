@@ -1,0 +1,55 @@
+[
+  {
+    "itemId": "health_potion",
+    "name": "Health Potion",
+    "icon": "🧪",
+    "type": "consumable",
+    "usable": true,
+    "description": "A vial of shimmering red liquid. Restores 5 HP.",
+    "effect": { "type": "heal", "value": 5 }
+  },
+  {
+    "itemId": "greater_health_potion",
+    "name": "Greater Health Potion",
+    "icon": "💊",
+    "type": "consumable",
+    "usable": true,
+    "description": "A potent healing brew. Restores 10 HP.",
+    "effect": { "type": "heal", "value": 10 }
+  },
+  {
+    "itemId": "mana_crystal",
+    "name": "Mana Crystal",
+    "icon": "💎",
+    "type": "consumable",
+    "usable": true,
+    "description": "A fragment of crystallised mana. Restores 3 mana during battle.",
+    "effect": { "type": "mana", "value": 3 }
+  },
+  {
+    "itemId": "spell_scroll_arcane",
+    "name": "Arcane Scroll",
+    "icon": "📜",
+    "type": "consumable",
+    "usable": true,
+    "description": "A scroll inscribed with an arcane blast spell. Adds Arcane Blast to your collection.",
+    "effect": { "type": "addCard", "cardId": "arcane_blast" }
+  },
+  {
+    "itemId": "tome_of_ice",
+    "name": "Tome of Ice",
+    "icon": "📘",
+    "type": "consumable",
+    "usable": true,
+    "description": "A frozen tome containing ice magic. Adds Ice Barrier to your collection.",
+    "effect": { "type": "addCard", "cardId": "ice_barrier" }
+  },
+  {
+    "itemId": "academy_badge",
+    "name": "Academy Badge",
+    "icon": "🎖️",
+    "type": "key_item",
+    "usable": false,
+    "description": "Your official student identification badge. Required for certain areas."
+  }
+]

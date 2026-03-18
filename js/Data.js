@@ -3,6 +3,88 @@
  * No fetch() calls needed; works from file:// without a server.
  */
 
+// ── Chapters ─────────────────────────────────────────────────────────────────
+export const CHAPTERS = [
+  {
+    chapterId: 'chapter_1',
+    number: 1,
+    title: 'A Spark of Potential',
+    subtitle: 'Every great mage begins somewhere.',
+    intro: 'The iron gates of Spellcaster Academy swing open before you, revealing a world unlike anything you have known. The courtyard hums with restless energy — students practising incantations, sparks of arcane light tracing patterns in the morning air. You are a scholarship student: no noble bloodline, no legendary mentor. Just potential, and the stubborn belief that it is enough.\n\nThis is where your story begins.',
+    triggerFlag: null,
+    completionFlag: 'main_01_complete',
+    scenes: [
+      {
+        sceneId: 'ch1_arrival',
+        title: 'Arrival',
+        text: 'You step through the gates with nothing but a letter of acceptance and a well-worn satchel. The Academy sprawls before you — ancient stone towers wound with ivy, bulletin boards plastered with notices, and the faint scent of sulphur from the dueling grounds drifting on the breeze.',
+      },
+      {
+        sceneId: 'ch1_first_impressions',
+        title: 'First Impressions',
+        text: 'The other students barely glance at you. You are nobody here — yet. The Academy does not care about where you came from. It only cares about what you can do.',
+      },
+      {
+        sceneId: 'ch1_orientation',
+        title: 'Orientation',
+        text: "A posted schedule directs new students to the Courtyard for orientation. The headmaster's speech is brief and pointed: \"Magic is not a gift. It is a discipline. Those who treat it as anything else do not last long here.\" The words settle over the crowd like a cold wind.",
+      },
+    ],
+  },
+  {
+    chapterId: 'chapter_2',
+    number: 2,
+    title: 'Bonds and Battles',
+    subtitle: 'Strength is tested. Friendships are forged.',
+    intro: 'Weeks have passed since your arrival. The Academy is no longer a maze of unfamiliar corridors — it is beginning to feel, cautiously, like home. Your spell work has sharpened. Your relationships have deepened. And with them, complications have begun to surface.\n\nNot everyone at the Academy is who they seem. And the friendships you are building carry stakes you are only beginning to understand.',
+    triggerFlag: 'main_01_complete',
+    completionFlag: 'chapter_2_complete',
+    scenes: [
+      {
+        sceneId: 'ch2_settling_in',
+        title: 'Settling In',
+        text: "You have found your rhythm. Morning theory lectures with Master Aldric, afternoons at the Dueling Grounds, evenings browsing Zephyr's eclectic stall. The Academy's routines have become your own.",
+      },
+      {
+        sceneId: 'ch2_the_challenge',
+        title: 'The Challenge',
+        text: "Aria's challenge has been circling in your mind. She is skilled — more skilled than she lets on. Accepting means risking humiliation in front of the entire student body. Declining means something worse.",
+      },
+      {
+        sceneId: 'ch2_after_the_duel',
+        title: 'After the Duel',
+        text: "Win or lose, the duel changes something. Aria looks at you differently now — with a respect that wasn't there before. On the dueling grounds, stripped of pretence, people show you who they really are.",
+      },
+    ],
+  },
+  {
+    chapterId: 'chapter_3',
+    number: 3,
+    title: 'Shadows in the Archive',
+    subtitle: 'Some secrets refuse to stay buried.',
+    intro: "The Academy's polished surface has begun to crack. A lost tome. A sealed vault. Whispered expulsions that were never supposed to be known. The pieces are assembling themselves into a picture that the headmaster very clearly does not want anyone to see.\n\nYou are not sure when you decided to pull at this thread. But you are certain, now, that you cannot stop.",
+    triggerFlag: 'chapter_2_complete',
+    completionFlag: 'chapter_3_complete',
+    scenes: [
+      {
+        sceneId: 'ch3_the_lost_tome',
+        title: 'The Lost Tome',
+        text: 'What began as a small favour for Master Aldric has led somewhere unexpected. The tome was not merely misplaced — it was removed. And whoever removed it knew exactly what they were looking for.',
+      },
+      {
+        sceneId: 'ch3_zephyrs_past',
+        title: "Zephyr's Past",
+        text: "Zephyr's story lands like a stone dropped into still water. An expelled student, still circling the place that cast them out. What are they waiting for? What do they know that you don't?",
+      },
+      {
+        sceneId: 'ch3_the_vault',
+        title: 'The Vault',
+        text: 'Beneath the library, behind a door that should not exist, the vault holds records that the Academy has spent years pretending are lost. Someone is going to read them. It might as well be you.',
+      },
+    ],
+  },
+];
+
 export const LOCATIONS = [
   { id: 'academy_courtyard', name: 'Academy Courtyard', tag: 'Starting Area', description: 'The central hub of Spellcaster Academy. Students gather here between classes.', icon: '🏛️', bgIcon: '🏛️' },
   { id: 'library',           name: 'Grand Library',     tag: 'Study',         description: 'Ancient tomes line every shelf. Knowledge awaits those who seek it.',           icon: '📚', bgIcon: '📚' },

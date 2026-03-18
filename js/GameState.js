@@ -73,6 +73,11 @@ const GameState = {
 
   shops: {},   // { shopId: { purchasedCounts: { itemId: count } } }
 
+  chapters: {
+    current: 1,
+    unlocked: [1],
+  },
+
   settings: {
     musicVolume: 0.7,
     sfxVolume:   1.0,

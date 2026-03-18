@@ -16,9 +16,23 @@ const QuestSystem = {
   _questMap: {},
 
   init() {
-    QUESTS.forEach(q => { this._questMap[q.questId] = q; });
+    // Deep-clone quests then apply any editor overrides
+    const overrides = this._loadOverrides();
+    QUESTS.forEach(q => {
+      const clone = JSON.parse(JSON.stringify(q));
+      const ov = overrides[q.questId];
+      if (ov) {
+        if (ov.title)       clone.title       = ov.title;
+        if (ov.description) clone.description = ov.description;
+        Object.entries(ov.objectives ?? {}).forEach(([objId, ov2]) => {
+          const obj = clone.objectives?.find(o => o.id === objId);
+          if (obj && ov2.description) obj.description = ov2.description;
+        });
+      }
+      this._questMap[q.questId] = clone;
+    });
 
-    EventBus.on('quest:trigger',          (d) => this._trigger(d.questId));
+    EventBus.on('quest:trigger',           (d) => this._trigger(d.questId));
     EventBus.on('quest:objectiveComplete', (d) => this._checkCompletion(d.objectiveId));
     EventBus.on('cardgame:result',         (d) => this._onCardResult(d));
   },
@@ -76,6 +90,13 @@ const QuestSystem = {
 
     EventBus.emit('toast', { message: `Quest complete: ${quest.title}!`, type: 'success' });
     EventBus.emit('quest:completed', { questId });
+  },
+
+  _loadOverrides() {
+    try {
+      const raw = localStorage.getItem('sca_quest_overrides');
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
   },
 
   _onCardResult({ win, npcId }) {

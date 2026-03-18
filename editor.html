@@ -3,701 +3,1023 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spell Kingdoms — Dialogue Editor</title>
+  <title>Spell Kingdoms — Story Editor</title>
   <style>
     :root {
-      --bg:       #0d0d1a;
-      --bg2:      #13132a;
-      --panel:    #1a1a35;
-      --border:   #2a2a55;
-      --accent:   #7c5cbf;
-      --accent2:  #a07de0;
-      --gold:     #e0b84a;
-      --text:     #d8d8f0;
-      --dim:      #8888aa;
-      --success:  #4ab87c;
-      --danger:   #c04a4a;
-      --warn:     #d4902a;
-      --radius:   8px;
+      --bg:      #0d0d1a;
+      --bg2:     #13132a;
+      --panel:   #1a1a35;
+      --border:  #2a2a55;
+      --accent:  #7c5cbf;
+      --accent2: #a07de0;
+      --gold:    #e0b84a;
+      --text:    #d8d8f0;
+      --dim:     #8888aa;
+      --success: #4ab87c;
+      --danger:  #c04a4a;
+      --warn:    #d4902a;
+      --r:       8px;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
+      background: var(--bg); color: var(--text);
       font-family: 'Segoe UI', sans-serif;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
     }
 
-    /* ── Top bar ── */
+    /* ── Top bar ─────────────────────────────────────────── */
     #topbar {
-      background: var(--bg2);
-      border-bottom: 1px solid var(--border);
-      padding: 0 20px;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-shrink: 0;
-      z-index: 10;
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      height: 54px; padding: 0 20px;
+      display: flex; align-items: center; gap: 14px; flex-shrink: 0; z-index: 10;
+    }
+    #topbar h1 { font-size: 1.05em; color: var(--accent2); white-space: nowrap; }
+    #topbar .sep { color: var(--border); }
+    #topbar .sub { font-size: 0.78em; color: var(--dim); }
+    .spacer { flex: 1; }
+    #unsaved-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--gold); display: none; flex-shrink: 0;
+    }
+    #unsaved-dot.on { display: block; }
+    #status {
+      font-size: 0.8em; padding: 4px 12px; border-radius: var(--r);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    #status.show { opacity: 1; }
+    #status.ok   { background: rgba(74,184,124,0.15); border: 1px solid var(--success); color: var(--success); }
+    #status.warn { background: rgba(212,144,42,0.15);  border: 1px solid var(--warn);    color: var(--warn); }
+    .btn {
+      padding: 7px 16px; border-radius: var(--r); border: none;
+      cursor: pointer; font-size: 0.88em; font-weight: 600; white-space: nowrap;
+      transition: filter 0.15s;
+    }
+    .btn:hover { filter: brightness(1.15); }
+    .btn-save   { background: var(--accent); color: #fff; }
+    .btn-reset  { background: transparent; border: 1px solid var(--border); color: var(--dim); }
+    .btn-reset:hover  { border-color: var(--danger); color: var(--danger); filter: none; }
+    .btn-export { background: transparent; border: 1px solid var(--border); color: var(--dim); }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    #layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    #sidebar {
+      width: 230px; background: var(--bg2); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
     }
 
-    #topbar h1 {
-      font-size: 1.1em;
-      color: var(--accent2);
-      white-space: nowrap;
+    /* Section block */
+    .section { border-bottom: 1px solid var(--border); }
+
+    .section-hdr {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 14px; cursor: pointer; user-select: none;
+      background: var(--bg2); transition: background 0.15s;
     }
+    .section-hdr:hover { background: var(--panel); }
 
-    #topbar .subtitle {
-      font-size: 0.8em;
-      color: var(--dim);
+    .section-arrow {
+      font-size: 0.65em; color: var(--dim); width: 10px;
+      transition: transform 0.2s; display: inline-block;
     }
+    .section.collapsed .section-arrow { transform: rotate(-90deg); }
 
-    #topbar .spacer { flex: 1; }
-
-    #status-msg {
-      font-size: 0.82em;
-      padding: 5px 12px;
-      border-radius: var(--radius);
+    .section-icon { font-size: 1em; }
+    .section-label { font-size: 0.88em; font-weight: 600; flex: 1; }
+    .section-badge {
+      font-size: 0.65em; background: rgba(224,184,74,0.18);
+      color: var(--gold); border-radius: 10px; padding: 1px 6px;
       display: none;
     }
-    #status-msg.success { background: rgba(74,184,124,0.15); border: 1px solid var(--success); color: var(--success); display: block; }
-    #status-msg.warn    { background: rgba(212,144,42,0.15);  border: 1px solid var(--warn);    color: var(--warn);    display: block; }
+    .section-badge.on { display: inline; }
 
-    .btn {
-      padding: 8px 18px;
-      border-radius: var(--radius);
-      border: none;
-      cursor: pointer;
-      font-size: 0.9em;
-      font-weight: 600;
-      transition: opacity 0.15s;
-    }
-    .btn:hover { opacity: 0.85; }
+    /* Items inside a section */
+    .section-items { display: flex; flex-direction: column; }
+    .section.collapsed .section-items { display: none; }
 
-    .btn-save    { background: var(--accent);  color: #fff; }
-    .btn-reset   { background: transparent; border: 1px solid var(--border); color: var(--dim); }
-    .btn-reset:hover { border-color: var(--danger); color: var(--danger); opacity: 1; }
-    .btn-export  { background: transparent; border: 1px solid var(--border); color: var(--dim); }
-
-    /* ── Layout ── */
-    #layout {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    /* ── Sidebar ── */
-    #sidebar {
-      width: 200px;
-      background: var(--bg2);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      overflow-y: auto;
-    }
-
-    #sidebar h3 {
-      padding: 14px 16px 8px;
-      font-size: 0.72em;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
+    .sidebar-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px 9px 28px; cursor: pointer;
+      font-size: 0.84em; border-left: 3px solid transparent;
+      transition: background 0.12s, border-color 0.12s;
       color: var(--dim);
-      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-item:hover { background: var(--panel); color: var(--text); }
+    .sidebar-item.active {
+      border-left-color: var(--accent2); background: var(--panel);
+      color: var(--accent2); font-weight: 600;
+    }
+    .sidebar-item.modified { color: var(--text); }
+    .sidebar-item.modified .item-dot { display: block; }
+    .sidebar-item.active.modified { color: var(--accent2); }
+
+    .item-icon { font-size: 1em; width: 18px; text-align: center; flex-shrink: 0; }
+    .item-label { flex: 1; line-height: 1.3; }
+    .item-sublabel { font-size: 0.72em; color: var(--dim); display: block; }
+    .item-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold); display: none; flex-shrink: 0;
     }
 
-    .npc-tab {
-      padding: 12px 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.9em;
-      border-left: 3px solid transparent;
-      transition: background 0.15s;
+    /* ── Right panel ─────────────────────────────────────── */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    #panel-header {
+      padding: 14px 22px 12px; border-bottom: 1px solid var(--border);
+      background: var(--bg2); flex-shrink: 0;
+      display: flex; align-items: center; gap: 12px;
     }
-    .npc-tab:hover { background: var(--panel); }
-    .npc-tab.active { border-left-color: var(--accent2); background: var(--panel); color: var(--accent2); }
-    .npc-tab.modified { border-left-color: var(--gold); }
-    .npc-tab.modified.active { border-left-color: var(--accent2); }
-    .npc-portrait { font-size: 1.4em; width: 24px; text-align: center; }
-    .npc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); margin-left: auto; flex-shrink: 0; display: none; }
-    .npc-tab.modified .npc-dot { display: block; }
+    #panel-header .ph-icon  { font-size: 2em; }
+    #panel-header .ph-title { font-size: 1.15em; font-weight: 700; color: var(--accent2); }
+    #panel-header .ph-sub   { font-size: 0.78em; color: var(--dim); margin-top: 2px; }
 
-    /* ── Main panel ── */
-    #main {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 24px;
+    #panel-search {
+      padding: 8px 22px; border-bottom: 1px solid var(--border);
+      background: var(--bg2); flex-shrink: 0; display: none;
     }
-
-    #npc-header {
-      margin-bottom: 20px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    #panel-search.visible { display: block; }
+    #search-input {
+      width: 100%; background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text); font-size: 0.82em;
+      padding: 6px 10px; outline: none;
     }
+    #search-input:focus { border-color: var(--accent); }
 
-    #npc-portrait-big { font-size: 2.5em; }
+    #panel-body { flex: 1; overflow-y: auto; padding: 18px 22px; }
 
-    #npc-header h2 { font-size: 1.3em; color: var(--accent2); }
-    #npc-header p  { font-size: 0.82em; color: var(--dim); margin-top: 2px; }
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; gap: 10px;
+      color: var(--dim); text-align: center; padding: 40px;
+    }
+    .empty-state .es-icon { font-size: 3em; opacity: 0.4; }
+    .empty-state p { font-size: 0.9em; max-width: 280px; line-height: 1.6; }
 
-    /* ── Node card ── */
-    .node-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      margin-bottom: 14px;
-      overflow: hidden;
+    /* ── Field cards ─────────────────────────────────────── */
+    .edit-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--r); margin-bottom: 14px; overflow: hidden;
       transition: border-color 0.2s;
     }
-    .node-card.modified { border-color: var(--gold); }
+    .edit-card.modified { border-color: var(--gold); }
 
-    .node-header {
-      background: var(--bg2);
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      user-select: none;
+    .card-hdr {
+      background: var(--bg2); padding: 9px 14px;
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
     }
+    .card-hdr-label { font-size: 0.72em; font-family: monospace; color: var(--accent); background: rgba(124,92,191,0.15); padding: 2px 8px; border-radius: 4px; }
+    .card-hdr-title { font-size: 0.88em; color: var(--text); flex: 1; }
+    .card-hdr-badge { font-size: 0.68em; color: var(--gold); background: rgba(224,184,74,0.12); padding: 1px 7px; border-radius: 4px; display: none; }
+    .edit-card.modified .card-hdr-badge { display: inline; }
+    .card-toggle { color: var(--dim); font-size: 0.7em; margin-left: auto; transition: transform 0.2s; }
+    .edit-card.collapsed .card-toggle { transform: rotate(-90deg); }
+    .edit-card.collapsed .card-body { display: none; }
 
-    .node-id {
-      font-size: 0.72em;
-      font-family: 'Courier New', monospace;
-      color: var(--accent);
-      background: rgba(124,92,191,0.15);
-      padding: 2px 8px;
-      border-radius: 4px;
+    .card-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+    /* Field rows inside a card */
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field-lbl {
+      font-size: 0.7em; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--dim);
     }
-
-    .node-modified-badge {
-      font-size: 0.7em;
-      color: var(--gold);
-      background: rgba(224,184,74,0.12);
-      padding: 2px 7px;
-      border-radius: 4px;
-      display: none;
+    .field-input, .field-ta {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text); font-family: inherit;
+      font-size: 0.88em; padding: 8px 11px; outline: none;
+      transition: border-color 0.15s; width: 100%;
     }
-    .node-card.modified .node-modified-badge { display: inline; }
+    .field-input:focus, .field-ta:focus { border-color: var(--accent); }
+    .field-input.changed, .field-ta.changed { border-color: var(--gold); }
+    .field-ta { resize: vertical; min-height: 80px; line-height: 1.65; }
+    .field-ta.tall { min-height: 130px; }
 
-    .node-toggle {
-      margin-left: auto;
-      color: var(--dim);
-      font-size: 0.8em;
-      transition: transform 0.2s;
-    }
-    .node-card.collapsed .node-toggle { transform: rotate(-90deg); }
-
-    .node-body {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .node-card.collapsed .node-body { display: none; }
-
-    .field-row {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .field-label {
-      font-size: 0.72em;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--dim);
-    }
-
-    .field-input {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-      font-family: inherit;
-      font-size: 0.9em;
-      padding: 8px 12px;
-      width: 100%;
-      transition: border-color 0.15s;
-      resize: vertical;
-    }
-    .field-input:focus { outline: none; border-color: var(--accent); }
-    .field-input.changed { border-color: var(--gold); }
-
-    textarea.field-input { min-height: 80px; line-height: 1.6; }
-
-    /* Choices section */
-    .choices-section { display: flex; flex-direction: column; gap: 8px; }
-    .choices-title {
-      font-size: 0.72em;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--dim);
-      margin-bottom: 2px;
-    }
+    /* Choices */
+    .choices-lbl { font-size: 0.7em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin-bottom: 4px; }
     .choice-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 8px 12px;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 7px 11px;
     }
-    .choice-idx {
-      font-size: 0.75em;
-      color: var(--dim);
-      width: 20px;
-      flex-shrink: 0;
+    .choice-num  { font-size: 0.72em; color: var(--dim); width: 18px; flex-shrink: 0; }
+    .choice-inp  { flex: 1; background: transparent; border: none; color: var(--text); font-family: inherit; font-size: 0.86em; outline: none; }
+    .choice-inp.changed { color: var(--gold); }
+    .choice-tag  { font-size: 0.7em; color: var(--dim); flex-shrink: 0; }
+
+    /* Quest objectives */
+    .obj-row {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 6px;
+      margin-bottom: 8px;
     }
-    .choice-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: var(--text);
-      font-family: inherit;
-      font-size: 0.88em;
-      outline: none;
-    }
-    .choice-input.changed { color: var(--gold); }
-    .choice-locked-note {
-      font-size: 0.72em;
-      color: var(--dim);
-      flex-shrink: 0;
+    .obj-id { font-size: 0.68em; font-family: monospace; color: var(--dim); }
+    .obj-type { font-size: 0.72em; color: var(--accent2); }
+
+    /* Read-only reward badges */
+    .reward-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .reward-badge {
+      font-size: 0.75em; padding: 3px 10px; border-radius: 10px;
+      background: rgba(74,184,124,0.12); border: 1px solid rgba(74,184,124,0.3);
+      color: var(--success);
     }
 
-    /* No NPCs / empty state */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--dim);
+    /* Section top-level divider labels */
+    .section-divider {
+      font-size: 0.7em; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--dim); padding: 14px 0 6px; border-bottom: 1px solid var(--border);
+      margin-bottom: 14px;
     }
 
-    /* Search bar */
-    #search-wrap {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    #search {
-      width: 100%;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-      font-size: 0.82em;
-      padding: 6px 10px;
-      outline: none;
-    }
-    #search:focus { border-color: var(--accent); }
-
-    /* Scrollbar */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* Unsaved indicator on topbar */
-    #unsaved-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--gold);
-      display: none;
-      flex-shrink: 0;
-    }
-    #unsaved-dot.visible { display: block; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
   </style>
 </head>
 <body>
 
+<!-- Top bar -->
 <div id="topbar">
-  <h1>✍️ Dialogue Editor</h1>
-  <span class="subtitle">Spell Kingdoms</span>
+  <h1>✍️ Story Editor</h1>
+  <span class="sep">|</span>
+  <span class="sub">Spell Kingdoms</span>
   <div id="unsaved-dot" title="Unsaved changes"></div>
   <div class="spacer"></div>
-  <span id="status-msg"></span>
-  <button class="btn btn-export" id="btn-export">⬇ Export JS</button>
-  <button class="btn btn-reset"  id="btn-reset">↺ Reset to Default</button>
+  <span id="status"></span>
+  <button class="btn btn-export" id="btn-export">⬇ Export</button>
+  <button class="btn btn-reset"  id="btn-reset">↺ Reset All</button>
   <button class="btn btn-save"   id="btn-save">💾 Save Changes</button>
 </div>
 
+<!-- Main layout -->
 <div id="layout">
+
+  <!-- Sidebar -->
   <div id="sidebar">
-    <h3>NPCs</h3>
-    <div id="search-wrap">
-      <input id="search" type="text" placeholder="Search nodes...">
+
+    <!-- Story -->
+    <div class="section" id="sec-story">
+      <div class="section-hdr">
+        <span class="section-arrow">▼</span>
+        <span class="section-icon">📖</span>
+        <span class="section-label">Story</span>
+        <span class="section-badge" id="badge-story">edited</span>
+      </div>
+      <div class="section-items" id="items-story"></div>
     </div>
-    <div id="npc-list"></div>
+
+    <!-- NPC Dialogue -->
+    <div class="section" id="sec-npc">
+      <div class="section-hdr">
+        <span class="section-arrow">▼</span>
+        <span class="section-icon">🧙</span>
+        <span class="section-label">NPC Dialogue</span>
+        <span class="section-badge" id="badge-npc">edited</span>
+      </div>
+      <div class="section-items" id="items-npc"></div>
+    </div>
+
+    <!-- Quests -->
+    <div class="section" id="sec-quests">
+      <div class="section-hdr">
+        <span class="section-arrow">▼</span>
+        <span class="section-icon">📜</span>
+        <span class="section-label">Quests</span>
+        <span class="section-badge" id="badge-quests">edited</span>
+      </div>
+      <div class="section-items" id="items-quests"></div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- Right panel -->
+  <div id="main">
+    <div id="panel-header" style="display:none">
+      <span class="ph-icon" id="ph-icon"></span>
+      <div>
+        <div class="ph-title" id="ph-title"></div>
+        <div class="ph-sub"   id="ph-sub"></div>
+      </div>
+    </div>
+    <div id="panel-search">
+      <input id="search-input" type="text" placeholder="Search within this section...">
+    </div>
+    <div id="panel-body">
+      <div class="empty-state">
+        <div class="es-icon">📝</div>
+        <p>Select a section from the left panel to begin editing.</p>
+      </div>
+    </div>
   </div>
 
-  <div id="main">
-    <div class="empty-state">Select an NPC from the sidebar to edit their dialogue.</div>
-  </div>
-</div>
+</div><!-- /layout -->
 
 <script type="module">
-import { DIALOGUES } from './js/Data.js';
+import { CHAPTERS, DIALOGUES, QUESTS } from './js/Data.js';
 
-// ── State ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// Keys & state
+// ─────────────────────────────────────────────────────────────────
+const KEYS = {
+  story:   'sca_story_overrides',
+  npc:     'sca_dialogue_overrides',
+  quests:  'sca_quest_overrides',
+};
 
-const STORAGE_KEY = 'sca_dialogue_overrides';
+const NPC_META = {
+  aria:           { label: 'Aria',           icon: '🧙‍♀️', sub: 'Fire mage, 2nd year' },
+  master_aldric:  { label: 'Master Aldric',  icon: '🧓',  sub: 'Arcane Theory professor' },
+  zephyr:         { label: 'Zephyr',         icon: '🧝',  sub: 'Mysterious merchant' },
+  training_dummy: { label: 'Training Dummy', icon: '🪆',  sub: 'Dueling practice construct' },
+};
 
-// Working copy: deep clone of DIALOGUES, merged with any saved overrides
-let workingData = {};
-// Track which nodes have been edited this session
-let dirtyNodes = new Set();  // "npcId::nodeId"
-let activeNpcId = null;
+const QUEST_ICONS = { main: '⭐', side: '✦' };
 
-// ── Init ─────────────────────────────────────────────────────────────────────
+// Working copies (deep clones of source data + merged overrides)
+const wk = {
+  chapters:  {},   // { chapterId: chapter }
+  dialogues: {},   // { npcId: dialogue }
+  quests:    {},   // { questId: quest }
+};
 
+// Dirty tracking: Set of "type:id:subkey" strings
+const dirty = { story: new Set(), npc: new Set(), quests: new Set() };
+
+// Current view
+let activeKey = null;  // e.g. "story:chapter_1", "npc:aria", "quests:main_01"
+
+// ─────────────────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────────────────
 function init() {
-  // Deep clone base data
-  workingData = JSON.parse(JSON.stringify(DIALOGUES));
+  // Deep-clone source data
+  CHAPTERS.forEach(ch => { wk.chapters[ch.chapterId] = JSON.parse(JSON.stringify(ch)); });
+  Object.entries(DIALOGUES).forEach(([id, d]) => { wk.dialogues[id] = JSON.parse(JSON.stringify(d)); });
+  QUESTS.forEach(q => { wk.quests[q.questId] = JSON.parse(JSON.stringify(q)); });
 
-  // Merge saved overrides on top
-  const saved = loadOverrides();
-  if (saved) {
-    Object.entries(saved).forEach(([npcId, overrideNpc]) => {
-      if (!workingData[npcId]) return;
-      Object.entries(overrideNpc.nodes ?? {}).forEach(([nodeId, overrideNode]) => {
-        if (!workingData[npcId].nodes[nodeId]) return;
-        const base = workingData[npcId].nodes[nodeId];
-        if (overrideNode.speaker !== undefined) base.speaker = overrideNode.speaker;
-        if (overrideNode.text    !== undefined) base.text    = overrideNode.text;
-        (overrideNode.choices ?? []).forEach((ch, i) => {
-          if (base.choices?.[i] && ch.label !== undefined) base.choices[i].label = ch.label;
-        });
-        // Mark as dirty so modified badge shows
-        dirtyNodes.add(`${npcId}::${nodeId}`);
-      });
-    });
-  }
+  // Apply saved overrides
+  mergeStoryOverrides(loadRaw(KEYS.story));
+  mergeNpcOverrides(loadRaw(KEYS.npc));
+  mergeQuestOverrides(loadRaw(KEYS.quests));
 
   buildSidebar();
   bindTopbar();
-
-  // Select first NPC
-  const firstId = Object.keys(workingData)[0];
-  if (firstId) selectNpc(firstId);
 }
 
-// ── Sidebar ──────────────────────────────────────────────────────────────────
-
-const NPC_PORTRAITS = { aria: '🧙‍♀️', master_aldric: '🧓', zephyr: '🧝', training_dummy: '🪆' };
-const NPC_LABELS    = { aria: 'Aria', master_aldric: 'Master Aldric', zephyr: 'Zephyr', training_dummy: 'Training Dummy' };
-
-function buildSidebar() {
-  const list = document.getElementById('npc-list');
-  list.innerHTML = '';
-  Object.keys(workingData).forEach(npcId => {
-    const tab = document.createElement('div');
-    tab.className = 'npc-tab';
-    tab.dataset.npc = npcId;
-    tab.innerHTML = `
-      <span class="npc-portrait">${NPC_PORTRAITS[npcId] ?? '🧙'}</span>
-      <span>${NPC_LABELS[npcId] ?? npcId}</span>
-      <span class="npc-dot"></span>
-    `;
-    tab.addEventListener('click', () => selectNpc(npcId));
-    list.appendChild(tab);
+// ─────────────────────────────────────────────────────────────────
+// Override merging (from localStorage → working copies)
+// ─────────────────────────────────────────────────────────────────
+function mergeStoryOverrides(saved) {
+  if (!saved) return;
+  Object.entries(saved).forEach(([chapterId, ov]) => {
+    const ch = wk.chapters[chapterId];
+    if (!ch) return;
+    if (ov.title    !== undefined) { ch.title    = ov.title;    dirty.story.add(`${chapterId}:title`); }
+    if (ov.subtitle !== undefined) { ch.subtitle = ov.subtitle; dirty.story.add(`${chapterId}:subtitle`); }
+    if (ov.intro    !== undefined) { ch.intro    = ov.intro;    dirty.story.add(`${chapterId}:intro`); }
+    Object.entries(ov.scenes ?? {}).forEach(([sceneId, sv]) => {
+      const scene = ch.scenes?.find(s => s.sceneId === sceneId);
+      if (!scene) return;
+      if (sv.title !== undefined) { scene.title = sv.title; dirty.story.add(`${chapterId}:scene:${sceneId}:title`); }
+      if (sv.text  !== undefined) { scene.text  = sv.text;  dirty.story.add(`${chapterId}:scene:${sceneId}:text`); }
+    });
   });
+}
+
+function mergeNpcOverrides(saved) {
+  if (!saved) return;
+  Object.entries(saved).forEach(([npcId, ov]) => {
+    const dlg = wk.dialogues[npcId];
+    if (!dlg) return;
+    Object.entries(ov.nodes ?? {}).forEach(([nodeId, nv]) => {
+      const node = dlg.nodes[nodeId];
+      if (!node) return;
+      if (nv.speaker !== undefined) { node.speaker = nv.speaker; dirty.npc.add(`${npcId}::${nodeId}`); }
+      if (nv.text    !== undefined) { node.text    = nv.text;    dirty.npc.add(`${npcId}::${nodeId}`); }
+      (nv.choices ?? []).forEach((ch, i) => {
+        if (node.choices?.[i] && ch.label !== undefined) { node.choices[i].label = ch.label; dirty.npc.add(`${npcId}::${nodeId}`); }
+      });
+    });
+  });
+}
+
+function mergeQuestOverrides(saved) {
+  if (!saved) return;
+  Object.entries(saved).forEach(([questId, ov]) => {
+    const q = wk.quests[questId];
+    if (!q) return;
+    if (ov.title       !== undefined) { q.title       = ov.title;       dirty.quests.add(`${questId}:title`); }
+    if (ov.description !== undefined) { q.description = ov.description; dirty.quests.add(`${questId}:description`); }
+    Object.entries(ov.objectives ?? {}).forEach(([objId, ov2]) => {
+      const obj = q.objectives?.find(o => o.id === objId);
+      if (obj && ov2.description !== undefined) { obj.description = ov2.description; dirty.quests.add(`${questId}:obj:${objId}`); }
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Sidebar
+// ─────────────────────────────────────────────────────────────────
+function buildSidebar() {
+  // Story items (chapters)
+  const storyList = document.getElementById('items-story');
+  storyList.innerHTML = '';
+  Object.values(wk.chapters).forEach(ch => {
+    storyList.appendChild(makeSidebarItem({
+      key:   `story:${ch.chapterId}`,
+      icon:  '📄',
+      label: `Ch. ${ch.number}: ${ch.title}`,
+      sub:   ch.subtitle,
+      type:  'story',
+      id:    ch.chapterId,
+    }));
+  });
+
+  // NPC items
+  const npcList = document.getElementById('items-npc');
+  npcList.innerHTML = '';
+  Object.keys(wk.dialogues).forEach(npcId => {
+    const meta = NPC_META[npcId] ?? { label: npcId, icon: '🧙', sub: '' };
+    npcList.appendChild(makeSidebarItem({
+      key:   `npc:${npcId}`,
+      icon:  meta.icon,
+      label: meta.label,
+      sub:   meta.sub,
+      type:  'npc',
+      id:    npcId,
+    }));
+  });
+
+  // Quest items
+  const questList = document.getElementById('items-quests');
+  questList.innerHTML = '';
+  Object.values(wk.quests).forEach(q => {
+    questList.appendChild(makeSidebarItem({
+      key:   `quests:${q.questId}`,
+      icon:  QUEST_ICONS[q.type] ?? '✦',
+      label: q.title,
+      sub:   q.type === 'main' ? 'Main Quest' : 'Side Quest',
+      type:  'quests',
+      id:    q.questId,
+    }));
+  });
+
+  // Section collapse toggles
+  document.querySelectorAll('.section-hdr').forEach(hdr => {
+    hdr.addEventListener('click', () => {
+      hdr.closest('.section').classList.toggle('collapsed');
+    });
+  });
+
   refreshSidebarState();
+}
+
+function makeSidebarItem({ key, icon, label, sub, type, id }) {
+  const el = document.createElement('div');
+  el.className = 'sidebar-item';
+  el.dataset.key = key;
+  el.innerHTML = `
+    <span class="item-icon">${icon}</span>
+    <span class="item-label">
+      ${label}
+      ${sub ? `<span class="item-sublabel">${sub}</span>` : ''}
+    </span>
+    <span class="item-dot"></span>
+  `;
+  el.addEventListener('click', () => selectItem(key, type, id));
+  return el;
 }
 
 function refreshSidebarState() {
-  document.querySelectorAll('.npc-tab').forEach(tab => {
-    const npcId = tab.dataset.npc;
-    const hasChanges = [...dirtyNodes].some(k => k.startsWith(npcId + '::'));
-    tab.classList.toggle('modified', hasChanges);
-    tab.classList.toggle('active', npcId === activeNpcId);
+  document.querySelectorAll('.sidebar-item').forEach(el => {
+    const key = el.dataset.key;
+    const [type, id] = key.split(':');
+
+    const isModified = [...dirty[type]].some(d => d.startsWith(id));
+    el.classList.toggle('modified', isModified);
+    el.classList.toggle('active', key === activeKey);
   });
+
+  // Section badges
+  document.getElementById('badge-story').classList.toggle('on',  dirty.story.size  > 0);
+  document.getElementById('badge-npc').classList.toggle('on',    dirty.npc.size    > 0);
+  document.getElementById('badge-quests').classList.toggle('on', dirty.quests.size > 0);
+
+  // Unsaved dot
+  const anyDirty = dirty.story.size > 0 || dirty.npc.size > 0 || dirty.quests.size > 0;
+  document.getElementById('unsaved-dot').classList.toggle('on', anyDirty);
 }
 
-// ── NPC Panel ────────────────────────────────────────────────────────────────
-
-function selectNpc(npcId) {
-  activeNpcId = npcId;
+// ─────────────────────────────────────────────────────────────────
+// Item selection → right panel
+// ─────────────────────────────────────────────────────────────────
+function selectItem(key, type, id) {
+  activeKey = key;
   refreshSidebarState();
-  renderNpcPanel(npcId);
+
+  const search = document.getElementById('panel-search');
+  const searchInp = document.getElementById('search-input');
+  searchInp.value = '';
+
+  if (type === 'story') {
+    const ch = wk.chapters[id];
+    const meta = NPC_META[id];
+    setPanelHeader('📖', `Chapter ${ch.number}: ${ch.title}`, ch.subtitle);
+    search.classList.add('visible');
+    renderChapter(id);
+  } else if (type === 'npc') {
+    const meta = NPC_META[id] ?? { label: id, icon: '🧙', sub: '' };
+    const nodeCount = Object.keys(wk.dialogues[id]?.nodes ?? {}).length;
+    setPanelHeader(meta.icon, meta.label, `${nodeCount} dialogue nodes · ${meta.sub}`);
+    search.classList.add('visible');
+    renderNpc(id);
+  } else if (type === 'quests') {
+    const q = wk.quests[id];
+    const icon = QUEST_ICONS[q.type] ?? '✦';
+    setPanelHeader(icon, q.title, q.type === 'main' ? 'Main Quest' : 'Side Quest');
+    search.classList.remove('visible');
+    renderQuest(id);
+  }
 }
 
-function renderNpcPanel(npcId) {
-  const npc  = workingData[npcId];
-  const main = document.getElementById('main');
-  main.innerHTML = '';
+function setPanelHeader(icon, title, sub) {
+  const hdr = document.getElementById('panel-header');
+  hdr.style.display = 'flex';
+  document.getElementById('ph-icon').textContent  = icon;
+  document.getElementById('ph-title').textContent = title;
+  document.getElementById('ph-sub').textContent   = sub;
+}
 
-  // Header
-  const header = document.createElement('div');
-  header.id = 'npc-header';
-  header.innerHTML = `
-    <span id="npc-portrait-big">${NPC_PORTRAITS[npcId] ?? '🧙'}</span>
-    <div>
-      <h2>${NPC_LABELS[npcId] ?? npcId}</h2>
-      <p>${Object.keys(npc.nodes).length} dialogue nodes</p>
-    </div>
-  `;
-  main.appendChild(header);
+// ─────────────────────────────────────────────────────────────────
+// Render: Chapter
+// ─────────────────────────────────────────────────────────────────
+function renderChapter(chapterId) {
+  const body = document.getElementById('panel-body');
+  body.innerHTML = '';
+  const ch = wk.chapters[chapterId];
+  const q  = document.getElementById('search-input').value.toLowerCase();
 
-  const searchTerm = document.getElementById('search').value.toLowerCase();
+  // Chapter meta card
+  const metaCard = makeEditCard({
+    label: 'chapter',
+    title: 'Chapter Header',
+    isDirty: dirty.story.has(`${chapterId}:title`) || dirty.story.has(`${chapterId}:subtitle`),
+  });
+  const mb = metaCard.querySelector('.card-body');
 
-  Object.entries(npc.nodes).forEach(([nodeId, node]) => {
-    // Filter by search
-    const nodeText = (node.text ?? '').toLowerCase();
-    const nodeSpeaker = (node.speaker ?? '').toLowerCase();
-    if (searchTerm && !nodeId.includes(searchTerm) && !nodeText.includes(searchTerm) && !nodeSpeaker.includes(searchTerm)) return;
+  mb.appendChild(makeField({
+    label: 'Chapter Title', value: ch.title, multiline: false,
+    onChange(v) {
+      wk.chapters[chapterId].title = v;
+      markDirty('story', `${chapterId}:title`, metaCard);
+      // Update sidebar label
+      refreshSidebarState();
+      document.querySelector(`[data-key="story:${chapterId}"] .item-label`)
+        .firstChild.textContent = `Ch. ${ch.number}: ${v}`;
+    },
+  }));
+  mb.appendChild(makeField({
+    label: 'Subtitle', value: ch.subtitle, multiline: false,
+    onChange(v) {
+      wk.chapters[chapterId].subtitle = v;
+      markDirty('story', `${chapterId}:subtitle`, metaCard);
+    },
+  }));
 
-    const isDirty = dirtyNodes.has(`${npcId}::${nodeId}`);
-    const card = document.createElement('div');
-    card.className = 'node-card' + (isDirty ? ' modified' : '');
-    card.dataset.nodeId = nodeId;
+  if (!q || 'chapter header'.includes(q) || ch.title.toLowerCase().includes(q)) {
+    body.appendChild(metaCard);
+  }
 
-    // Header row
-    const hdr = document.createElement('div');
-    hdr.className = 'node-header';
-    hdr.innerHTML = `
-      <span class="node-id">${nodeId}</span>
-      <span class="node-modified-badge">modified</span>
-      <span class="node-toggle">▼</span>
-    `;
-    hdr.addEventListener('click', () => {
-      card.classList.toggle('collapsed');
+  // Intro card
+  const introCard = makeEditCard({
+    label: 'intro',
+    title: 'Chapter Introduction',
+    isDirty: dirty.story.has(`${chapterId}:intro`),
+  });
+  const ib = introCard.querySelector('.card-body');
+  ib.appendChild(makeField({
+    label: 'Intro Narration', value: ch.intro, multiline: true, tall: true,
+    onChange(v) {
+      wk.chapters[chapterId].intro = v;
+      markDirty('story', `${chapterId}:intro`, introCard);
+    },
+  }));
+
+  if (!q || 'introduction narration'.includes(q) || ch.intro.toLowerCase().includes(q)) {
+    body.appendChild(introCard);
+  }
+
+  // Scene cards
+  if (ch.scenes?.length) {
+    const divider = document.createElement('div');
+    divider.className = 'section-divider';
+    divider.textContent = `Scenes (${ch.scenes.length})`;
+    body.appendChild(divider);
+
+    ch.scenes.forEach(scene => {
+      const dkTitle = `${chapterId}:scene:${scene.sceneId}:title`;
+      const dkText  = `${chapterId}:scene:${scene.sceneId}:text`;
+      const isDirty = dirty.story.has(dkTitle) || dirty.story.has(dkText);
+
+      // Filter by search
+      if (q && !scene.title.toLowerCase().includes(q) && !scene.text.toLowerCase().includes(q) && !scene.sceneId.includes(q)) return;
+
+      const card = makeEditCard({ label: scene.sceneId, title: scene.title, isDirty });
+      const cb = card.querySelector('.card-body');
+
+      cb.appendChild(makeField({
+        label: 'Scene Title', value: scene.title, multiline: false,
+        onChange(v) {
+          scene.title = v;
+          markDirty('story', dkTitle, card);
+          card.querySelector('.card-hdr-title').textContent = v;
+        },
+      }));
+      cb.appendChild(makeField({
+        label: 'Scene Text', value: scene.text, multiline: true, tall: true,
+        onChange(v) {
+          scene.text = v;
+          markDirty('story', dkText, card);
+        },
+      }));
+
+      body.appendChild(card);
     });
-    card.appendChild(hdr);
+  }
 
-    // Body
-    const body = document.createElement('div');
-    body.className = 'node-body';
+  if (!body.children.length) {
+    body.innerHTML = '<div class="empty-state"><div class="es-icon">🔍</div><p>No results match your search.</p></div>';
+  }
+}
 
-    // Speaker field
-    body.appendChild(makeTextField({
-      label: 'Speaker',
-      value: node.speaker ?? '',
-      onchange(val) {
-        workingData[npcId].nodes[nodeId].speaker = val;
-        markDirty(npcId, nodeId, card);
+// ─────────────────────────────────────────────────────────────────
+// Render: NPC Dialogue
+// ─────────────────────────────────────────────────────────────────
+function renderNpc(npcId) {
+  const body = document.getElementById('panel-body');
+  body.innerHTML = '';
+  const dlg = wk.dialogues[npcId];
+  const q   = document.getElementById('search-input').value.toLowerCase();
+  let count = 0;
+
+  Object.entries(dlg.nodes).forEach(([nodeId, node]) => {
+    const dk = `${npcId}::${nodeId}`;
+    const isDirty = dirty.npc.has(dk);
+
+    if (q) {
+      const hit = nodeId.includes(q) ||
+                  (node.text ?? '').toLowerCase().includes(q) ||
+                  (node.speaker ?? '').toLowerCase().includes(q) ||
+                  (node.choices ?? []).some(c => c.label.toLowerCase().includes(q));
+      if (!hit) return;
+    }
+
+    const card = makeEditCard({ label: nodeId, title: node.speaker ?? nodeId, isDirty });
+    const cb = card.querySelector('.card-body');
+
+    cb.appendChild(makeField({
+      label: 'Speaker Name', value: node.speaker ?? '', multiline: false,
+      onChange(v) {
+        wk.dialogues[npcId].nodes[nodeId].speaker = v;
+        markDirty('npc', dk, card);
+        card.querySelector('.card-hdr-title').textContent = v || nodeId;
       },
     }));
-
-    // Text field
-    body.appendChild(makeTextField({
-      label: 'Dialogue Text',
-      value: node.text ?? '',
-      multiline: true,
-      onchange(val) {
-        workingData[npcId].nodes[nodeId].text = val;
-        markDirty(npcId, nodeId, card);
-      },
+    cb.appendChild(makeField({
+      label: 'Dialogue Text', value: node.text ?? '', multiline: true,
+      onChange(v) { wk.dialogues[npcId].nodes[nodeId].text = v; markDirty('npc', dk, card); },
     }));
 
-    // Choices
-    if (node.choices && node.choices.length > 0) {
-      const choicesWrap = document.createElement('div');
-      choicesWrap.className = 'choices-section';
+    if (node.choices?.length) {
+      const wrap = document.createElement('div');
 
-      const choicesTitle = document.createElement('div');
-      choicesTitle.className = 'choices-title';
-      choicesTitle.textContent = `Player Choices (${node.choices.length})`;
-      choicesWrap.appendChild(choicesTitle);
+      const lbl = document.createElement('div');
+      lbl.className = 'choices-lbl';
+      lbl.textContent = `Player Choices (${node.choices.length})`;
+      wrap.appendChild(lbl);
 
       node.choices.forEach((choice, idx) => {
         const row = document.createElement('div');
         row.className = 'choice-row';
-        row.innerHTML = `<span class="choice-idx">${idx + 1}.</span>`;
+        row.innerHTML = `<span class="choice-num">${idx + 1}.</span>`;
 
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'choice-input';
-        input.value = choice.label ?? '';
-        input.placeholder = 'Choice label...';
-
-        input.addEventListener('input', () => {
-          workingData[npcId].nodes[nodeId].choices[idx].label = input.value;
-          input.classList.add('changed');
-          markDirty(npcId, nodeId, card);
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'choice-inp';
+        inp.value = choice.label ?? '';
+        inp.placeholder = 'Choice label…';
+        inp.addEventListener('input', () => {
+          wk.dialogues[npcId].nodes[nodeId].choices[idx].label = inp.value;
+          inp.classList.add('changed');
+          markDirty('npc', dk, card);
         });
+        row.appendChild(inp);
 
-        row.appendChild(input);
-
-        // Show lock requirement as read-only note
         if (choice.requires) {
-          const note = document.createElement('span');
-          note.className = 'choice-locked-note';
-          note.textContent = '🔒';
-          note.title = JSON.stringify(choice.requires);
-          row.appendChild(note);
+          const t = document.createElement('span');
+          t.className = 'choice-tag';
+          t.textContent = '🔒';
+          t.title = JSON.stringify(choice.requires);
+          row.appendChild(t);
         }
         if (choice.effects?.length) {
-          const efx = document.createElement('span');
-          efx.className = 'choice-locked-note';
-          efx.textContent = `⚡${choice.effects.length}`;
-          efx.title = choice.effects.map(e => e.type).join(', ');
-          row.appendChild(efx);
+          const t = document.createElement('span');
+          t.className = 'choice-tag';
+          t.textContent = `⚡${choice.effects.length}`;
+          t.title = choice.effects.map(e => e.type).join(', ');
+          row.appendChild(t);
         }
-
-        choicesWrap.appendChild(row);
+        wrap.appendChild(row);
       });
 
-      body.appendChild(choicesWrap);
+      cb.appendChild(wrap);
     }
 
-    card.appendChild(body);
-    main.appendChild(card);
+    body.appendChild(card);
+    count++;
   });
 
-  if (!main.querySelector('.node-card')) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-state';
-    empty.textContent = searchTerm ? 'No nodes match your search.' : 'No dialogue nodes.';
-    main.appendChild(empty);
+  if (!count) {
+    body.innerHTML = '<div class="empty-state"><div class="es-icon">🔍</div><p>No results match your search.</p></div>';
   }
 }
 
-// ── Field builders ───────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// Render: Quest
+// ─────────────────────────────────────────────────────────────────
+function renderQuest(questId) {
+  const body = document.getElementById('panel-body');
+  body.innerHTML = '';
+  const q = wk.quests[questId];
 
-function makeTextField({ label, value, multiline = false, onchange }) {
+  // Quest meta card
+  const metaCard = makeEditCard({
+    label: questId,
+    title: 'Quest Details',
+    isDirty: dirty.quests.has(`${questId}:title`) || dirty.quests.has(`${questId}:description`),
+  });
+  const mb = metaCard.querySelector('.card-body');
+
+  mb.appendChild(makeField({
+    label: 'Quest Title', value: q.title, multiline: false,
+    onChange(v) {
+      wk.quests[questId].title = v;
+      markDirty('quests', `${questId}:title`, metaCard);
+      refreshSidebarState();
+      const sideItem = document.querySelector(`[data-key="quests:${questId}"] .item-label`);
+      if (sideItem) sideItem.firstChild.textContent = v;
+    },
+  }));
+  mb.appendChild(makeField({
+    label: 'Quest Description', value: q.description, multiline: true,
+    onChange(v) {
+      wk.quests[questId].description = v;
+      markDirty('quests', `${questId}:description`, metaCard);
+    },
+  }));
+
+  body.appendChild(metaCard);
+
+  // Objectives card
+  if (q.objectives?.length) {
+    const divider = document.createElement('div');
+    divider.className = 'section-divider';
+    divider.textContent = `Objectives (${q.objectives.length})`;
+    body.appendChild(divider);
+
+    q.objectives.forEach(obj => {
+      const dk = `${questId}:obj:${obj.id}`;
+      const objCard = makeEditCard({ label: obj.id, title: obj.description ?? obj.id, isDirty: dirty.quests.has(dk) });
+      const ob = objCard.querySelector('.card-body');
+
+      // Type tag (read-only)
+      const typeRow = document.createElement('div');
+      typeRow.innerHTML = `<span class="field-lbl">Type</span><span class="obj-type">${obj.type}</span>`;
+      ob.appendChild(typeRow);
+
+      ob.appendChild(makeField({
+        label: 'Objective Description', value: obj.description ?? '', multiline: false,
+        onChange(v) {
+          obj.description = v;
+          markDirty('quests', dk, objCard);
+          objCard.querySelector('.card-hdr-title').textContent = v || obj.id;
+        },
+      }));
+
+      body.appendChild(objCard);
+    });
+  }
+
+  // Rewards (read-only display)
+  if (q.rewards) {
+    const divider2 = document.createElement('div');
+    divider2.className = 'section-divider';
+    divider2.textContent = 'Rewards (read-only)';
+    body.appendChild(divider2);
+
+    const rewardCard = document.createElement('div');
+    rewardCard.className = 'edit-card';
+    rewardCard.style.padding = '12px 14px';
+
+    const badges = document.createElement('div');
+    badges.className = 'reward-badges';
+    if (q.rewards.gold)   badges.innerHTML += `<span class="reward-badge">💰 ${q.rewards.gold} gold</span>`;
+    (q.rewards.cards  ?? []).forEach(c  => badges.innerHTML += `<span class="reward-badge">🃏 ${c}</span>`);
+    (q.rewards.items  ?? []).forEach(i  => badges.innerHTML += `<span class="reward-badge">📦 ${i}</span>`);
+    (q.rewards.unlockLocations ?? []).forEach(l => badges.innerHTML += `<span class="reward-badge">📍 ${l}</span>`);
+
+    rewardCard.appendChild(badges);
+    body.appendChild(rewardCard);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DOM helpers
+// ─────────────────────────────────────────────────────────────────
+function makeEditCard({ label, title, isDirty }) {
+  const card = document.createElement('div');
+  card.className = 'edit-card' + (isDirty ? ' modified' : '');
+
+  const hdr = document.createElement('div');
+  hdr.className = 'card-hdr';
+  hdr.innerHTML = `
+    <span class="card-hdr-label">${label}</span>
+    <span class="card-hdr-title">${title}</span>
+    <span class="card-hdr-badge">modified</span>
+    <span class="card-toggle">▼</span>
+  `;
+  hdr.addEventListener('click', () => card.classList.toggle('collapsed'));
+  card.appendChild(hdr);
+
+  const body = document.createElement('div');
+  body.className = 'card-body';
+  card.appendChild(body);
+
+  return card;
+}
+
+function makeField({ label, value, multiline, tall = false, onChange }) {
   const wrap = document.createElement('div');
-  wrap.className = 'field-row';
+  wrap.className = 'field';
 
   const lbl = document.createElement('label');
-  lbl.className = 'field-label';
+  lbl.className = 'field-lbl';
   lbl.textContent = label;
   wrap.appendChild(lbl);
 
-  const input = multiline
-    ? document.createElement('textarea')
-    : document.createElement('input');
+  const el = multiline ? document.createElement('textarea') : document.createElement('input');
+  el.className = multiline ? `field-ta${tall ? ' tall' : ''}` : 'field-input';
+  if (!multiline) el.type = 'text';
+  el.value = value;
+  el.addEventListener('input', () => { el.classList.add('changed'); onChange(el.value); });
+  wrap.appendChild(el);
 
-  input.className = 'field-input';
-  if (!multiline) input.type = 'text';
-  input.value = value;
-
-  input.addEventListener('input', () => {
-    input.classList.add('changed');
-    onchange(input.value);
-  });
-
-  wrap.appendChild(input);
   return wrap;
 }
 
-// ── Dirty tracking ───────────────────────────────────────────────────────────
-
-function markDirty(npcId, nodeId, card) {
-  dirtyNodes.add(`${npcId}::${nodeId}`);
+// ─────────────────────────────────────────────────────────────────
+// Dirty tracking
+// ─────────────────────────────────────────────────────────────────
+function markDirty(section, key, card) {
+  dirty[section].add(key);
   card?.classList.add('modified');
   refreshSidebarState();
-  showUnsaved();
 }
 
-function showUnsaved() {
-  document.getElementById('unsaved-dot').classList.add('visible');
+// ─────────────────────────────────────────────────────────────────
+// Save / Load / Export
+// ─────────────────────────────────────────────────────────────────
+function buildStoryPayload() {
+  const out = {};
+  dirty.story.forEach(k => {
+    const [chapterId] = k.split(':');
+    if (!out[chapterId]) out[chapterId] = { scenes: {} };
+    const ch = wk.chapters[chapterId];
+    out[chapterId].title    = ch.title;
+    out[chapterId].subtitle = ch.subtitle;
+    out[chapterId].intro    = ch.intro;
+    // scenes
+    ch.scenes?.forEach(s => {
+      out[chapterId].scenes[s.sceneId] = { title: s.title, text: s.text };
+    });
+  });
+  return out;
 }
 
-function hideUnsaved() {
-  document.getElementById('unsaved-dot').classList.remove('visible');
-}
-
-// ── Save / Load ──────────────────────────────────────────────────────────────
-
-function buildOverrides() {
-  const overrides = {};
-  dirtyNodes.forEach(key => {
-    const [npcId, nodeId] = key.split('::');
-    const node = workingData[npcId]?.nodes[nodeId];
-    if (!node) return;
-    if (!overrides[npcId]) overrides[npcId] = { nodes: {} };
-    overrides[npcId].nodes[nodeId] = {
+function buildNpcPayload() {
+  const out = {};
+  dirty.npc.forEach(k => {
+    const [npcId, nodeId] = k.split('::');
+    if (!out[npcId]) out[npcId] = { nodes: {} };
+    const node = wk.dialogues[npcId].nodes[nodeId];
+    out[npcId].nodes[nodeId] = {
       speaker: node.speaker,
       text:    node.text,
-      choices: (node.choices ?? []).map(ch => ({ label: ch.label })),
+      choices: (node.choices ?? []).map(c => ({ label: c.label })),
     };
   });
-  return overrides;
+  return out;
 }
 
-function saveOverrides() {
-  const overrides = buildOverrides();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+function buildQuestPayload() {
+  const out = {};
+  dirty.quests.forEach(k => {
+    const [questId] = k.split(':');
+    if (!out[questId]) out[questId] = { objectives: {} };
+    const q = wk.quests[questId];
+    out[questId].title       = q.title;
+    out[questId].description = q.description;
+    q.objectives?.forEach(obj => {
+      out[questId].objectives[obj.id] = { description: obj.description };
+    });
+  });
+  return out;
 }
 
-function loadOverrides() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
+function saveAll() {
+  if (dirty.story.size)  saveRaw(KEYS.story,  buildStoryPayload());
+  if (dirty.npc.size)    saveRaw(KEYS.npc,    buildNpcPayload());
+  if (dirty.quests.size) saveRaw(KEYS.quests, buildQuestPayload());
 }
 
-function clearOverrides() {
-  localStorage.removeItem(STORAGE_KEY);
+function resetAll() {
+  Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+  dirty.story.clear(); dirty.npc.clear(); dirty.quests.clear();
+
+  // Re-clone originals
+  CHAPTERS.forEach(ch => { wk.chapters[ch.chapterId] = JSON.parse(JSON.stringify(ch)); });
+  Object.entries(DIALOGUES).forEach(([id, d]) => { wk.dialogues[id] = JSON.parse(JSON.stringify(d)); });
+  QUESTS.forEach(q => { wk.quests[q.questId] = JSON.parse(JSON.stringify(q)); });
+
+  refreshSidebarState();
+  if (activeKey) {
+    const [type, id] = activeKey.split(':');
+    selectItem(activeKey, type, id);
+  }
 }
 
-// ── Topbar buttons ───────────────────────────────────────────────────────────
+function exportAll() {
+  const payload = {
+    story:  buildStoryPayload(),
+    npc:    buildNpcPayload(),
+    quests: buildQuestPayload(),
+  };
+  const content = `// Spell Kingdoms — Story Overrides Export\n// ${new Date().toISOString()}\nexport const OVERRIDES = ${JSON.stringify(payload, null, 2)};\n`;
+  const blob = new Blob([content], { type: 'text/javascript' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: 'story_overrides.js' });
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
+function saveRaw(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+function loadRaw(key) {
+  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; }
+  catch { return null; }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Topbar
+// ─────────────────────────────────────────────────────────────────
 function bindTopbar() {
   document.getElementById('btn-save').addEventListener('click', () => {
-    if (dirtyNodes.size === 0) {
-      showStatus('No changes to save.', 'warn');
-      return;
-    }
-    saveOverrides();
-    hideUnsaved();
-    showStatus(`Saved ${dirtyNodes.size} modified node(s). Reload the game to see changes.`, 'success');
+    const total = dirty.story.size + dirty.npc.size + dirty.quests.size;
+    if (!total) { showStatus('No changes to save.', 'warn'); return; }
+    saveAll();
+    showStatus(`Saved ${total} change(s). Reload the game to apply.`, 'ok');
   });
 
   document.getElementById('btn-reset').addEventListener('click', () => {
-    if (!confirm('Reset ALL dialogue to the default script? This will discard all saved changes.')) return;
-    clearOverrides();
-    dirtyNodes.clear();
-    workingData = JSON.parse(JSON.stringify(DIALOGUES));
-    buildSidebar();
-    hideUnsaved();
-    showStatus('Reset to default script.', 'warn');
-    if (activeNpcId) renderNpcPanel(activeNpcId);
+    if (!confirm('Reset ALL text to the original script? This cannot be undone.')) return;
+    resetAll();
+    showStatus('All text reset to default.', 'warn');
   });
 
   document.getElementById('btn-export').addEventListener('click', () => {
-    exportJs();
+    exportAll();
+    showStatus('Exported story_overrides.js', 'ok');
   });
 
-  document.getElementById('search').addEventListener('input', () => {
-    if (activeNpcId) renderNpcPanel(activeNpcId);
+  document.getElementById('search-input').addEventListener('input', () => {
+    if (!activeKey) return;
+    const [type, id] = activeKey.split(':');
+    if (type === 'story')  renderChapter(id);
+    if (type === 'npc')    renderNpc(id);
   });
 }
 
+let _statusTimer;
 function showStatus(msg, type) {
-  const el = document.getElementById('status-msg');
+  const el = document.getElementById('status');
   el.textContent = msg;
-  el.className = type;
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => { el.className = ''; }, 4000);
+  el.className   = `show ${type}`;
+  clearTimeout(_statusTimer);
+  _statusTimer = setTimeout(() => el.classList.remove('show'), 4000);
 }
 
-// ── Export ───────────────────────────────────────────────────────────────────
-
-function exportJs() {
-  const overrides = buildOverrides();
-  const json = JSON.stringify(overrides, null, 2);
-  const content = `// Spell Kingdoms — Dialogue Overrides Export\n// Generated: ${new Date().toISOString()}\n// Paste this into localStorage manually or import in Data.js\nexport const DIALOGUE_OVERRIDES = ${json};\n`;
-
-  const blob = new Blob([content], { type: 'text/javascript' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'dialogue_overrides.js';
-  a.click();
-  URL.revokeObjectURL(url);
-  showStatus('Exported dialogue_overrides.js', 'success');
-}
-
-// ── Boot ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 init();
 </script>
 </body>

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spell Kingdoms — Dialogue Editor</title>
+  <style>
+    :root {
+      --bg:       #0d0d1a;
+      --bg2:      #13132a;
+      --panel:    #1a1a35;
+      --border:   #2a2a55;
+      --accent:   #7c5cbf;
+      --accent2:  #a07de0;
+      --gold:     #e0b84a;
+      --text:     #d8d8f0;
+      --dim:      #8888aa;
+      --success:  #4ab87c;
+      --danger:   #c04a4a;
+      --warn:     #d4902a;
+      --radius:   8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Top bar ── */
+    #topbar {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    #topbar h1 {
+      font-size: 1.1em;
+      color: var(--accent2);
+      white-space: nowrap;
+    }
+
+    #topbar .subtitle {
+      font-size: 0.8em;
+      color: var(--dim);
+    }
+
+    #topbar .spacer { flex: 1; }
+
+    #status-msg {
+      font-size: 0.82em;
+      padding: 5px 12px;
+      border-radius: var(--radius);
+      display: none;
+    }
+    #status-msg.success { background: rgba(74,184,124,0.15); border: 1px solid var(--success); color: var(--success); display: block; }
+    #status-msg.warn    { background: rgba(212,144,42,0.15);  border: 1px solid var(--warn);    color: var(--warn);    display: block; }
+
+    .btn {
+      padding: 8px 18px;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      font-size: 0.9em;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+
+    .btn-save    { background: var(--accent);  color: #fff; }
+    .btn-reset   { background: transparent; border: 1px solid var(--border); color: var(--dim); }
+    .btn-reset:hover { border-color: var(--danger); color: var(--danger); opacity: 1; }
+    .btn-export  { background: transparent; border: 1px solid var(--border); color: var(--dim); }
+
+    /* ── Layout ── */
+    #layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 200px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    #sidebar h3 {
+      padding: 14px 16px 8px;
+      font-size: 0.72em;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--dim);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .npc-tab {
+      padding: 12px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9em;
+      border-left: 3px solid transparent;
+      transition: background 0.15s;
+    }
+    .npc-tab:hover { background: var(--panel); }
+    .npc-tab.active { border-left-color: var(--accent2); background: var(--panel); color: var(--accent2); }
+    .npc-tab.modified { border-left-color: var(--gold); }
+    .npc-tab.modified.active { border-left-color: var(--accent2); }
+    .npc-portrait { font-size: 1.4em; width: 24px; text-align: center; }
+    .npc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); margin-left: auto; flex-shrink: 0; display: none; }
+    .npc-tab.modified .npc-dot { display: block; }
+
+    /* ── Main panel ── */
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    #npc-header {
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #npc-portrait-big { font-size: 2.5em; }
+
+    #npc-header h2 { font-size: 1.3em; color: var(--accent2); }
+    #npc-header p  { font-size: 0.82em; color: var(--dim); margin-top: 2px; }
+
+    /* ── Node card ── */
+    .node-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 14px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .node-card.modified { border-color: var(--gold); }
+
+    .node-header {
+      background: var(--bg2);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .node-id {
+      font-size: 0.72em;
+      font-family: 'Courier New', monospace;
+      color: var(--accent);
+      background: rgba(124,92,191,0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .node-modified-badge {
+      font-size: 0.7em;
+      color: var(--gold);
+      background: rgba(224,184,74,0.12);
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: none;
+    }
+    .node-card.modified .node-modified-badge { display: inline; }
+
+    .node-toggle {
+      margin-left: auto;
+      color: var(--dim);
+      font-size: 0.8em;
+      transition: transform 0.2s;
+    }
+    .node-card.collapsed .node-toggle { transform: rotate(-90deg); }
+
+    .node-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .node-card.collapsed .node-body { display: none; }
+
+    .field-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .field-label {
+      font-size: 0.72em;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+    }
+
+    .field-input {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9em;
+      padding: 8px 12px;
+      width: 100%;
+      transition: border-color 0.15s;
+      resize: vertical;
+    }
+    .field-input:focus { outline: none; border-color: var(--accent); }
+    .field-input.changed { border-color: var(--gold); }
+
+    textarea.field-input { min-height: 80px; line-height: 1.6; }
+
+    /* Choices section */
+    .choices-section { display: flex; flex-direction: column; gap: 8px; }
+    .choices-title {
+      font-size: 0.72em;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+      margin-bottom: 2px;
+    }
+    .choice-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+    }
+    .choice-idx {
+      font-size: 0.75em;
+      color: var(--dim);
+      width: 20px;
+      flex-shrink: 0;
+    }
+    .choice-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88em;
+      outline: none;
+    }
+    .choice-input.changed { color: var(--gold); }
+    .choice-locked-note {
+      font-size: 0.72em;
+      color: var(--dim);
+      flex-shrink: 0;
+    }
+
+    /* No NPCs / empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--dim);
+    }
+
+    /* Search bar */
+    #search-wrap {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    #search {
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.82em;
+      padding: 6px 10px;
+      outline: none;
+    }
+    #search:focus { border-color: var(--accent); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Unsaved indicator on topbar */
+    #unsaved-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      display: none;
+      flex-shrink: 0;
+    }
+    #unsaved-dot.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>✍️ Dialogue Editor</h1>
+  <span class="subtitle">Spell Kingdoms</span>
+  <div id="unsaved-dot" title="Unsaved changes"></div>
+  <div class="spacer"></div>
+  <span id="status-msg"></span>
+  <button class="btn btn-export" id="btn-export">⬇ Export JS</button>
+  <button class="btn btn-reset"  id="btn-reset">↺ Reset to Default</button>
+  <button class="btn btn-save"   id="btn-save">💾 Save Changes</button>
+</div>
+
+<div id="layout">
+  <div id="sidebar">
+    <h3>NPCs</h3>
+    <div id="search-wrap">
+      <input id="search" type="text" placeholder="Search nodes...">
+    </div>
+    <div id="npc-list"></div>
+  </div>
+
+  <div id="main">
+    <div class="empty-state">Select an NPC from the sidebar to edit their dialogue.</div>
+  </div>
+</div>
+
+<script type="module">
+import { DIALOGUES } from './js/Data.js';
+
+// ── State ────────────────────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'sca_dialogue_overrides';
+
+// Working copy: deep clone of DIALOGUES, merged with any saved overrides
+let workingData = {};
+// Track which nodes have been edited this session
+let dirtyNodes = new Set();  // "npcId::nodeId"
+let activeNpcId = null;
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+function init() {
+  // Deep clone base data
+  workingData = JSON.parse(JSON.stringify(DIALOGUES));
+
+  // Merge saved overrides on top
+  const saved = loadOverrides();
+  if (saved) {
+    Object.entries(saved).forEach(([npcId, overrideNpc]) => {
+      if (!workingData[npcId]) return;
+      Object.entries(overrideNpc.nodes ?? {}).forEach(([nodeId, overrideNode]) => {
+        if (!workingData[npcId].nodes[nodeId]) return;
+        const base = workingData[npcId].nodes[nodeId];
+        if (overrideNode.speaker !== undefined) base.speaker = overrideNode.speaker;
+        if (overrideNode.text    !== undefined) base.text    = overrideNode.text;
+        (overrideNode.choices ?? []).forEach((ch, i) => {
+          if (base.choices?.[i] && ch.label !== undefined) base.choices[i].label = ch.label;
+        });
+        // Mark as dirty so modified badge shows
+        dirtyNodes.add(`${npcId}::${nodeId}`);
+      });
+    });
+  }
+
+  buildSidebar();
+  bindTopbar();
+
+  // Select first NPC
+  const firstId = Object.keys(workingData)[0];
+  if (firstId) selectNpc(firstId);
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
+
+const NPC_PORTRAITS = { aria: '🧙‍♀️', master_aldric: '🧓', zephyr: '🧝', training_dummy: '🪆' };
+const NPC_LABELS    = { aria: 'Aria', master_aldric: 'Master Aldric', zephyr: 'Zephyr', training_dummy: 'Training Dummy' };
+
+function buildSidebar() {
+  const list = document.getElementById('npc-list');
+  list.innerHTML = '';
+  Object.keys(workingData).forEach(npcId => {
+    const tab = document.createElement('div');
+    tab.className = 'npc-tab';
+    tab.dataset.npc = npcId;
+    tab.innerHTML = `
+      <span class="npc-portrait">${NPC_PORTRAITS[npcId] ?? '🧙'}</span>
+      <span>${NPC_LABELS[npcId] ?? npcId}</span>
+      <span class="npc-dot"></span>
+    `;
+    tab.addEventListener('click', () => selectNpc(npcId));
+    list.appendChild(tab);
+  });
+  refreshSidebarState();
+}
+
+function refreshSidebarState() {
+  document.querySelectorAll('.npc-tab').forEach(tab => {
+    const npcId = tab.dataset.npc;
+    const hasChanges = [...dirtyNodes].some(k => k.startsWith(npcId + '::'));
+    tab.classList.toggle('modified', hasChanges);
+    tab.classList.toggle('active', npcId === activeNpcId);
+  });
+}
+
+// ── NPC Panel ────────────────────────────────────────────────────────────────
+
+function selectNpc(npcId) {
+  activeNpcId = npcId;
+  refreshSidebarState();
+  renderNpcPanel(npcId);
+}
+
+function renderNpcPanel(npcId) {
+  const npc  = workingData[npcId];
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  // Header
+  const header = document.createElement('div');
+  header.id = 'npc-header';
+  header.innerHTML = `
+    <span id="npc-portrait-big">${NPC_PORTRAITS[npcId] ?? '🧙'}</span>
+    <div>
+      <h2>${NPC_LABELS[npcId] ?? npcId}</h2>
+      <p>${Object.keys(npc.nodes).length} dialogue nodes</p>
+    </div>
+  `;
+  main.appendChild(header);
+
+  const searchTerm = document.getElementById('search').value.toLowerCase();
+
+  Object.entries(npc.nodes).forEach(([nodeId, node]) => {
+    // Filter by search
+    const nodeText = (node.text ?? '').toLowerCase();
+    const nodeSpeaker = (node.speaker ?? '').toLowerCase();
+    if (searchTerm && !nodeId.includes(searchTerm) && !nodeText.includes(searchTerm) && !nodeSpeaker.includes(searchTerm)) return;
+
+    const isDirty = dirtyNodes.has(`${npcId}::${nodeId}`);
+    const card = document.createElement('div');
+    card.className = 'node-card' + (isDirty ? ' modified' : '');
+    card.dataset.nodeId = nodeId;
+
+    // Header row
+    const hdr = document.createElement('div');
+    hdr.className = 'node-header';
+    hdr.innerHTML = `
+      <span class="node-id">${nodeId}</span>
+      <span class="node-modified-badge">modified</span>
+      <span class="node-toggle">▼</span>
+    `;
+    hdr.addEventListener('click', () => {
+      card.classList.toggle('collapsed');
+    });
+    card.appendChild(hdr);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'node-body';
+
+    // Speaker field
+    body.appendChild(makeTextField({
+      label: 'Speaker',
+      value: node.speaker ?? '',
+      onchange(val) {
+        workingData[npcId].nodes[nodeId].speaker = val;
+        markDirty(npcId, nodeId, card);
+      },
+    }));
+
+    // Text field
+    body.appendChild(makeTextField({
+      label: 'Dialogue Text',
+      value: node.text ?? '',
+      multiline: true,
+      onchange(val) {
+        workingData[npcId].nodes[nodeId].text = val;
+        markDirty(npcId, nodeId, card);
+      },
+    }));
+
+    // Choices
+    if (node.choices && node.choices.length > 0) {
+      const choicesWrap = document.createElement('div');
+      choicesWrap.className = 'choices-section';
+
+      const choicesTitle = document.createElement('div');
+      choicesTitle.className = 'choices-title';
+      choicesTitle.textContent = `Player Choices (${node.choices.length})`;
+      choicesWrap.appendChild(choicesTitle);
+
+      node.choices.forEach((choice, idx) => {
+        const row = document.createElement('div');
+        row.className = 'choice-row';
+        row.innerHTML = `<span class="choice-idx">${idx + 1}.</span>`;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'choice-input';
+        input.value = choice.label ?? '';
+        input.placeholder = 'Choice label...';
+
+        input.addEventListener('input', () => {
+          workingData[npcId].nodes[nodeId].choices[idx].label = input.value;
+          input.classList.add('changed');
+          markDirty(npcId, nodeId, card);
+        });
+
+        row.appendChild(input);
+
+        // Show lock requirement as read-only note
+        if (choice.requires) {
+          const note = document.createElement('span');
+          note.className = 'choice-locked-note';
+          note.textContent = '🔒';
+          note.title = JSON.stringify(choice.requires);
+          row.appendChild(note);
+        }
+        if (choice.effects?.length) {
+          const efx = document.createElement('span');
+          efx.className = 'choice-locked-note';
+          efx.textContent = `⚡${choice.effects.length}`;
+          efx.title = choice.effects.map(e => e.type).join(', ');
+          row.appendChild(efx);
+        }
+
+        choicesWrap.appendChild(row);
+      });
+
+      body.appendChild(choicesWrap);
+    }
+
+    card.appendChild(body);
+    main.appendChild(card);
+  });
+
+  if (!main.querySelector('.node-card')) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = searchTerm ? 'No nodes match your search.' : 'No dialogue nodes.';
+    main.appendChild(empty);
+  }
+}
+
+// ── Field builders ───────────────────────────────────────────────────────────
+
+function makeTextField({ label, value, multiline = false, onchange }) {
+  const wrap = document.createElement('div');
+  wrap.className = 'field-row';
+
+  const lbl = document.createElement('label');
+  lbl.className = 'field-label';
+  lbl.textContent = label;
+  wrap.appendChild(lbl);
+
+  const input = multiline
+    ? document.createElement('textarea')
+    : document.createElement('input');
+
+  input.className = 'field-input';
+  if (!multiline) input.type = 'text';
+  input.value = value;
+
+  input.addEventListener('input', () => {
+    input.classList.add('changed');
+    onchange(input.value);
+  });
+
+  wrap.appendChild(input);
+  return wrap;
+}
+
+// ── Dirty tracking ───────────────────────────────────────────────────────────
+
+function markDirty(npcId, nodeId, card) {
+  dirtyNodes.add(`${npcId}::${nodeId}`);
+  card?.classList.add('modified');
+  refreshSidebarState();
+  showUnsaved();
+}
+
+function showUnsaved() {
+  document.getElementById('unsaved-dot').classList.add('visible');
+}
+
+function hideUnsaved() {
+  document.getElementById('unsaved-dot').classList.remove('visible');
+}
+
+// ── Save / Load ──────────────────────────────────────────────────────────────
+
+function buildOverrides() {
+  const overrides = {};
+  dirtyNodes.forEach(key => {
+    const [npcId, nodeId] = key.split('::');
+    const node = workingData[npcId]?.nodes[nodeId];
+    if (!node) return;
+    if (!overrides[npcId]) overrides[npcId] = { nodes: {} };
+    overrides[npcId].nodes[nodeId] = {
+      speaker: node.speaker,
+      text:    node.text,
+      choices: (node.choices ?? []).map(ch => ({ label: ch.label })),
+    };
+  });
+  return overrides;
+}
+
+function saveOverrides() {
+  const overrides = buildOverrides();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+}
+
+function loadOverrides() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function clearOverrides() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// ── Topbar buttons ───────────────────────────────────────────────────────────
+
+function bindTopbar() {
+  document.getElementById('btn-save').addEventListener('click', () => {
+    if (dirtyNodes.size === 0) {
+      showStatus('No changes to save.', 'warn');
+      return;
+    }
+    saveOverrides();
+    hideUnsaved();
+    showStatus(`Saved ${dirtyNodes.size} modified node(s). Reload the game to see changes.`, 'success');
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    if (!confirm('Reset ALL dialogue to the default script? This will discard all saved changes.')) return;
+    clearOverrides();
+    dirtyNodes.clear();
+    workingData = JSON.parse(JSON.stringify(DIALOGUES));
+    buildSidebar();
+    hideUnsaved();
+    showStatus('Reset to default script.', 'warn');
+    if (activeNpcId) renderNpcPanel(activeNpcId);
+  });
+
+  document.getElementById('btn-export').addEventListener('click', () => {
+    exportJs();
+  });
+
+  document.getElementById('search').addEventListener('input', () => {
+    if (activeNpcId) renderNpcPanel(activeNpcId);
+  });
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = type;
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.className = ''; }, 4000);
+}
+
+// ── Export ───────────────────────────────────────────────────────────────────
+
+function exportJs() {
+  const overrides = buildOverrides();
+  const json = JSON.stringify(overrides, null, 2);
+  const content = `// Spell Kingdoms — Dialogue Overrides Export\n// Generated: ${new Date().toISOString()}\n// Paste this into localStorage manually or import in Data.js\nexport const DIALOGUE_OVERRIDES = ${json};\n`;
+
+  const blob = new Blob([content], { type: 'text/javascript' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'dialogue_overrides.js';
+  a.click();
+  URL.revokeObjectURL(url);
+  showStatus('Exported dialogue_overrides.js', 'success');
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

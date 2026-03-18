@@ -19,8 +19,31 @@ import { DIALOGUES } from '../Data.js';
 
 const TIER_NAMES = ['Stranger', 'Acquaintance', 'Friend', 'Close Friend', 'Bonded'];
 
+// Load saved editor overrides from localStorage and merge onto base data
+function loadOverrides() {
+  try {
+    const raw = localStorage.getItem('sca_dialogue_overrides');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 function loadDialogue(npcId) {
-  return DIALOGUES[npcId] ?? { npcId, nodes: { start: { speaker: npcId, text: '...', choices: [] } } };
+  const base = DIALOGUES[npcId] ?? { npcId, nodes: { start: { speaker: npcId, text: '...', choices: [] } } };
+  const overrides = loadOverrides();
+  if (!overrides?.[npcId]) return base;
+
+  // Deep-merge: only text/speaker/choice labels are overridable; logic (effects, requires) is preserved
+  const merged = JSON.parse(JSON.stringify(base));
+  Object.entries(overrides[npcId].nodes ?? {}).forEach(([nodeId, ov]) => {
+    const node = merged.nodes[nodeId];
+    if (!node) return;
+    if (ov.speaker !== undefined) node.speaker = ov.speaker;
+    if (ov.text    !== undefined) node.text    = ov.text;
+    (ov.choices ?? []).forEach((ch, i) => {
+      if (node.choices?.[i] && ch.label !== undefined) node.choices[i].label = ch.label;
+    });
+  });
+  return merged;
 }
 
 const DialogueSystem = {

@@ -95,6 +95,7 @@ const CardGameScreen = {
   _state:          null,
   _champPanelCol:  null,   // column whose champ panel is open (null = closed)
   _escHandler:     null,
+  _movePreview:    null,   // { mode:'rally'|'retreat', fromRow, fromCol, cells:[{row,col,direction}] }
 
   mount(container, params = {}) {
     this._container     = container;
@@ -113,6 +114,7 @@ const CardGameScreen = {
     this._container     = null;
     this._state         = null;
     this._champPanelCol = null;
+    this._movePreview   = null;
     if (this._escHandler) {
       document.removeEventListener('keydown', this._escHandler);
       this._escHandler = null;
@@ -167,6 +169,16 @@ const CardGameScreen = {
   },
 
   _bindEvents() {
+    // Highlight all drop zones while any drag is in flight
+    const _onDragStart = () => this._container?.querySelector('.cg-screen')?.classList.add('dragging');
+    const _onDragEnd   = () => this._container?.querySelector('.cg-screen')?.classList.remove('dragging');
+    document.addEventListener('dragstart', _onDragStart);
+    document.addEventListener('dragend',   _onDragEnd);
+    this._unsub.push(() => {
+      document.removeEventListener('dragstart', _onDragStart);
+      document.removeEventListener('dragend',   _onDragEnd);
+    });
+
     this._unsub.push(
       EventBus.on('cardgame:stateChanged', ({ state }) => {
         this._state = state;
@@ -214,7 +226,11 @@ const CardGameScreen = {
 
   _bindEscKey() {
     this._escHandler = (e) => {
-      if (e.key === 'Escape' && this._champPanelCol !== null) {
+      if (e.key !== 'Escape') return;
+      if (this._movePreview) {
+        this._movePreview = null;
+        this._update();
+      } else if (this._champPanelCol !== null) {
         this._champPanelCol = null;
         this._update();
       }
@@ -348,7 +364,8 @@ const CardGameScreen = {
           cell.addEventListener('mouseleave', () => this._hideStackTooltip());
         }
       } else {
-        cell.classList.add('cg-cell-empty');
+        // After init: hide empty champion slots so the grid looks clean
+        cell.classList.add(s.phase === 'initialize' ? 'cg-cell-empty' : 'cg-cell-invisible');
       }
       return cell;
     }
@@ -418,7 +435,8 @@ const CardGameScreen = {
             if (!isNaN(handIdx)) { SoundSystem.drop(); EventBus.emit('cardgame:placeChampion', { col, handIdx }); }
           });
         } else {
-          cell.classList.add('cg-cell-empty');
+          // After init: hide empty champion slots
+          cell.classList.add('cg-cell-invisible');
         }
       }
       return cell;
@@ -426,6 +444,22 @@ const CardGameScreen = {
 
     // ── Battle / elite rows ────────────────────────────────────────────────────
     const gridCard = s.grid[row]?.[col] ?? null;
+
+    // Move preview cells take priority over normal empty-cell rendering
+    if (!gridCard && this._movePreview) {
+      const previewMatch = this._movePreview.cells.find(c => c.row === row && c.col === col);
+      if (previewMatch) {
+        cell.classList.add('cg-cell-move-preview');
+        cell.addEventListener('click', () => {
+          const mode = this._movePreview?.mode;
+          const dir  = previewMatch.direction;
+          this._movePreview = null;
+          if (mode === 'rally')   { SoundSystem.move(); EventBus.emit('cardgame:rally', { direction: dir }); }
+          else if (mode === 'retreat') { SoundSystem.move(); EventBus.emit('cardgame:retreat'); }
+        });
+        return cell;
+      }
+    }
 
     // P_ELITE_ROW empty slot: drop zone for elite placement (init AND mid-game)
     if (isPlrElite && !gridCard) {
@@ -469,6 +503,37 @@ const CardGameScreen = {
       }
 
       cell.innerHTML = this._eliteHTML(gridCard, isSel, hasActed);
+
+      // Inline action menu when this elite is selected and ready to act
+      if (isSel && !hasActed && isPlayer && s.phase === 'strategy' && !this._movePreview) {
+        const canRetreat = row <= 2;
+        const canRally   = !(s.strategy.ralliedIids?.has(gridCard.iid) ?? false);
+        const menu = document.createElement('div');
+        menu.className = 'cg-elite-action-menu';
+        menu.innerHTML = `
+          <button class="cg-elite-action-btn cg-eab-attack" data-action="attack">⚔ Attack</button>
+          <button class="cg-elite-action-btn cg-eab-rally"  data-action="rally"   ${canRally   ? '' : 'disabled'}>↔ Rally</button>
+          <button class="cg-elite-action-btn cg-eab-retreat" data-action="retreat" ${canRetreat ? '' : 'disabled'}>← Retreat</button>
+        `;
+        menu.querySelector('[data-action="attack"]')?.addEventListener('click', e => {
+          e.stopPropagation();
+          SoundSystem.click();
+          EventBus.emit('cardgame:enableAttack');
+        });
+        menu.querySelector('[data-action="rally"]')?.addEventListener('click', e => {
+          e.stopPropagation();
+          if (!canRally) return;
+          SoundSystem.click();
+          this._startRallyPreview(row, col);
+        });
+        menu.querySelector('[data-action="retreat"]')?.addEventListener('click', e => {
+          e.stopPropagation();
+          if (!canRetreat) return;
+          SoundSystem.click();
+          this._startRetreatPreview(row, col);
+        });
+        cell.appendChild(menu);
+      }
 
       // Hover: show stacked summons
       if (gridCard.summons?.length > 0) {
@@ -643,39 +708,12 @@ const CardGameScreen = {
           ${selElite
             ? `<div class="cg-selected-info"><b>${selElite.name}</b><br>HP: ${Math.max(0,selElite.hp)}/${selElite.maxHp} · ⚔${totPow}</div>`
             : `<p class="cg-dim">Click a player elite to act.</p>`}
-          ${selElite && !alreadyActed ? `
-            <div class="cg-action-group">
-              <div class="cg-sidebar-label">Rally (move 1)</div>
-              <div class="cg-rally-grid">
-                <div></div>
-                <button class="btn-cg btn-cg-dir" data-dir="up"    ${alreadyRallied?'disabled':''}>↑</button>
-                <div></div>
-                <button class="btn-cg btn-cg-dir" data-dir="left"  ${alreadyRallied?'disabled':''}>←</button>
-                <div class="cg-dir-center">•</div>
-                <button class="btn-cg btn-cg-dir" data-dir="right" ${alreadyRallied?'disabled':''}>→</button>
-                <div></div>
-                <button class="btn-cg btn-cg-dir" data-dir="down"  ${alreadyRallied?'disabled':''}>↓</button>
-                <div></div>
-              </div>
-            </div>
-            <div class="cg-action-group">
-              <button class="btn-cg btn-cg-retreat" id="cg-retreat-btn"
-                ${selRow <= 2 ? '' : 'disabled'}>Retreat (2 spaces)</button>
-              <button class="btn-cg btn-cg-attack ${attackMode ? 'active' : ''}" id="cg-attack-btn">
-                ${attackMode ? '⚔ Click a target…' : '⚔ Attack'}
-              </button>
-            </div>` : ''
-          }
+          ${attackMode ? `<p class="cg-attack-hint">⚔ Click an opponent target…</p>` : ''}
+          ${selElite && !alreadyActed && !attackMode ? `<p class="cg-dim">Click the elite card for actions.</p>` : ''}
           ${alreadyActed ? `<p class="cg-dim">This elite has already acted. Select another.</p>` : ''}
         </div>`;
 
-      el.querySelectorAll('[data-dir]').forEach(btn =>
-        btn.addEventListener('click', () => { SoundSystem.move(); EventBus.emit('cardgame:rally', { direction: btn.dataset.dir }); })
-      );
-      document.getElementById('cg-retreat-btn')?.addEventListener('click', () => { SoundSystem.move(); EventBus.emit('cardgame:retreat'); });
-      document.getElementById('cg-attack-btn')?.addEventListener('click', () => {
-        if (!attackMode) { SoundSystem.click(); EventBus.emit('cardgame:enableAttack'); }
-      });
+      // Actions are now on the inline elite card menu (see _buildCell)
     }
 
     if (s.phase === 'end') {
@@ -1022,6 +1060,38 @@ const CardGameScreen = {
         ${deckStackHTML('Summon',  s.playerSummonDeck?.length ?? 0, '#0e2a1a')}
       </div>
     `;
+  },
+
+  // ── Move preview helpers ──────────────────────────────────────────────────────
+  _startRallyPreview(fromRow, fromCol) {
+    const s = this._state;
+    const dirs = [
+      { dr: -1, dc:  0, direction: 'up'    },
+      { dr:  1, dc:  0, direction: 'down'  },
+      { dr:  0, dc: -1, direction: 'left'  },
+      { dr:  0, dc:  1, direction: 'right' },
+    ];
+    const cells = [];
+    for (const { dr, dc, direction } of dirs) {
+      const nr = fromRow + dr, nc = fromCol + dc;
+      if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+      if (nr === PLAYER_ROW || nr === OPP_ROW) continue;
+      if (s.grid[nr]?.[nc] !== null) continue;
+      cells.push({ row: nr, col: nc, direction });
+    }
+    this._movePreview = { mode: 'rally', fromRow, fromCol, cells };
+    this._update();
+  },
+
+  _startRetreatPreview(fromRow, fromCol) {
+    const s = this._state;
+    const nr = Math.min(fromRow + 2, PLAYER_ROW - 1);
+    const cells = [];
+    if (s.grid[nr]?.[fromCol] === null) {
+      cells.push({ row: nr, col: fromCol, direction: null });
+    }
+    this._movePreview = { mode: 'retreat', fromRow, fromCol, cells };
+    this._update();
   },
 
   // ── Begin Match dramatic popup ────────────────────────────────────────────────

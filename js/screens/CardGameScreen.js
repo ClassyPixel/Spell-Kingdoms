@@ -20,6 +20,7 @@ import SoundSystem from '../systems/SoundSystem.js';
 import MusicPlayer from '../systems/MusicPlayer.js';
 import GameState from '../GameState.js';
 import { NPCS, ITEMS, CARDS } from '../Data.js';
+import CardArtPreloader from '../systems/CardArtPreloader.js';
 
 const ROWS = 6;
 const COLS = 5;
@@ -37,6 +38,34 @@ const PHASE_LABELS = {
   end:        'End',
   gameover:   'Game Over',
 };
+
+const ROLE_ICON = { offensive: '⚔', defensive: '🛡', support: '✚' };
+
+const TERRAIN_ICON = {
+  fire:  'assets/images/CardGameArt/TypeArt/fire_img.png',
+  ice:   'assets/images/CardGameArt/TypeArt/ice_img.png',
+  water: 'assets/images/CardGameArt/TypeArt/water_img.png',
+  wind:  'assets/images/CardGameArt/TypeArt/wind_img.png',
+  earth: 'assets/images/CardGameArt/TypeArt/earth_img.png',
+  spell: 'assets/images/CardGameArt/TypeArt/spell_img.png',
+};
+const RARITY_COLOR = { C: '#aaa', B: '#4ab87c', A: '#c07820', S: '#9b30d0' };
+const ART_BASE       = 'assets/images/CardGameArt/CardArt/';
+const ART_THUMB_BASE = 'assets/images/CardGameArt/CardArt_thumb/';
+
+function _cardArtImg(card) {
+  if (!card.artFile) return `<div class="cg-art-emoji">${card.art ?? '✨'}</div>`;
+  const thumbFile = card.artFile.replace(/\.[^.]+$/, '.jpg');
+  return `<img class="cg-card-art-img" src="${ART_THUMB_BASE}${thumbFile}" alt="${card.name}" decoding="sync">`;
+}
+function _terrainCircle(card) {
+  if (!card.terrain || !TERRAIN_ICON[card.terrain]) return '';
+  return `<img class="cg-terrain-icon" src="${TERRAIN_ICON[card.terrain]}" alt="${card.terrain}">`;
+}
+function _rarityBadge(card) {
+  if (!card.rarity) return '';
+  return `<span class="cg-rarity" style="color:${RARITY_COLOR[card.rarity] ?? '#aaa'}">${card.rarity}</span>`;
+}
 
 // ── Local helpers ──────────────────────────────────────────────────────────────
 function findPlayerElites(s) {
@@ -103,6 +132,9 @@ const CardGameScreen = {
   mount(container, params = {}) {
     this._container     = container;
     this._champPanelCol = null;
+    this._knownHandKeys = new Set();
+    this._idleTimer     = null;
+    this._idleHandler   = null;
     this._render();
     this._bindEvents();
     this._bindMenuButton();
@@ -111,13 +143,16 @@ const CardGameScreen = {
     EventBus.emit('hud:hide');
   },
 
+
   unmount() {
     this._unsub.forEach(fn => fn());
     this._unsub         = [];
     this._container     = null;
     this._state         = null;
-    this._champPanelCol = null;
-    this._movePreview   = null;
+    this._champPanelCol  = null;
+    this._movePreview    = null;
+    this._knownHandKeys  = new Set();
+    this._clearIdleWatch();
     if (this._escHandler) {
       document.removeEventListener('keydown', this._escHandler);
       this._escHandler = null;
@@ -152,22 +187,26 @@ const CardGameScreen = {
           <button class="cg-ingame-menu-item cg-forfeit-btn" id="cg-forfeit-btn">💀 Forfeit</button>
         </div>
         <div class="cg-body">
-          <div class="cg-dice-zone" id="cg-dice-zone"></div>
+          <div class="cg-left-panel">
+            <div class="cg-dice-zone" id="cg-dice-zone"></div>
+            <div class="cg-crypt-zone" id="cg-crypt-zone"></div>
+          </div>
           <div class="cg-center">
             <div class="cg-grid-wrap">
+              <div class="cg-preview-spacer"></div>
               <div class="cg-grid" id="cg-grid"></div>
+              <div class="cg-preview-zone">
+                <div class="cg-card-preview hidden" id="cg-card-preview"></div>
+              </div>
             </div>
             <div class="cg-champ-panel hidden" id="cg-champ-panel"></div>
             <div class="cg-hand-area" id="cg-hand-area"></div>
           </div>
           <div class="cg-right-panel">
+            <div class="cg-phase-msg hidden" id="cg-phase-msg"></div>
             <div class="cg-sidebar" id="cg-sidebar"></div>
             <div class="cg-deck-zone" id="cg-deck-zone"></div>
           </div>
-        </div>
-        <div class="cg-bottom">
-          <div class="cg-crypt-zone" id="cg-crypt-zone"></div>
-          <div class="cg-log-bar"   id="cg-log-bar"></div>
         </div>
       </div>
     `;
@@ -194,6 +233,7 @@ const CardGameScreen = {
       }),
       EventBus.on('cardgame:beginMatch', () => {
         this._showBeginMatchPopup();
+        CardArtPreloader.preloadMatchFullInBackground(this._state);
       }),
       EventBus.on('cardgame:cardDrawn', () => {
         SoundSystem.drawCard();
@@ -235,6 +275,8 @@ const CardGameScreen = {
       if (this._movePreview) {
         this._movePreview = null;
         this._update();
+      } else if (this._state?.pendingTeleport || this._state?.pendingSpell) {
+        EventBus.emit('cardgame:cancelSpell');
       } else if (this._champPanelCol !== null) {
         this._champPanelCol = null;
         this._update();
@@ -263,27 +305,88 @@ const CardGameScreen = {
   },
 
   // ── Phase bar ─────────────────────────────────────────────────────────────────
+  _phaseHint(s) {
+    if (s.gameOver || s.pendingSpell || s.pendingTeleport) return '';
+    if (s.phase === 'initialize') {
+      if (s.initSubStep === 'place_champions') return 'Drag your champion(s) to the bottom row.';
+      if (s.initSubStep === 'place_elites')   return 'Drag your elite(s) in front of each champion.';
+    }
+    if (s.phase === 'conjure') {
+      if (!s.diceResult) return 'Click the dice to roll.';
+      if (s.matchingHand.length > 0) return 'Drag a matching card onto a champion or elite to summon it.';
+      if (s.playerHand.some(c => c.type === 'spell')) return 'No matching summons — click a spell to cast it, or advance.';
+    }
+    if (s.phase === 'strategy') {
+      if (s.strategy?.attackMode) return 'Click an opponent elite to attack it.';
+      return 'Click one of your elites to select it, then choose an action.';
+    }
+    if (s.phase === 'regroup') return 'Click a champion to assign stacked summons, or click a spell to cast it.';
+    return '';
+  },
+
+  _startIdleWatch(hint) {
+    this._clearIdleWatch();
+    const msgEl = document.getElementById('cg-phase-msg');
+    if (!hint || !msgEl) return;
+    const show = () => {
+      msgEl.classList.remove('hidden', 'cg-phase-msg--out');
+      void msgEl.offsetWidth; // force reflow to restart animation
+      msgEl.classList.add('cg-phase-msg--in');
+    };
+    const reset = () => { clearTimeout(this._idleTimer); this._idleTimer = setTimeout(show, 3000); };
+    this._idleHandler = reset;
+    document.addEventListener('mousemove', this._idleHandler);
+    document.addEventListener('keydown',   this._idleHandler);
+    reset();
+  },
+
+  _clearIdleWatch() {
+    clearTimeout(this._idleTimer);
+    this._idleTimer = null;
+    if (this._idleHandler) {
+      document.removeEventListener('mousemove', this._idleHandler);
+      document.removeEventListener('keydown',   this._idleHandler);
+      this._idleHandler = null;
+    }
+    const msgEl = document.getElementById('cg-phase-msg');
+    if (!msgEl) return;
+    if (!msgEl.classList.contains('hidden')) {
+      msgEl.classList.remove('cg-phase-msg--in');
+      void msgEl.offsetWidth;
+      msgEl.classList.add('cg-phase-msg--out');
+      msgEl.addEventListener('animationend', () => {
+        msgEl.classList.add('hidden');
+        msgEl.classList.remove('cg-phase-msg--out');
+      }, { once: true });
+    } else {
+      msgEl.classList.remove('cg-phase-msg--in', 'cg-phase-msg--out');
+    }
+  },
+
   _renderPhaseBar(s) {
     const el = document.getElementById('cg-phase-bar');
     if (!el) return;
     const order = ['initialize','draw','conjure','strategy','regroup','end'];
     const cur   = order.indexOf(s.phase);
+    const hint  = this._phaseHint(s);
 
     el.innerHTML = `
-      <div class="cg-phase-bar-left">
-        <span class="cg-turn-label">Turn ${s.turnNumber}</span>
-      </div>
-      <div class="cg-phase-pills">
-        ${order.map((p, i) => `
-          <span class="cg-phase-pill ${s.phase === p ? 'active' : ''} ${i < cur ? 'done' : ''}">${PHASE_LABELS[p]}</span>
-          ${i < order.length - 1 ? '<span class="cg-phase-arrow">›</span>' : ''}
-        `).join('')}
-        <span class="cg-phase-btn-sep">│</span>
-        ${this._handNextBtn(s)}
+      <div class="cg-phase-bar-row">
+        <div class="cg-phase-bar-left"><span class="cg-turn-label">Turn ${s.turnNumber}</span></div>
+        <div class="cg-phase-pills">
+          ${order.map((p, i) => `
+            <span class="cg-phase-pill ${s.phase === p ? 'active' : ''} ${i < cur ? 'done' : ''}">${PHASE_LABELS[p]}</span>
+            ${i < order.length - 1 ? '<span class="cg-phase-arrow">›</span>' : ''}
+          `).join('')}
+          <span class="cg-phase-btn-sep">│</span>
+          ${this._handNextBtn(s)}
+        </div>
       </div>
     `;
-    // Single authoritative listener — never duplicated since innerHTML recreates the element each render
+    const msgEl = document.getElementById('cg-phase-msg');
+    if (msgEl) msgEl.textContent = hint;
     document.getElementById('cg-next-btn')?.addEventListener('click', () => { SoundSystem.click(); EventBus.emit('cardgame:nextPhase'); });
+    this._startIdleWatch(hint);
   },
 
   // ── Dice zone ─────────────────────────────────────────────────────────────────
@@ -354,10 +457,17 @@ const CardGameScreen = {
 
     // ── Opponent champion row ──────────────────────────────────────────────────
     if (isOppChamp) {
+      // Hide opponent champion placement until initialize phase is complete
+      if (s.phase === 'initialize') {
+        cell.classList.add('cg-cell-invisible');
+        return cell;
+      }
       const champ = s.opponentChampions.find(c => c.col === col);
       if (champ) {
         cell.classList.add('cg-cell-champion', 'cg-cell-opp');
         cell.innerHTML = this._champHTML(champ);
+        cell.addEventListener('mouseenter', () => this._showCardPreview(champ));
+        cell.addEventListener('mouseleave', () => this._hideCardPreview());
         if (s.strategy.attackMode) {
           cell.classList.add('cg-cell-attackable');
           cell.addEventListener('click', () => EventBus.emit('cardgame:attackTarget', { row, col }));
@@ -369,8 +479,7 @@ const CardGameScreen = {
           cell.addEventListener('mouseleave', () => this._hideStackTooltip());
         }
       } else {
-        // After init: hide empty champion slots so the grid looks clean
-        cell.classList.add(s.phase === 'initialize' ? 'cg-cell-empty' : 'cg-cell-invisible');
+        cell.classList.add('cg-cell-invisible');
       }
       return cell;
     }
@@ -378,22 +487,39 @@ const CardGameScreen = {
     // ── Player champion row ────────────────────────────────────────────────────
     if (isPlrChamp) {
       const champ = s.playerChampions.find(c => c.col === col);
+
+      // Teleportation destination selection — reveal full champion row
+      if (s.pendingTeleport) {
+        if (champ) {
+          cell.classList.add('cg-cell-champion', 'cg-cell-plr');
+          cell.innerHTML = this._champHTML(champ);
+          cell.addEventListener('mouseenter', () => this._showCardPreview(champ));
+          cell.addEventListener('mouseleave', () => this._hideCardPreview());
+          if (col === s.pendingTeleport.sourceCol) {
+            cell.classList.add('cg-cell-teleport-source');
+            cell.title = 'Click to cancel Teleportation';
+            cell.addEventListener('click', () => EventBus.emit('cardgame:cancelSpell'));
+          }
+        } else {
+          cell.classList.add('cg-cell-empty', 'cg-cell-teleport-dest');
+          cell.innerHTML = `<span class="cg-place-hint">✈ Here</span>`;
+          cell.addEventListener('click', () => { SoundSystem.drop(); EventBus.emit('cardgame:teleportTarget', { col }); });
+        }
+        return cell;
+      }
+
       if (champ) {
         cell.classList.add('cg-cell-champion', 'cg-cell-plr');
         cell.innerHTML = this._champHTML(champ);
+        cell.addEventListener('mouseenter', () => this._showCardPreview(champ));
+        cell.addEventListener('mouseleave', () => this._hideCardPreview());
 
-        // Spell target: heal_champion
-        if (s.pendingSpell?.card.needsTarget === 'player_champion') {
+        // Spell target: heal_champion or Teleportation source selection
+        if (s.pendingSpell?.card.needsTarget === 'player_champion' ||
+            s.pendingSpell?.card.needsTarget === 'teleport_champion') {
           cell.classList.add('cg-cell-spell-target');
           cell.addEventListener('click', () => EventBus.emit('cardgame:spellTarget', { row, col }));
           return cell;
-        }
-
-        // Hover: show player elite's summons
-        const plrEliteForChamp = s.grid[P_ELITE_ROW]?.[col];
-        if (plrEliteForChamp?.summons?.length > 0) {
-          cell.addEventListener('mouseenter', () => this._showStackTooltip(cell, plrEliteForChamp.summons, plrEliteForChamp.name));
-          cell.addEventListener('mouseleave', () => this._hideStackTooltip());
         }
 
         // Conjure: champion cell — stack matching cards OR open panel
@@ -448,6 +574,13 @@ const CardGameScreen = {
     }
 
     // ── Battle / elite rows ────────────────────────────────────────────────────
+
+    // Hide opponent elite row during initialize (reveals champion column positions)
+    if (isOppElite && s.phase === 'initialize') {
+      cell.classList.add('cg-cell-invisible');
+      return cell;
+    }
+
     const gridCard = s.grid[row]?.[col] ?? null;
 
     // Move preview cells take priority over normal empty-cell rendering
@@ -508,11 +641,14 @@ const CardGameScreen = {
       }
 
       cell.innerHTML = this._eliteHTML(gridCard, isSel, hasActed);
+      cell.addEventListener('mouseenter', () => this._showCardPreview(gridCard));
+      cell.addEventListener('mouseleave', () => this._hideCardPreview());
 
       // Inline action menu when this elite is selected and ready to act
       if (isSel && !hasActed && isPlayer && s.phase === 'strategy' && !this._movePreview) {
-        const canRetreat = row <= 2;
-        const canRally   = !(s.strategy.ralliedIids?.has(gridCard.iid) ?? false);
+        const hasRallied = s.strategy.ralliedIids?.has(gridCard.iid) ?? false;
+        const canRetreat = row <= 2 && !hasRallied;
+        const canRally   = !hasRallied;
         const menu = document.createElement('div');
         menu.className = 'cg-elite-action-menu';
         menu.innerHTML = `
@@ -587,16 +723,20 @@ const CardGameScreen = {
 
   // ── Card HTML helpers ─────────────────────────────────────────────────────────
   _champHTML(champ) {
-    const hpPct      = Math.max(0, champ.hp / champ.maxHp * 100);
-    const hpCol      = hpPct > 50 ? '#4ab87c' : hpPct > 25 ? '#e0b84a' : '#c04a4a';
-    const stackCount = champ.summons?.length ?? 0;
+    const hpPct  = Math.max(0, champ.hp / champ.maxHp * 100);
+    const hpCol  = hpPct > 50 ? '#4ab87c' : hpPct > 25 ? '#e0b84a' : '#c04a4a';
+    const stack  = champ.summons?.length ?? 0;
     return `
       <div class="cg-champion-card">
-        ${stackCount > 0 ? `<div class="cg-champ-stack-badge">${stackCount}</div>` : ''}
-        <div class="cg-card-art">${champ.art ?? '⚔️'}</div>
-        <div class="cg-card-name">${champ.name ?? 'Champion'}</div>
+        ${stack > 0 ? `<div class="cg-champ-stack-badge">${stack}</div>` : ''}
+        <div class="cg-card-top">
+          <span class="cg-card-name">${champ.name ?? 'Champion'}</span>
+        </div>
+        <div class="cg-card-art-wrap">${_cardArtImg(champ)}</div>
         <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:${hpCol}"></div></div>
-        <div class="cg-card-hp">${Math.max(0, champ.hp)}/${champ.maxHp}</div>
+        <div class="cg-card-stats">
+          <span class="cg-stat-hp">HP ${Math.max(0, champ.hp)}/${champ.maxHp}</span>
+        </div>
       </div>
     `;
   },
@@ -605,20 +745,26 @@ const CardGameScreen = {
     const hpPct  = Math.max(0, elite.hp / elite.maxHp * 100);
     const hpCol  = hpPct > 50 ? '#4ab87c' : hpPct > 25 ? '#e0b84a' : '#c04a4a';
     const sums   = elite.summons ?? [];
-    const totPow = (elite.power ?? 0) + (elite.tempPowerBonus ?? 0) + sums.reduce((a, c) => a + (c.power ?? 0), 0);
-    const bonus  = elite.tempPowerBonus ? ` <span class="cg-bonus">+${elite.tempPowerBonus}</span>` : '';
-    const actedBadge = acted ? `<div class="cg-acted-badge">✓</div>` : '';
+    const killBon = elite.killBonus ?? 0;
+    const totPow = (elite.power ?? 0) + (elite.tempPowerBonus ?? 0) + killBon + sums.reduce((a, c) => a + (c.power ?? 0), 0);
+    const bonus  = (elite.tempPowerBonus || killBon)
+      ? `<span class="cg-bonus">+${elite.tempPowerBonus || ''}${killBon ? `🗡${killBon}` : ''}</span>` : '';
     return `
       <div class="cg-elite-card ${selected ? 'selected' : ''}">
-        ${actedBadge}
-        <div class="cg-card-art">${elite.art ?? '✨'}</div>
-        <div class="cg-card-name">${elite.name ?? 'Elite'}</div>
+        ${acted ? `<div class="cg-acted-badge">✓</div>` : ''}
+        <div class="cg-card-top">
+          <span class="cg-card-name">${elite.name ?? 'Elite'}</span>
+          <span class="cg-hcard-cost">${elite.summonCost ?? ''}</span>
+        </div>
+        <div class="cg-card-art-wrap">${_cardArtImg(elite)}</div>
         <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:${hpCol}"></div></div>
         <div class="cg-card-stats">
-          <span class="cg-stat-hp">${Math.max(0, elite.hp)}/${elite.maxHp}</span>
-          <span class="cg-stat-pow">⚔${totPow}${bonus}</span>
+          <span class="cg-stat-hp">HP ${Math.max(0, elite.hp)}</span>
+          <span class="cg-stat-pow">POW ${totPow}${bonus}</span>
+          <span class="cg-stat-mov">MOV ${elite.ability?.type === 'extended_rally' ? 2 : 1}</span>
           ${sums.length > 0 ? `<span class="cg-stat-summons">+${sums.length}</span>` : ''}
         </div>
+        ${elite.ability?.desc ? `<div class="cg-ability-panel">${elite.ability.desc}</div>` : ''}
       </div>
     `;
   },
@@ -636,126 +782,29 @@ const CardGameScreen = {
             ${s.winner === 'player' ? '🎉 Victory!' : '💀 Defeat!'}
           </div>
         </div>`;
+      this._renderSidebarLog(el, s);
       return;
     }
 
-    if (s.phase === 'initialize') {
-      const step = s.initSubStep;
+    // Spell / teleport targeting banners — these need cancel buttons, stay in sidebar
+    const pending = s.pendingSpell;
+    if (s.pendingTeleport) {
       el.innerHTML = `
-        <div class="cg-sidebar-section">
-          <div class="cg-sidebar-title">Initialize</div>
-          ${step === 'place_champions'
-            ? `<p>Drag your <b>${s.playerHand.length}</b> champion card(s) to the bottom row.</p>`
-            : step === 'place_elites'
-              ? `<p>Drag your <b>${s.playerHand.filter(c => c.type === 'elite').length}</b> elite card(s) in front of each champion.</p>`
-              : `<p>All placed! Starting…</p>`
-          }
-          ${s.playerChampions.map(c => `<div class="cg-placed-champ">${c.art} ${c.name} → col ${c.col + 1}</div>`).join('')}
+        <div class="cg-sidebar-section cg-spell-pending-banner">
+          <div class="cg-sidebar-title">✈ Teleportation</div>
+          <div class="cg-spell-desc">Choose a destination in the champion row.</div>
+          <button class="btn-cg btn-cg-cancel-spell" id="cg-cancel-spell-btn">✕ Cancel</button>
         </div>`;
-    }
-
-    if (s.phase === 'draw') {
+      document.getElementById('cg-cancel-spell-btn')?.addEventListener('click', () => EventBus.emit('cardgame:cancelSpell'));
+    } else if (pending) {
       el.innerHTML = `
-        <div class="cg-sidebar-section">
-          <div class="cg-sidebar-title">Draw Phase</div>
-          <p>Card drawn. Advancing to Conjure…</p>
+        <div class="cg-sidebar-section cg-spell-pending-banner">
+          <div class="cg-sidebar-title">🔮 Targeting</div>
+          <div class="cg-spell-name">${pending.card.art} ${pending.card.name}</div>
+          <div class="cg-spell-desc">${pending.card.description}</div>
+          <button class="btn-cg btn-cg-cancel-spell" id="cg-cancel-spell-btn">✕ Cancel</button>
         </div>`;
-    }
-
-    if (s.phase === 'conjure') {
-      const pending = s.pendingSpell;
-      if (pending) {
-        el.innerHTML = `
-          <div class="cg-sidebar-section cg-spell-pending-banner">
-            <div class="cg-sidebar-title">🔮 Targeting</div>
-            <div class="cg-spell-name">${pending.card.art} ${pending.card.name}</div>
-            <div class="cg-spell-desc">${pending.card.description}</div>
-            <button class="btn-cg btn-cg-cancel-spell" id="cg-cancel-spell-btn">✕ Cancel</button>
-          </div>`;
-        document.getElementById('cg-cancel-spell-btn')?.addEventListener('click', () => EventBus.emit('cardgame:cancelSpell'));
-        this._renderSidebarLog(el, s);
-        return;
-      }
-
-      const spells = s.playerHand.filter(c => c.type === 'spell').length;
-      el.innerHTML = `
-        <div class="cg-sidebar-section">
-          <div class="cg-sidebar-title">Conjure Phase</div>
-          ${s.diceResult
-            ? `<div class="cg-dice-sub-info">
-                 ${s.matchingHand.length > 0
-                   ? `<b>${s.matchingHand.length}</b> card(s) match. Click a champion to summon.`
-                   : s.diceResult[0] + s.diceResult[1] === 7
-                     ? 'Spell card drawn!'
-                     : 'No matching summon cards.'}
-               </div>`
-            : `<p>Click the dice to roll.</p>`
-          }
-          ${spells > 0 ? `<div class="cg-spell-hint">✨ ${spells} spell card(s) in hand — click to cast</div>` : ''}
-          <div class="cg-dim">Spell deck: ${s.playerSpellDeck?.length ?? 0}</div>
-        </div>`;
-    }
-
-    if (s.phase === 'strategy') {
-      const { selectedRow: selRow, selectedCol: selCol, attackMode, ralliedIids, actedIids } = s.strategy;
-      const selElite     = selRow !== null ? s.grid[selRow]?.[selCol] : null;
-      const alreadyActed = selElite ? (actedIids?.has(selElite.iid) ?? false) : false;
-      const alreadyRallied = selElite ? (ralliedIids?.has(selElite.iid) ?? false) : false;
-      const playerElites = findPlayerElites(s);
-      const actedCount   = playerElites.filter(e => actedIids?.has(e.iid)).length;
-      const totPow = selElite
-        ? (selElite.power ?? 0) + (selElite.tempPowerBonus ?? 0) + (selElite.summons ?? []).reduce((a,c)=>a+(c.power??0),0)
-        : 0;
-
-      el.innerHTML = `
-        <div class="cg-sidebar-section">
-          <div class="cg-sidebar-title">Strategy</div>
-          <div class="cg-dim">${actedCount}/${playerElites.length} elites acted</div>
-          ${selElite
-            ? `<div class="cg-selected-info"><b>${selElite.name}</b><br>HP: ${Math.max(0,selElite.hp)}/${selElite.maxHp} · ⚔${totPow}</div>`
-            : `<p class="cg-dim">Click a player elite to act.</p>`}
-          ${attackMode ? `<p class="cg-attack-hint">⚔ Click an opponent target…</p>` : ''}
-          ${selElite && !alreadyActed && !attackMode ? `<p class="cg-dim">Click the elite card for actions.</p>` : ''}
-          ${alreadyActed ? `<p class="cg-dim">This elite has already acted. Select another.</p>` : ''}
-        </div>`;
-
-      // Actions are now on the inline elite card menu (see _buildCell)
-    }
-
-    if (s.phase === 'regroup') {
-      const pending = s.pendingSpell;
-      if (pending) {
-        el.innerHTML = `
-          <div class="cg-sidebar-section cg-spell-pending-banner">
-            <div class="cg-sidebar-title">🔮 Targeting</div>
-            <div class="cg-spell-name">${pending.card.art} ${pending.card.name}</div>
-            <div class="cg-spell-desc">${pending.card.description}</div>
-            <button class="btn-cg btn-cg-cancel-spell" id="cg-cancel-spell-btn">✕ Cancel</button>
-          </div>`;
-        document.getElementById('cg-cancel-spell-btn')?.addEventListener('click', () => EventBus.emit('cardgame:cancelSpell'));
-        this._renderSidebarLog(el, s);
-        return;
-      }
-      const hasSpells   = s.playerHand.some(c => c.type === 'spell');
-      const hasStacks   = s.playerChampions.some(c => (c.summons?.length ?? 0) > 0);
-      el.innerHTML = `
-        <div class="cg-sidebar-section">
-          <div class="cg-sidebar-title">Regroup</div>
-          ${hasStacks
-            ? `<p>Click a champion to assign stacked summons to an elite.</p>`
-            : `<p class="cg-dim">No stacked summons to assign.</p>`}
-          ${hasSpells
-            ? `<p>✨ Spell card(s) in hand — click to cast.</p>`
-            : `<p class="cg-dim">No spells in hand.</p>`}
-        </div>`;
-    }
-
-    if (s.phase === 'end') {
-      el.innerHTML = `
-        <div class="cg-sidebar-section">
-          <div class="cg-sidebar-title">End Phase</div>
-          <p>Passing to opponent…</p>
-        </div>`;
+      document.getElementById('cg-cancel-spell-btn')?.addEventListener('click', () => EventBus.emit('cardgame:cancelSpell'));
     }
 
     this._renderSidebarLog(el, s);
@@ -797,11 +846,17 @@ const CardGameScreen = {
         const div = document.createElement('div');
         div.className = 'cg-hand-card cg-hand-champion';
         div.draggable = true;
+        const champHpPct = card.maxHp > 0 ? Math.max(0, card.hp / card.maxHp * 100) : 0;
         div.innerHTML = `
-          <div class="cg-hcard-art" style="font-size:2em">${card.art ?? '⚔️'}</div>
-          <div class="cg-hcard-name">${card.name ?? 'Champion'}</div>
-          <div class="cg-hcard-stats"><span>HP ${card.hp}</span></div>
-          <div class="cg-hcard-tag cg-hcard-tag-champion">CHAMPION</div>
+          ${(card.summons?.length ?? 0) > 0 ? `<div class="cg-champ-stack-badge">${card.summons.length}</div>` : ''}
+          <div class="cg-card-top">
+            <span class="cg-card-name">${card.name ?? 'Champion'}</span>
+          </div>
+          <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+          <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${champHpPct}%;background:#4ab87c"></div></div>
+          <div class="cg-card-stats">
+            <span class="cg-stat-hp">HP ${card.hp}</span>
+          </div>
         `;
         div.addEventListener('dragstart', e => {
           SoundSystem.dragStart();
@@ -810,6 +865,8 @@ const CardGameScreen = {
           div.classList.add('cg-dragging');
         });
         div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
+        div.addEventListener('mouseenter', () => this._showCardPreview(card));
+        div.addEventListener('mouseleave', () => this._hideCardPreview());
         hand.appendChild(div);
         this._applyArch(div, i, total);
       });
@@ -831,11 +888,17 @@ const CardGameScreen = {
         div.className = 'cg-hand-card cg-hand-elite';
         div.draggable = true;
         div.innerHTML = `
-          <div class="cg-hcard-art">${card.art ?? '✨'}</div>
-          <div class="cg-hcard-name">${card.name ?? 'Elite'}</div>
-          <div class="cg-hcard-stats"><span>HP ${card.hp}</span><span>⚔${card.power}</span></div>
+          <div class="cg-card-top">
+            <span class="cg-card-name">${card.name ?? 'Elite'}</span>
+            <span class="cg-hcard-cost">${card.summonCost ?? ''}</span>
+          </div>
+          <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
           <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#c07820"></div></div>
-          <div class="cg-hcard-tag cg-hcard-tag-elite">ELITE</div>
+          <div class="cg-card-stats">
+            <span class="cg-stat-hp">HP ${card.hp}</span>
+            <span class="cg-stat-pow">POW ${card.power}</span>
+            <span class="cg-stat-mov">MOV ${card.ability?.type === 'extended_rally' ? 2 : 1}</span>
+          </div>
         `;
         div.addEventListener('dragstart', e => {
           SoundSystem.dragStart();
@@ -844,6 +907,8 @@ const CardGameScreen = {
           div.classList.add('cg-dragging');
         });
         div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
+        div.addEventListener('mouseenter', () => this._showCardPreview(card));
+        div.addEventListener('mouseleave', () => this._hideCardPreview());
         hand.appendChild(div);
         this._applyArch(div, archIdx++, total);
       });
@@ -879,7 +944,7 @@ const CardGameScreen = {
       const isSpell    = card.type === 'spell';
       const isElite    = card.type === 'elite';
       const isMatching = !isSpell && !isElite && (s.matchingHand?.includes(i) ?? false);
-      const isDimmed   = !isSpell && !isElite && s.diceResult && !isMatching;
+      const isDimmed   = !isSpell && !isElite && s.diceResult && !isMatching && !(card.ability?.type === 'teleport_to_elite');
       const div        = document.createElement('div');
 
       // Elite in hand (mid-game replacement) — always draggable
@@ -888,11 +953,17 @@ const CardGameScreen = {
         div.className = 'cg-hand-card cg-hand-elite';
         div.draggable = true;
         div.innerHTML = `
-          <div class="cg-hcard-art">${card.art ?? '✨'}</div>
-          <div class="cg-hcard-name">${card.name ?? 'Elite'}</div>
-          <div class="cg-hcard-stats"><span>HP ${card.hp}</span><span>⚔${card.power}</span></div>
+          <div class="cg-card-top">
+            <span class="cg-card-name">${card.name ?? 'Elite'}</span>
+            <span class="cg-hcard-cost">${card.summonCost ?? ''}</span>
+          </div>
+          <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
           <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#c07820"></div></div>
-          <div class="cg-hcard-tag cg-hcard-tag-elite">ELITE</div>
+          <div class="cg-card-stats">
+            <span class="cg-stat-hp">HP ${card.hp}</span>
+            <span class="cg-stat-pow">POW ${card.power}</span>
+            <span class="cg-stat-mov">MOV ${card.ability?.type === 'extended_rally' ? 2 : 1}</span>
+          </div>
         `;
         div.addEventListener('dragstart', e => {
           SoundSystem.dragStart();
@@ -901,6 +972,8 @@ const CardGameScreen = {
           div.classList.add('cg-dragging');
         });
         div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
+        div.addEventListener('mouseenter', () => this._showCardPreview(card));
+        div.addEventListener('mouseleave', () => this._hideCardPreview());
         hand.appendChild(div);
         this._applyArch(div, archIdx, total);
         return;
@@ -916,25 +989,37 @@ const CardGameScreen = {
 
       if (isSpell) {
         div.innerHTML = `
-          <div class="cg-hcard-spell-art">${card.art ?? '✨'}</div>
-          <div class="cg-hcard-name">${card.name ?? 'Spell'}</div>
-          <div class="cg-hcard-spell-desc">${card.description ?? ''}</div>
-          <div class="cg-hcard-spell-tag">SPELL</div>
+          <div class="cg-card-top">
+            <span class="cg-card-name">${card.name ?? 'Spell'}</span>
+            <span class="cg-hcard-cost">0</span>
+          </div>
+          <div class="cg-type-label">Spell Card</div>
+          <div class="cg-card-art-wrap"><div class="cg-art-emoji">${card.art ?? '✨'}</div></div>
         `;
         div.addEventListener('click', () => {
           if (s.phase !== 'conjure' && s.phase !== 'regroup') return;
           EventBus.emit('cardgame:playSpell', { handIdx: i });
         });
+        div.addEventListener('mouseenter', () => this._showCardPreview(card));
+        div.addEventListener('mouseleave', () => this._hideCardPreview());
       } else {
         const hpPct = card.maxHp > 0 ? Math.max(0, card.hp / card.maxHp * 100) : 0;
+        const hasTeleportAbility = card.ability?.type === 'teleport_to_elite';
         div.innerHTML = `
-          <div class="cg-hcard-cost">${card.summonCost}</div>
-          <div class="cg-hcard-art">${card.art ?? '✨'}</div>
-          <div class="cg-hcard-name">${card.name ?? 'Summon'}</div>
-          <div class="cg-hcard-stats"><span>HP ${card.hp}</span><span>⚔${card.power}</span></div>
+          <div class="cg-card-top">
+            <span class="cg-card-name">${card.name ?? 'Summon'}</span>
+            <span class="cg-hcard-cost">${card.summonCost}</span>
+          </div>
+          <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
           <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#4ab87c"></div></div>
+          <div class="cg-card-stats">
+            <span class="cg-stat-hp">HP ${card.hp}</span>
+            <span class="cg-stat-pow">POW ${card.power}</span>
+          </div>
         `;
-        if (isMatching && s.phase === 'conjure') {
+        const canDragSummon = (isMatching || hasTeleportAbility) && s.phase === 'conjure';
+        if (canDragSummon) {
+          if (hasTeleportAbility && !isMatching) div.classList.add('cg-hand-matching', 'cg-teleport-ability');
           div.draggable = true;
           div.addEventListener('dragstart', e => {
             SoundSystem.dragStart();
@@ -944,11 +1029,21 @@ const CardGameScreen = {
           });
           div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
         }
+        div.addEventListener('mouseenter', () => this._showCardPreview(card));
+        div.addEventListener('mouseleave', () => this._hideCardPreview());
       }
 
+      const cardKey = card.uid ?? `${card.type}:${card.name}:${archIdx}`;
+      const isNew = !this._knownHandKeys.has(cardKey);
       hand.appendChild(div);
       this._applyArch(div, archIdx, total);
+      if (isNew) div.classList.add('cg-hand-card-deal');
     });
+
+    // Update known hand keys to current hand
+    this._knownHandKeys = new Set(
+      visibleCards.map(({ card }, idx) => card.uid ?? `${card.type}:${card.name}:${idx}`)
+    );
   },
 
   // ── Champion panel (stacked summons → drag to elite) ─────────────────────────
@@ -998,11 +1093,17 @@ const CardGameScreen = {
       div.className = 'cg-hand-card cg-hand-matching cg-champ-panel-card';
       div.draggable = true;
       div.innerHTML = `
-        <div class="cg-hcard-cost">${card.summonCost}</div>
-        <div class="cg-hcard-art">${card.art ?? '✨'}</div>
-        <div class="cg-hcard-name">${card.name ?? 'Summon'}</div>
-        <div class="cg-hcard-stats"><span>HP ${card.hp}</span><span>⚔${card.power}</span></div>
+        <div class="cg-card-top">
+          <span class="cg-card-name">${card.name ?? 'Summon'}</span>
+          <span class="cg-hcard-cost">${card.summonCost}</span>
+        </div>
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
         <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#4ab87c"></div></div>
+        <div class="cg-card-stats">
+          <span class="cg-stat-hp">HP ${card.hp}</span>
+          <span class="cg-stat-pow">POW ${card.power}</span>
+        </div>
+        ${card.ability?.desc ? `<div class="cg-ability-panel">${card.ability.desc}</div>` : ''}
       `;
       div.addEventListener('dragstart', e => {
         SoundSystem.dragStart();
@@ -1011,6 +1112,8 @@ const CardGameScreen = {
         div.classList.add('cg-dragging');
       });
       div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
+      div.addEventListener('mouseenter', () => this._showCardPreview(card));
+      div.addEventListener('mouseleave', () => this._hideCardPreview());
       cardsEl.appendChild(div);
     });
   },
@@ -1044,10 +1147,15 @@ const CardGameScreen = {
   _renderCryptZone(s) {
     const el = document.getElementById('cg-crypt-zone');
     if (!el) return;
+    const count   = s.playerCrypt.length;
+    const topCard = count > 0 ? s.playerCrypt[count - 1] : null;
+    const tip     = count > 0 ? s.playerCrypt.slice(-5).reverse().map(c => c.name ?? '?').join(', ') : 'Empty';
     el.innerHTML = `
-      <div class="cg-crypt-zone-inner">
-        <div class="cg-crypt-title">Crypt</div>
-        <div class="cg-crypt-stacks">${this._cryptStackHTML(s.playerCrypt, 'Yours')}</div>
+      <div class="cg-crypt-card-display ${count === 0 ? 'empty' : ''}" title="${tip}">
+        <div class="cg-crypt-count-badge">${count}</div>
+        <div class="cg-crypt-art-emoji">${topCard?.art ?? '💀'}</div>
+        <div class="cg-crypt-card-name">${topCard?.name ?? 'Empty'}</div>
+        <div class="cg-crypt-footer">Crypt · ${count} card${count !== 1 ? 's' : ''}</div>
       </div>
     `;
   },
@@ -1109,21 +1217,13 @@ const CardGameScreen = {
 
   // ── Hand arch transform ───────────────────────────────────────────────────────
   _applyArch(div, i, total) {
-    if (total < 1) return;
-    const spread = Math.min(40, total * 7);
-    const center = (total - 1) / 2;
-    const t      = total > 1 ? (i - center) / center : 0;
-    const angle  = t * (spread / 2);
-    const yShift = Math.abs(t) * 18;
-    const rest   = () => { div.style.transform = `rotate(${angle}deg) translateY(${yShift}px)`;        div.style.transformOrigin = 'center 260%'; div.style.zIndex = String(i + 1); };
-    const hover  = () => { div.style.transform = `rotate(${angle}deg) translateY(${yShift - 24}px) scale(1.12)`; div.style.transformOrigin = 'center 260%'; div.style.zIndex = '80'; };
-    const straight = () => { div.style.transform = 'none'; div.style.transformOrigin = 'center center'; };
-    rest();
-    div.style.transition = 'transform 0.15s ease';
-    div.addEventListener('mouseenter', hover);
-    div.addEventListener('mouseleave', rest);
-    div.addEventListener('dragstart',  straight);
-    div.addEventListener('dragend',    rest);
+    div.style.zIndex = String(i + 1);
+    div.style.transformOrigin = 'top center';
+    div.style.transition = 'transform 0.18s ease, box-shadow 0.18s ease';
+    div.addEventListener('mouseenter', () => { div.style.transform = 'translateY(-55px) scale(1.12)'; div.style.zIndex = '80'; });
+    div.addEventListener('mouseleave', () => { div.style.transform = '';                               div.style.zIndex = String(i + 1); });
+    div.addEventListener('dragstart',  () => { div.style.transform = ''; });
+    div.addEventListener('dragend',    () => { div.style.transform = ''; });
   },
 
   // ── Move preview helpers ──────────────────────────────────────────────────────
@@ -1229,6 +1329,76 @@ const CardGameScreen = {
 
   _hideStackTooltip() {
     document.getElementById('cg-stack-tooltip')?.remove();
+  },
+
+  // ── Card hover preview ──────────────────────────────────────────────────────
+  _cardPreviewHTML(card) {
+    const hpPct = card.maxHp > 0 ? Math.max(0, card.hp / card.maxHp * 100) : 0;
+    const hpCol = hpPct > 50 ? '#4ab87c' : hpPct > 25 ? '#e0b84a' : '#c04a4a';
+    if (card.type === 'spell') {
+      return `
+        <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Spell'}</span><span class="cg-hcard-cost">0</span></div>
+        <div class="cg-type-label">Spell Card</div>
+        <div class="cg-card-art-wrap"><div class="cg-art-emoji">${card.art ?? '✨'}</div></div>
+        ${card.description ? `<div class="cg-ability-panel">${card.description}</div>` : ''}
+      `;
+    }
+    if (card.type === 'champion') {
+      const stack = card.summons?.length ?? 0;
+      return `
+        ${stack > 0 ? `<div class="cg-champ-stack-badge">${stack}</div>` : ''}
+        <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Champion'}</span></div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:${hpCol}"></div></div>
+        <div class="cg-card-stats"><span class="cg-stat-hp">HP ${Math.max(0, card.hp)}/${card.maxHp}</span></div>
+        ${card.ability?.desc ? `<div class="cg-ability-panel">${card.ability.desc}</div>` : ''}
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    }
+    if (card.type === 'elite') {
+      const sums = card.summons ?? [];
+      const killBon = card.killBonus ?? 0;
+      const totPow = (card.power ?? 0) + (card.tempPowerBonus ?? 0) + killBon + sums.reduce((a, c) => a + (c.power ?? 0), 0);
+      const bonus = (card.tempPowerBonus || killBon) ? `<span class="cg-bonus">+${card.tempPowerBonus || ''}${killBon ? `🗡${killBon}` : ''}</span>` : '';
+      return `
+        <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Elite'}</span><span class="cg-hcard-cost">${card.summonCost ?? ''}</span></div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:${hpCol}"></div></div>
+        <div class="cg-card-stats">
+          <span class="cg-stat-hp">HP ${Math.max(0, card.hp)}</span>
+          <span class="cg-stat-pow">POW ${totPow}${bonus}</span>
+          <span class="cg-stat-mov">MOV ${card.ability?.type === 'extended_rally' ? 2 : 1}</span>
+          ${sums.length > 0 ? `<span class="cg-stat-summons">+${sums.length}</span>` : ''}
+        </div>
+        ${card.ability?.desc ? `<div class="cg-ability-panel">${card.ability.desc}</div>` : ''}
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    }
+    // summon (default)
+    return `
+      <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Summon'}</span><span class="cg-hcard-cost">${card.summonCost ?? ''}</span></div>
+      ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+      <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+      <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#4ab87c"></div></div>
+      <div class="cg-card-stats"><span class="cg-stat-hp">HP ${card.hp}</span><span class="cg-stat-pow">POW ${card.power}</span></div>
+      ${card.ability?.desc ? `<div class="cg-ability-panel">${card.ability.desc}</div>` : ''}
+      <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+    `;
+  },
+
+  _showCardPreview(card) {
+    const el = this._container?.querySelector('#cg-card-preview');
+    if (!el) return;
+    el.innerHTML = this._cardPreviewHTML(card);
+    el.classList.remove('hidden');
+  },
+
+  _hideCardPreview() {
+    const el = this._container?.querySelector('#cg-card-preview');
+    if (!el) return;
+    el.classList.add('hidden');
   },
 
   // ── Attack animation ──────────────────────────────────────────────────────────

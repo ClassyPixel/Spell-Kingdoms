@@ -102,6 +102,7 @@ const CardGameScreen = {
     this._bindEvents();
     this._bindMenuButton();
     this._bindEscKey();
+    this._playMatchMusic();
     EventBus.emit('hud:hide');
   },
 
@@ -115,10 +116,27 @@ const CardGameScreen = {
       document.removeEventListener('keydown', this._escHandler);
       this._escHandler = null;
     }
+    this._stopMatchMusic();
     EventBus.emit('hud:show');
   },
 
   update() {},
+
+  // ── Match music ───────────────────────────────────────────────────────────────
+  _playMatchMusic() {
+    this._bgm = new Audio('assets/audio/matchost/All Comes Together.mp3');
+    this._bgm.loop   = true;
+    this._bgm.volume = 0.5;
+    this._bgm.play().catch(() => {});   // ignore autoplay block silently
+  },
+
+  _stopMatchMusic() {
+    if (this._bgm) {
+      this._bgm.pause();
+      this._bgm.currentTime = 0;
+      this._bgm = null;
+    }
+  },
 
   // ── Scaffold ──────────────────────────────────────────────────────────────────
   _render() {

@@ -1288,8 +1288,8 @@ body {
 /* ── Grid cells ──────────────────────────────── */
 .cg-cell {
   border-radius: 6px;
-  border: 1px solid #1a2840;
-  background: #0d1828;
+  border: 1px solid #1a3a1a;
+  background: #0a180a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1302,8 +1302,8 @@ body {
 
 .cg-row-opp-champ { background: #1a0d0d; border-color: #401010; }
 .cg-row-plr-champ { background: #0d1a0d; border-color: #104010; }
-.cg-row-opp-elite { background: #1a100d; border-color: #301808; }
-.cg-row-plr-elite { background: #0d1210; border-color: #0a2015; }
+.cg-row-opp-elite { background: #12091e; border-color: #2e1850; }
+.cg-row-plr-elite { background: #12091e; border-color: #2e1850; }
 
 .cg-cell-placeable {
   border: 2px dashed #2a6030;
@@ -1359,9 +1359,9 @@ body {
 
 .cg-cell-champion.cg-cell-plr { background: #0a1e10; border-color: #1a5030; }
 .cg-cell-champion.cg-cell-opp { background: #1e0a0a; border-color: #501a1a; }
-.cg-cell-elite.cg-cell-plr    { background: #0d1a14; border-color: #204030; cursor: pointer; }
-.cg-cell-elite.cg-cell-opp    { background: #1a0d0d; border-color: #402020; }
-.cg-cell-elite.cg-cell-plr:hover { border-color: #4ab87c; }
+.cg-cell-elite.cg-cell-plr    { background: #1e1030; border-color: #4a2070; cursor: pointer; }
+.cg-cell-elite.cg-cell-opp    { background: #1e0d30; border-color: #4a1870; }
+.cg-cell-elite.cg-cell-plr:hover { border-color: #9060e0; }
 
 .cg-card-art {
   font-size: 1.4em;

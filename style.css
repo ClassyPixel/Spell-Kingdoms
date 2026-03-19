@@ -1765,6 +1765,15 @@ body {
   letter-spacing: 0.1em;
 }
 
+.cg-elite-notice {
+  font-size: 0.72em;
+  font-weight: 800;
+  color: #f0c040;
+  text-shadow: 0 0 8px rgba(240,160,0,0.6);
+  animation: cg-pill-blink 0.9s ease-in-out infinite;
+  letter-spacing: 0.04em;
+}
+
 .cg-hand-next-btn {
   font-size: 0.75em !important;
   padding: 3px 10px !important;

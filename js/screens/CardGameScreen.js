@@ -681,6 +681,10 @@ const CardGameScreen = {
       label    = s.initSubStep === 'place_champions' ? 'Place Champions…' : 'Place Elites…';
       disabled = true;
     }
+    // Block phase advance while a mid-game elite awaits placement
+    if (s.phase !== 'initialize' && s.playerHand.some(c => c.type === 'elite')) {
+      disabled = true;
+    }
     return `<button class="btn-cg btn-cg-next cg-hand-next-btn" id="cg-next-btn" ${disabled ? 'disabled' : ''}>${label}</button>`;
   },
 
@@ -688,7 +692,10 @@ const CardGameScreen = {
     const el = document.getElementById('cg-hand-area');
     if (!el) return;
 
-    const header = `<div class="cg-hand-header"><span class="cg-hand-label">Hand</span>${this._handNextBtn(s)}</div>`;
+    const hasEliteWaiting = s.playerHand.some(c => c.type === 'elite');
+    const eliteNotice = hasEliteWaiting
+      ? `<span class="cg-elite-notice">⚔ Place your Elite card first!</span>` : '';
+    const header = `<div class="cg-hand-header">${eliteNotice || '<span class="cg-hand-label">Hand</span>'}${this._handNextBtn(s)}</div>`;
 
     // ── Initialize: champion placement ────────────────────────────────────────
     if (s.phase === 'initialize' && s.initSubStep === 'place_champions') {
@@ -765,9 +772,16 @@ const CardGameScreen = {
     document.getElementById('cg-next-btn')?.addEventListener('click', () => { SoundSystem.click(); EventBus.emit('cardgame:nextPhase'); });
     const hand = document.getElementById('cg-hand');
 
+    // If an elite card is in hand, only show elite cards until placed
+    const hasEliteInHand = s.playerHand.some(c => c.type === 'elite');
+
     s.playerHand.forEach((card, i) => {
       const isSpell    = card.type === 'spell';
       const isElite    = card.type === 'elite';
+
+      // Hide summon/spell cards while an elite awaits placement
+      if (hasEliteInHand && !isElite) return;
+
       const isMatching = !isSpell && !isElite && (s.matchingHand?.includes(i) ?? false);
       const isDimmed   = !isSpell && !isElite && s.diceResult && !isMatching;
       const div        = document.createElement('div');

@@ -90,6 +90,9 @@ function makeState(npcId, deckOverride) {
     phase:       'initialize',
     initSubStep: 'place_champions',   // place_champions | place_elites | done
 
+    playerNeedsElite:   false,   // draw replacement elite at next draw phase
+    opponentNeedsElite: false,   // spawn replacement elite at opponent's next turn
+
     diceResult:   null,
     diceRolled:   false,
     matchingHand: [],
@@ -593,6 +596,13 @@ const CardSystem = {
   _spawnOpponentElite(col) {
     const s = this.state;
     if (!s.opponentEliteDeck.length) return;
+    s.opponentNeedsElite = true;
+  },
+
+  _resolveOpponentElite() {
+    const s = this.state;
+    if (!s.opponentNeedsElite || !s.opponentEliteDeck.length) return;
+    s.opponentNeedsElite = false;
     for (const ch of s.opponentChampions) {
       if (!s.grid[O_ELITE_ROW][ch.col]) {
         const el = s.opponentEliteDeck.shift();
@@ -607,10 +617,8 @@ const CardSystem = {
   _spawnPlayerElite(col) {
     const s = this.state;
     if (!s.playerEliteDeck.length) { log(s, 'No more elite cards!'); return; }
-    const el = s.playerEliteDeck.shift();
-    el.owner = 'player';
-    s.playerHand.push(el);
-    log(s, `${el.name} drawn to hand — place it on a champion!`);
+    s.playerNeedsElite = true;
+    log(s, 'Elite destroyed! A replacement will arrive at the start of your next turn.');
   },
 
   // ── Phase transitions ──────────────────────────────────────────────────────
@@ -647,6 +655,16 @@ const CardSystem = {
       for (let c = 0; c < COLS; c++)
         if (s.grid[r]?.[c]) delete s.grid[r][c].tempPowerBonus;
 
+    // Draw replacement elite first if one is pending
+    if (s.playerNeedsElite && s.playerEliteDeck.length) {
+      s.playerNeedsElite = false;
+      const el = s.playerEliteDeck.shift();
+      el.owner = 'player';
+      s.playerHand.push(el);
+      log(s, `${el.name} drawn to hand — place it on a champion!`);
+      EventBus.emit('cardgame:cardDrawn');
+    }
+
     const card = s.playerSummonDeck.shift();
     if (card) { s.playerHand.push(card); log(s, `Drew: ${card.name} (Cost ${card.summonCost}).`); }
     else log(s, 'Summon deck empty!');
@@ -678,6 +696,9 @@ const CardSystem = {
     const s = this.state;
     log(s, '── Opponent\'s Turn ──');
 
+    // Draw replacement elite first if one is pending
+    this._resolveOpponentElite();
+
     const card = s.opponentSummonDeck.shift();
     if (card) s.opponentHand.push(card);
 
@@ -707,6 +728,7 @@ const CardSystem = {
       if (row === P_ELITE_ROW) {
         const pChamp = s.playerChampions.find(c => c.col === col);
         if (pChamp) {
+          EventBus.emit('cardgame:attackPerformed', { attackerRow: row, attackerCol: col, targetRow: PLAYER_ROW, targetCol: col, art: elite.art ?? '⚔️' });
           pChamp.hp -= atkPow;
           log(s, `${elite.name} attacks your ${pChamp.name} for ${atkPow}! (${Math.max(0,pChamp.hp)}/${pChamp.maxHp} HP)`);
           if (pChamp.hp <= 0) { log(s, `${pChamp.name} defeated!`); s.playerChampions = s.playerChampions.filter(c => c !== pChamp); }
@@ -716,6 +738,7 @@ const CardSystem = {
 
       const pElite = nextRow < ROWS ? gridElite(s, nextRow, col) : null;
       if (pElite?.owner === 'player') {
+        EventBus.emit('cardgame:attackPerformed', { attackerRow: row, attackerCol: col, targetRow: nextRow, targetCol: col, art: elite.art ?? '⚔️' });
         let dmg = atkPow;
         while (dmg > 0 && pElite.summons.length > 0) {
           const sm = pElite.summons[pElite.summons.length - 1];

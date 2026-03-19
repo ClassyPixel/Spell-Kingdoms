@@ -31,6 +31,7 @@ const PHASE_LABELS = {
   draw:       'Draw',
   conjure:    'Conjure',
   strategy:   'Strategy',
+  regroup:    'Regroup',
   end:        'End',
   gameover:   'Game Over',
 };
@@ -261,7 +262,7 @@ const CardGameScreen = {
   _renderPhaseBar(s) {
     const el = document.getElementById('cg-phase-bar');
     if (!el) return;
-    const order = ['initialize','draw','conjure','strategy','end'];
+    const order = ['initialize','draw','conjure','strategy','regroup','end'];
     const cur   = order.indexOf(s.phase);
 
     el.innerHTML = `
@@ -393,7 +394,7 @@ const CardGameScreen = {
 
         // Conjure: champion cell — stack matching cards OR open panel
         const canStack     = s.phase === 'conjure' && s.diceResult && s.matchingHand.length > 0;
-        const canOpenPanel = s.phase === 'conjure' && (champ.summons?.length ?? 0) > 0;
+        const canOpenPanel = (s.phase === 'conjure' || s.phase === 'regroup') && (champ.summons?.length ?? 0) > 0;
 
         if (canStack) {
           cell.classList.add('cg-cell-drop-zone');
@@ -717,6 +718,34 @@ const CardGameScreen = {
       // Actions are now on the inline elite card menu (see _buildCell)
     }
 
+    if (s.phase === 'regroup') {
+      const pending = s.pendingSpell;
+      if (pending) {
+        el.innerHTML = `
+          <div class="cg-sidebar-section cg-spell-pending-banner">
+            <div class="cg-sidebar-title">🔮 Targeting</div>
+            <div class="cg-spell-name">${pending.card.art} ${pending.card.name}</div>
+            <div class="cg-spell-desc">${pending.card.description}</div>
+            <button class="btn-cg btn-cg-cancel-spell" id="cg-cancel-spell-btn">✕ Cancel</button>
+          </div>`;
+        document.getElementById('cg-cancel-spell-btn')?.addEventListener('click', () => EventBus.emit('cardgame:cancelSpell'));
+        this._renderSidebarLog(el, s);
+        return;
+      }
+      const hasSpells   = s.playerHand.some(c => c.type === 'spell');
+      const hasStacks   = s.playerChampions.some(c => (c.summons?.length ?? 0) > 0);
+      el.innerHTML = `
+        <div class="cg-sidebar-section">
+          <div class="cg-sidebar-title">Regroup</div>
+          ${hasStacks
+            ? `<p>Click a champion to assign stacked summons to an elite.</p>`
+            : `<p class="cg-dim">No stacked summons to assign.</p>`}
+          ${hasSpells
+            ? `<p>✨ Spell card(s) in hand — click to cast.</p>`
+            : `<p class="cg-dim">No spells in hand.</p>`}
+        </div>`;
+    }
+
     if (s.phase === 'end') {
       el.innerHTML = `
         <div class="cg-sidebar-section">
@@ -873,10 +902,11 @@ const CardGameScreen = {
         return;
       }
 
+      const spellPlayable = isSpell && (s.phase === 'conjure' || s.phase === 'regroup');
       div.className = [
         'cg-hand-card',
         isSpell    ? 'cg-hand-spell'    : '',
-        isMatching ? 'cg-hand-matching' : '',
+        isMatching || spellPlayable ? 'cg-hand-matching' : '',
         isDimmed   ? 'cg-hand-no-match' : '',
       ].filter(Boolean).join(' ');
 
@@ -888,7 +918,7 @@ const CardGameScreen = {
           <div class="cg-hcard-spell-tag">SPELL</div>
         `;
         div.addEventListener('click', () => {
-          if (s.phase !== 'conjure') return;
+          if (s.phase !== 'conjure' && s.phase !== 'regroup') return;
           EventBus.emit('cardgame:playSpell', { handIdx: i });
         });
       } else {
@@ -1076,20 +1106,20 @@ const CardGameScreen = {
   // ── Hand arch transform ───────────────────────────────────────────────────────
   _applyArch(div, i, total) {
     if (total < 1) return;
-    const spread = Math.min(40, total * 7);      // total degree span, grows with card count
+    const spread = Math.min(40, total * 7);
     const center = (total - 1) / 2;
     const t      = total > 1 ? (i - center) / center : 0;
     const angle  = t * (spread / 2);
-    const yShift = Math.abs(t) * 18;             // edge cards droop down ~18 px
-    const apply  = (extraY = 0, scale = 1) => {
-      div.style.transform      = `rotate(${angle}deg) translateY(${yShift + extraY}px) scale(${scale})`;
-      div.style.transformOrigin = 'center 260%';
-    };
-    apply();
-    div.style.zIndex     = String(i + 1);
+    const yShift = Math.abs(t) * 18;
+    const rest   = () => { div.style.transform = `rotate(${angle}deg) translateY(${yShift}px)`;        div.style.transformOrigin = 'center 260%'; div.style.zIndex = String(i + 1); };
+    const hover  = () => { div.style.transform = `rotate(${angle}deg) translateY(${yShift - 24}px) scale(1.12)`; div.style.transformOrigin = 'center 260%'; div.style.zIndex = '80'; };
+    const straight = () => { div.style.transform = 'none'; div.style.transformOrigin = 'center center'; };
+    rest();
     div.style.transition = 'transform 0.15s ease';
-    div.addEventListener('mouseenter', () => { apply(-24, 1.12); div.style.zIndex = '80'; });
-    div.addEventListener('mouseleave', () => { apply();           div.style.zIndex = String(i + 1); });
+    div.addEventListener('mouseenter', hover);
+    div.addEventListener('mouseleave', rest);
+    div.addEventListener('dragstart',  straight);
+    div.addEventListener('dragend',    rest);
   },
 
   // ── Move preview helpers ──────────────────────────────────────────────────────

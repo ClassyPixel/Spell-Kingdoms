@@ -1521,7 +1521,8 @@ body {
 .cg-hand-card.cg-hand-matching:active { cursor: grabbing; }
 .cg-hand-card.cg-dragging {
   opacity: 0.5;
-  transform: scale(0.95);
+  transform: none !important;
+  transform-origin: center center !important;
 }
 
 /* ── Invisible empty champion/opp cells (post-init) ─ */
@@ -1882,7 +1883,7 @@ body {
 
 .cg-hand-card {
   flex-shrink: 0;
-  width: 92px;
+  width: 102px;
   background: #0d1828;
   border: 1px solid #1a2840;
   border-radius: 10px;

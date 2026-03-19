@@ -1,13 +1,14 @@
 /**
  * CardSystem — Grid-based tactical card game logic.
  *
- * Phases: initialize → draw → conjure → strategy → end → (opponent turn) → draw …
+ * Phases: initialize → draw → conjure → strategy → regroup → end → (opponent turn) → draw …
  *
  * Initialize sub-steps:
  *   place_champions → place_elites → done
  *
  * Strategy: every player elite may act (attack OR retreat) once per turn.
- * Phase auto-advances: draw→conjure, end→opponent.
+ * Regroup: assign champion-stacked summons to elites, or cast spells. Auto-skips if nothing possible.
+ * Phase auto-advances: draw→conjure, regroup→end (if nothing to do), end→opponent.
  */
 import EventBus from '../EventBus.js';
 import { CHAMPION_CARDS, ELITE_CARD_DECK, SUMMON_CARD_DECK, SPELL_CARD_DECK } from '../Data.js';
@@ -313,7 +314,7 @@ const CardSystem = {
 
   _playSpell(handIdx) {
     const s = this.state;
-    if (s.phase !== 'conjure') return;
+    if (s.phase !== 'conjure' && s.phase !== 'regroup') return;
     const card = s.playerHand[handIdx];
     if (!card || card.type !== 'spell') return;
 
@@ -643,6 +644,8 @@ const CardSystem = {
       this._emit();
     } else if (s.phase === 'strategy') {
       this._endStrategyPhase();
+    } else if (s.phase === 'regroup') {
+      this._endRegroupPhase();
     } else if (s.phase === 'end') {
       this._opponentTurn();
     }
@@ -681,13 +684,41 @@ const CardSystem = {
   _endStrategyPhase() {
     const s = this.state;
     s.strategy = { selectedRow: null, selectedCol: null, ralliedIids: new Set(), actedIids: new Set(), attackMode: false };
+    this._enterRegroup();
+  },
+
+  _canRegroup(s) {
+    const hasSpells        = s.playerHand.some(c => c.type === 'spell');
+    const hasStackedSummons = s.playerChampions.some(c => (c.summons?.length ?? 0) > 0);
+    const hasPlayerElites  = findEliteOnGrid(s, 'player').length > 0;
+    return hasSpells || (hasStackedSummons && hasPlayerElites);
+  },
+
+  _enterRegroup() {
+    const s = this.state;
+    if (!this._canRegroup(s)) {
+      // Nothing to do — skip straight to end
+      s.phase = 'end';
+      log(s, 'Regroup skipped — nothing to do. Passing to opponent…');
+      this._emit();
+      const thisState = this.state;
+      setTimeout(() => { if (this.state === thisState && s.phase === 'end') this._opponentTurn(); }, 800);
+      return;
+    }
+    s.phase = 'regroup';
+    s.pendingSpell = null;
+    log(s, 'Regroup Phase — assign summons or cast spells.');
+    this._emit();
+  },
+
+  _endRegroupPhase() {
+    const s = this.state;
+    s.pendingSpell = null;
     s.phase = 'end';
     log(s, 'End Phase — passing to opponent…');
     this._emit();
     const thisState = this.state;
-    setTimeout(() => {
-      if (this.state === thisState && s.phase === 'end') this._opponentTurn();
-    }, 800);
+    setTimeout(() => { if (this.state === thisState && s.phase === 'end') this._opponentTurn(); }, 800);
   },
 
   // ── Opponent AI ───────────────────────────────────────────────────────────────

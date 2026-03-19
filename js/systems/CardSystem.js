@@ -64,12 +64,13 @@ function log(s, msg) {
 }
 
 // ── State factory ──────────────────────────────────────────────────────────────
-function makeState(npcId, deckOverride) {
+function makeState(npcId, deckOverride, isQuickPlay = false) {
   const elites  = deckOverride?.elites  ?? ELITE_CARD_DECK;
   const summons = deckOverride?.summons ?? SUMMON_CARD_DECK;
   const spells  = deckOverride?.spells  ?? SPELL_CARD_DECK;
   return {
     npcId,
+    isQuickPlay,
     grid: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
 
     playerChampions:   [],
@@ -122,7 +123,7 @@ const CardSystem = {
   setCardGameScreen(screen) { this._screen = screen; },
 
   init() {
-    EventBus.on('cardgame:start',           (d) => this._startGame(d.npcId, d.deck));
+    EventBus.on('cardgame:start',           (d) => this._startGame(d.npcId, d.deck, d.isQuickPlay ?? false));
     EventBus.on('cardgame:placeChampion',   (d) => this._placeChampion(d.col, d.handIdx));
     EventBus.on('cardgame:placeElite',      (d) => this._placeElite(d.handIdx, d.col));
     EventBus.on('cardgame:rollDice',        ()  => this._rollDice());
@@ -143,9 +144,9 @@ const CardSystem = {
 
   // ── Initialize ──────────────────────────────────────────────────────────────
 
-  _startGame(npcId, deckOverride) {
+  _startGame(npcId, deckOverride, isQuickPlay = false) {
     _uid = 0;
-    this.state = makeState(npcId, deckOverride);
+    this.state = makeState(npcId, deckOverride, isQuickPlay);
     const s = this.state;
 
     // Opponent setup (champions cols 1-3, elites in front, 6-card hand)
@@ -815,13 +816,17 @@ const CardSystem = {
     const s = this.state;
     s.gameOver = true; s.winner = win ? 'player' : 'opponent'; s.phase = 'gameover';
     log(s, win ? '🎉 Victory!' : '💀 Defeat!');
-    EventBus.emit('cardgame:gameOver', { win });
+    EventBus.emit('cardgame:gameOver', { win, isQuickPlay: s.isQuickPlay ?? false, npcId: s.npcId });
     this._emit();
-    const npcId = s.npcId;
-    setTimeout(() => {
-      EventBus.emit('cardgame:result', { win, npcId });
-      EventBus.emit('screen:pop');  // pop card game screen
-    }, 2500);
+    // Defeat or quick-play: auto-close after 2.5s
+    // Story wins: CardGameScreen handles closing via the rewards confirm button
+    if (!win || s.isQuickPlay) {
+      const npcId = s.npcId;
+      setTimeout(() => {
+        EventBus.emit('cardgame:result', { win, npcId });
+        EventBus.emit('screen:pop');
+      }, 2500);
+    }
   },
 
   _emit() { EventBus.emit('cardgame:stateChanged', { state: this.state }); },

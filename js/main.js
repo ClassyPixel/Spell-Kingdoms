@@ -28,7 +28,7 @@ import MusicPlayer from './systems/MusicPlayer.js';
 import { setSceneScreenRef } from './screens/MapScreen.js';
 
 // Quick match data
-import { QUICK_MATCH_OPPONENTS, STARTER_DECKS } from './Data.js';
+import { QUICK_MATCH_OPPONENTS, STARTER_DECKS, validateDeck } from './Data.js';
 
 // Quick match state
 let _quickMatchActive = false;
@@ -355,18 +355,25 @@ function _buildQMDeckSelect(container, npcId) {
     const card = document.createElement('div');
     card.className = 'qm-deck-card';
     card.style.setProperty('--deck-color', deck.color);
+    const vd = validateDeck(deck);
     card.innerHTML = `
       <div class="qm-deck-art">${deck.art}</div>
       <div class="qm-deck-name">${deck.name}</div>
       <div class="qm-deck-desc">${deck.description}</div>
       <div class="qm-deck-counts">
-        <span>🐉 ${deck.elites.length} elites</span>
-        <span>✨ ${deck.summons.length} summons</span>
-        <span>🔮 ${deck.spells.length} spells</span>
+        <span class="${deck.elites.length === 10 ? 'qm-valid' : 'qm-invalid'}">🐉 ${deck.elites.length}/10 elites</span>
+        <span class="${deck.summons.length >= 40 ? 'qm-valid' : 'qm-invalid'}">✨ ${deck.summons.length}/40+ summons</span>
+        <span class="${deck.spells.length === 10 ? 'qm-valid' : 'qm-invalid'}">🔮 ${deck.spells.length}/10 spells</span>
       </div>
-      <div class="qm-deck-cta">Preview Deck ▶</div>
+      ${vd.valid
+        ? `<div class="qm-deck-cta">Preview Deck ▶</div>`
+        : `<div class="qm-deck-cta qm-deck-invalid">✗ Deck not valid</div>`}
     `;
-    card.addEventListener('click', () => showQuickMatchDeckPreview(npcId, deck));
+    if (vd.valid) {
+      card.addEventListener('click', () => showQuickMatchDeckPreview(npcId, deck));
+    } else {
+      card.classList.add('qm-deck-card-disabled');
+    }
     deckGrid.appendChild(card);
   });
 
@@ -395,9 +402,15 @@ function _buildQMDeckPreview(container, npcId, deckConfig) {
   // Header
   const header = document.createElement('div');
   header.className = 'qm-header';
+  const vd2 = validateDeck(deckConfig);
   header.innerHTML = `
     <h2 class="qm-title">${deckConfig.art} ${deckConfig.name} — Deck List</h2>
     <p class="qm-subtitle">vs ${opp?.portrait ?? ''} ${opp?.name ?? 'Opponent'} · ${deckConfig.description}</p>
+    <div class="qm-deck-validity ${vd2.valid ? 'valid' : 'invalid'}">
+      ${vd2.valid
+        ? '✓ Deck is valid and ready to play'
+        : '✗ ' + vd2.errors.join(' · ')}
+    </div>
   `;
   root.appendChild(header);
 
@@ -463,14 +476,18 @@ function _buildQMDeckPreview(container, npcId, deckConfig) {
   const actions = document.createElement('div');
   actions.className = 'qm-preview-actions';
 
+  const vdPreview = validateDeck(deckConfig);
   const confirmBtn = document.createElement('button');
   confirmBtn.className = 'title-btn';
-  confirmBtn.textContent = '✓ Confirm & Begin Match';
-  confirmBtn.addEventListener('click', () => {
-    _quickMatchActive = true;
-    hideHUD();
-    EventBus.emit('cardgame:start', { npcId, deck: deckConfig });
-  });
+  confirmBtn.textContent = vdPreview.valid ? '✓ Confirm & Begin Match' : '✗ Deck Not Valid';
+  confirmBtn.disabled = !vdPreview.valid;
+  if (vdPreview.valid) {
+    confirmBtn.addEventListener('click', () => {
+      _quickMatchActive = true;
+      hideHUD();
+      EventBus.emit('cardgame:start', { npcId, deck: deckConfig, isQuickPlay: true });
+    });
+  }
   actions.appendChild(confirmBtn);
 
   const backBtn = document.createElement('button');

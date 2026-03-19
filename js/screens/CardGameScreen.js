@@ -18,6 +18,8 @@
 import EventBus from '../EventBus.js';
 import SoundSystem from '../systems/SoundSystem.js';
 import MusicPlayer from '../systems/MusicPlayer.js';
+import GameState from '../GameState.js';
+import { NPCS, ITEMS, CARDS } from '../Data.js';
 
 const ROWS = 6;
 const COLS = 5;
@@ -158,12 +160,14 @@ const CardGameScreen = {
             <div class="cg-champ-panel hidden" id="cg-champ-panel"></div>
             <div class="cg-hand-area" id="cg-hand-area"></div>
           </div>
-          <div class="cg-sidebar" id="cg-sidebar"></div>
+          <div class="cg-right-panel">
+            <div class="cg-sidebar" id="cg-sidebar"></div>
+            <div class="cg-deck-zone" id="cg-deck-zone"></div>
+          </div>
         </div>
         <div class="cg-bottom">
           <div class="cg-crypt-zone" id="cg-crypt-zone"></div>
           <div class="cg-log-bar"   id="cg-log-bar"></div>
-          <div class="cg-deck-zone" id="cg-deck-zone"></div>
         </div>
       </div>
     `;
@@ -198,9 +202,9 @@ const CardGameScreen = {
         SoundSystem.attack();
         this._showAttackAnimation(attackerRow, attackerCol, targetRow, targetCol, art);
       }),
-      EventBus.on('cardgame:gameOver', ({ win }) => {
+      EventBus.on('cardgame:gameOver', ({ win, isQuickPlay, npcId }) => {
         if (win) SoundSystem.victory(); else SoundSystem.defeat();
-        this._showGameOverPopup(win);
+        this._showGameOverPopup(win, isQuickPlay ?? false, npcId ?? null);
       }),
     );
   },
@@ -1275,14 +1279,109 @@ const CardGameScreen = {
   },
 
   // ── Game over popup ───────────────────────────────────────────────────────────
-  _showGameOverPopup(win) {
+  _showGameOverPopup(win, isQuickPlay, npcId) {
     const screen = this._container?.querySelector('.cg-screen');
     if (!screen) return;
     const popup = document.createElement('div');
     popup.className = `cg-gameover-popup ${win ? 'win' : 'lose'}`;
-    popup.innerHTML = `<div class="cg-gameover-popup-text">${win ? '🏆 Victory!' : '💀 Defeat!'}</div>`;
+
+    if (win) {
+      const champs = this._state?.playerChampions ?? [];
+      const champsHTML = champs.slice(0, 3).map(c => `
+        <div class="cg-victory-champ">
+          <div class="cg-victory-champ-art">${c.art ?? '⚔️'}</div>
+          <div class="cg-victory-champ-name">${c.name ?? 'Champion'}</div>
+        </div>
+      `).join('');
+      popup.innerHTML = `
+        <div class="cg-victory-inner">
+          <div class="cg-victory-champs">${champsHTML}</div>
+          <div class="cg-gameover-popup-text">🏆 Victory!</div>
+        </div>
+      `;
+      if (!isQuickPlay) {
+        setTimeout(() => this._showRewardsWindow(npcId, screen), 5000);
+      }
+    } else {
+      popup.innerHTML = `<div class="cg-gameover-popup-text">💀 Defeat!</div>`;
+    }
+
     screen.appendChild(popup);
-    // auto-remove when screen pops
+  },
+
+  _showRewardsWindow(npcId, screen) {
+    if (!screen || !this._container) return;
+    const npc     = NPCS.find(n => n.id === npcId);
+    const rewards = npc?.matchRewards ?? [];
+
+    const win = document.createElement('div');
+    win.className = 'cg-rewards-window';
+    win.innerHTML = `
+      <div class="cg-rewards-title">🎁 Match Rewards</div>
+      <div class="cg-rewards-list">
+        ${rewards.length
+          ? rewards.map(r => this._rewardHTML(r)).join('')
+          : `<div class="cg-reward-item"><span class="cg-reward-label cg-reward-none">No rewards for this match.</span></div>`}
+      </div>
+      <button class="cg-rewards-confirm" id="cg-rewards-confirm">✓ Collect &amp; Continue</button>
+    `;
+    screen.appendChild(win);
+
+    document.getElementById('cg-rewards-confirm')?.addEventListener('click', () => {
+      this._applyRewards(rewards);
+      EventBus.emit('cardgame:result', { win: true, npcId });
+      EventBus.emit('screen:pop');
+    });
+  },
+
+  _rewardHTML(r) {
+    if (r.type === 'exp') {
+      return `<div class="cg-reward-item">
+        <span class="cg-reward-icon">⭐</span>
+        <span class="cg-reward-label">${r.value} EXP</span>
+      </div>`;
+    }
+    if (r.type === 'item') {
+      const item = ITEMS.find(i => i.itemId === r.itemId);
+      return `<div class="cg-reward-item">
+        <span class="cg-reward-icon">${item?.icon ?? '📦'}</span>
+        <span class="cg-reward-label">${item?.name ?? r.itemId}${(r.count ?? 1) > 1 ? ` ×${r.count}` : ''}</span>
+      </div>`;
+    }
+    if (r.type === 'boosterPack') {
+      const preview = (r.cards ?? []).slice(0, 3).map(id => {
+        const c = CARDS.find(x => x.cardId === id);
+        return c?.art ?? '🃏';
+      }).join('');
+      return `<div class="cg-reward-item">
+        <span class="cg-reward-icon">📦</span>
+        <span class="cg-reward-label">${r.label}</span>
+        <span class="cg-reward-preview">${preview}</span>
+      </div>`;
+    }
+    return '';
+  },
+
+  _applyRewards(rewards) {
+    for (const r of rewards) {
+      if (r.type === 'exp') {
+        GameState.player.xp += r.value;
+        while (GameState.player.xp >= GameState.player.xpToNext) {
+          GameState.player.xp      -= GameState.player.xpToNext;
+          GameState.player.level   += 1;
+          GameState.player.xpToNext = Math.floor(GameState.player.xpToNext * 1.4);
+        }
+      }
+      if (r.type === 'item') {
+        GameState.addItem(r.itemId, r.count ?? 1);
+      }
+      if (r.type === 'boosterPack') {
+        for (const cardId of (r.cards ?? [])) {
+          GameState.addCardToCollection(cardId);
+        }
+      }
+    }
+    EventBus.emit('toast', { message: '✓ Rewards collected!', type: 'success' });
   },
 
   // ── Log (rendered inside sidebar, bottom bar left empty) ─────────────────────

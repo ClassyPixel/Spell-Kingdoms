@@ -273,11 +273,11 @@ const CardGameScreen = {
           <span class="cg-phase-pill ${s.phase === p ? 'active' : ''} ${i < cur ? 'done' : ''}">${PHASE_LABELS[p]}</span>
           ${i < order.length - 1 ? '<span class="cg-phase-arrow">›</span>' : ''}
         `).join('')}
-      </div>
-      <div class="cg-phase-bar-right">
+        <span class="cg-phase-btn-sep">│</span>
         ${this._handNextBtn(s)}
       </div>
     `;
+    // Single authoritative listener — never duplicated since innerHTML recreates the element each render
     document.getElementById('cg-next-btn')?.addEventListener('click', () => { SoundSystem.click(); EventBus.emit('cardgame:nextPhase'); });
   },
 
@@ -668,6 +668,7 @@ const CardGameScreen = {
             <button class="btn-cg btn-cg-cancel-spell" id="cg-cancel-spell-btn">✕ Cancel</button>
           </div>`;
         document.getElementById('cg-cancel-spell-btn')?.addEventListener('click', () => EventBus.emit('cardgame:cancelSpell'));
+        this._renderSidebarLog(el, s);
         return;
       }
 
@@ -723,6 +724,8 @@ const CardGameScreen = {
           <p>Passing to opponent…</p>
         </div>`;
     }
+
+    this._renderSidebarLog(el, s);
   },
 
   // ── Hand ──────────────────────────────────────────────────────────────────────
@@ -755,7 +758,8 @@ const CardGameScreen = {
     if (s.phase === 'initialize' && s.initSubStep === 'place_champions') {
       el.innerHTML = `${header}<div class="cg-hand" id="cg-hand"></div>`;
 
-      const hand = document.getElementById('cg-hand');
+      const hand  = document.getElementById('cg-hand');
+      const total = s.playerHand.length;
       s.playerHand.forEach((card, i) => {
         const div = document.createElement('div');
         div.className = 'cg-hand-card cg-hand-champion';
@@ -774,6 +778,7 @@ const CardGameScreen = {
         });
         div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
         hand.appendChild(div);
+        this._applyArch(div, i, total);
       });
       return;
     }
@@ -782,7 +787,10 @@ const CardGameScreen = {
     if (s.phase === 'initialize' && s.initSubStep === 'place_elites') {
       el.innerHTML = `${header}<div class="cg-hand" id="cg-hand"></div>`;
 
-      const hand = document.getElementById('cg-hand');
+      const hand        = document.getElementById('cg-hand');
+      const eliteCards  = s.playerHand.filter(c => c.type === 'elite');
+      const total       = eliteCards.length;
+      let archIdx       = 0;
       s.playerHand.forEach((card, i) => {
         if (card.type !== 'elite') return;
         const hpPct = card.maxHp > 0 ? Math.max(0, card.hp / card.maxHp * 100) : 0;
@@ -804,6 +812,7 @@ const CardGameScreen = {
         });
         div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
         hand.appendChild(div);
+        this._applyArch(div, archIdx++, total);
       });
       return;
     }
@@ -823,19 +832,19 @@ const CardGameScreen = {
     }
 
     el.innerHTML = `${header}<div class="cg-hand" id="cg-hand"></div>`;
-    document.getElementById('cg-next-btn')?.addEventListener('click', () => { SoundSystem.click(); EventBus.emit('cardgame:nextPhase'); });
     const hand = document.getElementById('cg-hand');
 
     // If an elite card is in hand, only show elite cards until placed
     const hasEliteInHand = s.playerHand.some(c => c.type === 'elite');
 
-    s.playerHand.forEach((card, i) => {
+    // Build visible card list first so arch indices are contiguous
+    const visibleCards = s.playerHand.map((card, i) => ({ card, i }))
+      .filter(({ card }) => !(hasEliteInHand && card.type !== 'elite'));
+    const total = visibleCards.length;
+
+    visibleCards.forEach(({ card, i }, archIdx) => {
       const isSpell    = card.type === 'spell';
       const isElite    = card.type === 'elite';
-
-      // Hide summon/spell cards while an elite awaits placement
-      if (hasEliteInHand && !isElite) return;
-
       const isMatching = !isSpell && !isElite && (s.matchingHand?.includes(i) ?? false);
       const isDimmed   = !isSpell && !isElite && s.diceResult && !isMatching;
       const div        = document.createElement('div');
@@ -860,6 +869,7 @@ const CardGameScreen = {
         });
         div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
         hand.appendChild(div);
+        this._applyArch(div, archIdx, total);
         return;
       }
 
@@ -903,6 +913,7 @@ const CardGameScreen = {
       }
 
       hand.appendChild(div);
+      this._applyArch(div, archIdx, total);
     });
   },
 
@@ -1060,6 +1071,25 @@ const CardGameScreen = {
         ${deckStackHTML('Summon',  s.playerSummonDeck?.length ?? 0, '#0e2a1a')}
       </div>
     `;
+  },
+
+  // ── Hand arch transform ───────────────────────────────────────────────────────
+  _applyArch(div, i, total) {
+    if (total < 1) return;
+    const spread = Math.min(40, total * 7);      // total degree span, grows with card count
+    const center = (total - 1) / 2;
+    const t      = total > 1 ? (i - center) / center : 0;
+    const angle  = t * (spread / 2);
+    const yShift = Math.abs(t) * 18;             // edge cards droop down ~18 px
+    const apply  = (extraY = 0, scale = 1) => {
+      div.style.transform      = `rotate(${angle}deg) translateY(${yShift + extraY}px) scale(${scale})`;
+      div.style.transformOrigin = 'center 260%';
+    };
+    apply();
+    div.style.zIndex     = String(i + 1);
+    div.style.transition = 'transform 0.15s ease';
+    div.addEventListener('mouseenter', () => { apply(-24, 1.12); div.style.zIndex = '80'; });
+    div.addEventListener('mouseleave', () => { apply();           div.style.zIndex = String(i + 1); });
   },
 
   // ── Move preview helpers ──────────────────────────────────────────────────────
@@ -1225,13 +1255,20 @@ const CardGameScreen = {
     // auto-remove when screen pops
   },
 
-  // ── Log ───────────────────────────────────────────────────────────────────────
+  // ── Log (rendered inside sidebar, bottom bar left empty) ─────────────────────
   _renderLog(s) {
     const el = document.getElementById('cg-log-bar');
-    if (!el) return;
-    el.innerHTML = s.log.slice(-4).reverse()
-      .map((msg, i) => `<span class="cg-log-entry ${i === 0 ? 'latest' : 'dim'}">${msg}</span>`)
-      .join('');
+    if (el) el.innerHTML = '';   // bottom bar stays in DOM but is now empty
+  },
+
+  _renderSidebarLog(el, s) {
+    const logWrap = document.createElement('div');
+    logWrap.className = 'cg-sidebar-log';
+    logWrap.innerHTML = `<div class="cg-sidebar-label">Log</div>` +
+      s.log.slice(-8).reverse()
+        .map((msg, i) => `<div class="cg-log-entry ${i === 0 ? 'latest' : 'dim'}">${msg}</div>`)
+        .join('');
+    el.appendChild(logWrap);
   },
 };
 

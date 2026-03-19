@@ -17,6 +17,7 @@
  */
 import EventBus from '../EventBus.js';
 import SoundSystem from '../systems/SoundSystem.js';
+import MusicPlayer from '../systems/MusicPlayer.js';
 
 const ROWS = 6;
 const COLS = 5;
@@ -124,18 +125,11 @@ const CardGameScreen = {
 
   // ── Match music ───────────────────────────────────────────────────────────────
   _playMatchMusic() {
-    this._bgm = new Audio('assets/audio/matchost/All Comes Together.mp3');
-    this._bgm.loop   = true;
-    this._bgm.volume = 0.5;
-    this._bgm.play().catch(() => {});   // ignore autoplay block silently
+    MusicPlayer.play('assets/audio/matchost/All Comes Together.mp3');
   },
 
   _stopMatchMusic() {
-    if (this._bgm) {
-      this._bgm.pause();
-      this._bgm.currentTime = 0;
-      this._bgm = null;
-    }
+    MusicPlayer.stop();
   },
 
   // ── Scaffold ──────────────────────────────────────────────────────────────────
@@ -255,16 +249,20 @@ const CardGameScreen = {
     const cur   = order.indexOf(s.phase);
 
     el.innerHTML = `
+      <div class="cg-phase-bar-left">
+        <span class="cg-turn-label">Turn ${s.turnNumber}</span>
+      </div>
       <div class="cg-phase-pills">
         ${order.map((p, i) => `
           <span class="cg-phase-pill ${s.phase === p ? 'active' : ''} ${i < cur ? 'done' : ''}">${PHASE_LABELS[p]}</span>
           ${i < order.length - 1 ? '<span class="cg-phase-arrow">›</span>' : ''}
         `).join('')}
       </div>
-      <div class="cg-phase-controls">
-        <span class="cg-turn-label">Turn ${s.turnNumber}</span>
+      <div class="cg-phase-bar-right">
+        ${this._handNextBtn(s)}
       </div>
     `;
+    document.getElementById('cg-next-btn')?.addEventListener('click', () => { SoundSystem.click(); EventBus.emit('cardgame:nextPhase'); });
   },
 
   // ── Dice zone ─────────────────────────────────────────────────────────────────
@@ -713,12 +711,12 @@ const CardGameScreen = {
     const hasEliteWaiting = s.playerHand.some(c => c.type === 'elite');
     const eliteNotice = hasEliteWaiting
       ? `<span class="cg-elite-notice">⚔ Place your Elite card first!</span>` : '';
-    const header = `<div class="cg-hand-header">${eliteNotice || '<span class="cg-hand-label">Hand</span>'}${this._handNextBtn(s)}</div>`;
+    const header = `<div class="cg-hand-header">${eliteNotice || '<span class="cg-hand-label">Hand</span>'}</div>`;
 
     // ── Initialize: champion placement ────────────────────────────────────────
     if (s.phase === 'initialize' && s.initSubStep === 'place_champions') {
       el.innerHTML = `${header}<div class="cg-hand" id="cg-hand"></div>`;
-      document.getElementById('cg-next-btn')?.addEventListener('click', () => { SoundSystem.click(); EventBus.emit('cardgame:nextPhase'); });
+
       const hand = document.getElementById('cg-hand');
       s.playerHand.forEach((card, i) => {
         const div = document.createElement('div');
@@ -745,7 +743,7 @@ const CardGameScreen = {
     // ── Initialize: elite placement ───────────────────────────────────────────
     if (s.phase === 'initialize' && s.initSubStep === 'place_elites') {
       el.innerHTML = `${header}<div class="cg-hand" id="cg-hand"></div>`;
-      document.getElementById('cg-next-btn')?.addEventListener('click', () => { SoundSystem.click(); EventBus.emit('cardgame:nextPhase'); });
+
       const hand = document.getElementById('cg-hand');
       s.playerHand.forEach((card, i) => {
         if (card.type !== 'elite') return;
@@ -775,14 +773,14 @@ const CardGameScreen = {
     // ── Done initializing but summon hand not yet drawn ───────────────────────
     if (s.phase === 'initialize') {
       el.innerHTML = `${header}<div class="cg-hand-empty">Starting first turn…</div>`;
-      document.getElementById('cg-next-btn')?.addEventListener('click', () => { SoundSystem.click(); EventBus.emit('cardgame:nextPhase'); });
+
       return;
     }
 
     // ── Normal hand ───────────────────────────────────────────────────────────
     if (!s.playerHand.length) {
       el.innerHTML = `${header}<div class="cg-hand-empty">No cards in hand</div>`;
-      document.getElementById('cg-next-btn')?.addEventListener('click', () => { SoundSystem.click(); EventBus.emit('cardgame:nextPhase'); });
+
       return;
     }
 

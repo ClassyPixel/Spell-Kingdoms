@@ -803,6 +803,7 @@ body {
   flex: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 5px 8px;
   overflow-x: auto;
@@ -1131,15 +1132,22 @@ body {
 
 /* ── Phase bar ───────────────────────────────── */
 .cg-phase-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   padding: 6px 12px;
   background: #0a1020;
   border-bottom: 1px solid #1e3050;
   flex-shrink: 0;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cg-phase-bar-left {
+  justify-self: start;
+}
+
+.cg-phase-bar-right {
+  justify-self: end;
 }
 
 .cg-phase-pills {
@@ -1147,6 +1155,7 @@ body {
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .cg-phase-pill {
@@ -1183,12 +1192,7 @@ body {
   font-size: 0.8em;
 }
 
-.cg-phase-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
+/* .cg-phase-controls removed — turn label is now in .cg-phase-bar-left */
 
 .cg-turn-label {
   font-size: 0.78em;
@@ -1782,6 +1786,7 @@ body {
 .cg-hand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   overflow-x: auto;
   padding: 5px 8px;

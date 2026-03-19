@@ -22,6 +22,7 @@ import QuestSystem     from './systems/QuestSystem.js';
 import RelationshipSystem from './systems/RelationshipSystem.js';
 import InventorySystem from './systems/InventorySystem.js';
 import ShopSystem, { setShopScreenRef } from './systems/ShopSystem.js';
+import MusicPlayer from './systems/MusicPlayer.js';
 
 // Wire forward references
 import { setSceneScreenRef } from './screens/MapScreen.js';
@@ -107,6 +108,7 @@ function animateLoading() {
 function showTitleScreen() {
   const TitleScreen = {
     mount(container) {
+      MusicPlayer.play('assets/audio/matchost/Triple 8.mp3');
       container.innerHTML = '';
       const screen = document.createElement('div');
       screen.className = 'title-screen fade-in';
@@ -152,7 +154,7 @@ function showTitleScreen() {
 
       container.appendChild(screen);
     },
-    unmount() {},
+    unmount() { MusicPlayer.stop(); },
     update() {},
   };
 

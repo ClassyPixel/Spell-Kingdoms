@@ -6,6 +6,7 @@
 import EventBus from '../EventBus.js';
 import GameState from '../GameState.js';
 import { LOCATIONS } from '../Data.js';
+import MusicPlayer from '../systems/MusicPlayer.js';
 
 // Location grid layout: [row, col] (0-indexed)
 const GRID_POSITIONS = {
@@ -28,10 +29,12 @@ const MapScreen = {
   mount(container, params = {}) {
     this._container = container;
     this._locations = loadLocations();
+    MusicPlayer.play('assets/audio/matchost/Detuned.mp3');
     this._render();
   },
 
   unmount() {
+    MusicPlayer.stop();
     this._container = null;
   },
 

@@ -101,7 +101,7 @@ export const NPCS = [
     deck: ['ember_bolt','ember_bolt','ember_bolt','phoenix_feather','flame_shield','healing_light','frost_shard','thunder_strike','arcane_blast','ember_bolt'],
     matchRewards: [
       { type: 'exp', value: 60 },
-      { type: 'boosterPack', label: '🔥 Fire Booster Pack', cards: ['ember_bolt','ember_bolt','flame_shield','phoenix_feather','ember_bolt'] },
+      { type: 'lootBox', boxTypeId: 'small', label: '🔥 Fire Booster Pack', icon: '🔥' },
     ],
   },
   {
@@ -110,7 +110,7 @@ export const NPCS = [
     deck: ['arcane_blast','arcane_blast','arcane_blast','mana_surge','mana_surge','shield_wall','shield_wall','frost_shard','healing_light','arcane_mastery'],
     matchRewards: [
       { type: 'exp', value: 100 },
-      { type: 'boosterPack', label: '💥 Arcane Booster Pack', cards: ['arcane_blast','arcane_blast','arcane_mastery','mana_surge','thunder_strike'] },
+      { type: 'lootBox', boxTypeId: 'medium', label: '💥 Arcane Booster Pack', icon: '💥' },
       { type: 'item', itemId: 'mana_crystal', count: 1 },
     ],
   },
@@ -120,9 +120,21 @@ export const NPCS = [
     deck: ['void_step','frost_shard','frost_shard','shield_wall','arcane_blast','thunder_strike','healing_light','mana_surge','frost_shard','shield_wall'],
     matchRewards: [
       { type: 'exp', value: 80 },
-      { type: 'boosterPack', label: '🌑 Void Booster Pack', cards: ['void_step','void_step','frost_shard','ice_barrier','frost_shard'] },
+      { type: 'lootBox', boxTypeId: 'small', label: '🌑 Void Booster Pack', icon: '🌑' },
       { type: 'item', itemId: 'spell_scroll_arcane', count: 1 },
     ],
+  },
+  {
+    id: 'merchant', name: 'The Merchant', portrait: '🧑‍💼', location: 'market',
+    description: 'A traveling merchant dealing in rare loot boxes and booster packs.',
+    deck: [],
+    matchRewards: [],
+  },
+  {
+    id: 'merchant_courtyard', name: 'The Merchant', portrait: '🧑‍💼', location: 'academy_courtyard',
+    description: 'A traveling merchant dealing in rare loot boxes and booster packs.',
+    deck: [],
+    matchRewards: [],
   },
   {
     id: 'training_dummy', name: 'Training Dummy', portrait: '🪆', location: 'dueling_grounds',
@@ -168,7 +180,7 @@ export const QUESTS = [
       { id: 'm01_obj_02', type: 'dialogue',     description: 'Visit the Grand Library and speak with Master Aldric', target: { npcId: 'master_aldric', flag: 'met_aldric' } },
       { id: 'm01_obj_03', type: 'dialogue',     description: 'Explore the Academy Market and meet Zephyr',           target: { npcId: 'zephyr',        flag: 'met_zephyr' } },
     ],
-    rewards: { gold: 50, cards: ['mana_surge'], unlockLocations: ['dueling_grounds','dormitory','headmaster_office'] },
+    rewards: { exp: 100, coin: 50, cards: ['mana_surge'], unlockLocations: ['dueling_grounds','dormitory','headmaster_office'] },
   },
   {
     questId: 'side_01', title: "Aria's Challenge", type: 'side',
@@ -176,7 +188,7 @@ export const QUESTS = [
     objectives: [
       { id: 's01_obj_01', type: 'card_victory', description: 'Defeat Aria in a card duel', target: { npcId: 'aria' } },
     ],
-    rewards: { gold: 30, cards: ['flame_shield'] },
+    rewards: { exp: 60, coin: 30, cards: ['flame_shield'] },
   },
   {
     questId: 'side_02', title: 'The Lost Tome', type: 'side',
@@ -185,7 +197,7 @@ export const QUESTS = [
       { id: 's02_obj_01', type: 'dialogue', description: "Ask Zephyr if they've seen the tome",  target: { npcId: 'zephyr',        flag: 'asked_zephyr_tome' } },
       { id: 's02_obj_02', type: 'dialogue', description: 'Return the tome to Master Aldric',      target: { npcId: 'master_aldric', flag: 'returned_tome' } },
     ],
-    rewards: { gold: 40, cards: ['arcane_mastery'], items: ['greater_health_potion'] },
+    rewards: { exp: 80, coin: 40, cards: ['arcane_mastery'], items: ['greater_health_potion'] },
   },
 ];
 
@@ -198,6 +210,14 @@ export const SHOP_STOCK = [
       { itemId: 'mana_crystal',         price: 30, stock: -1 },
       { itemId: 'spell_scroll_arcane',  price: 75, stock: 3 },
       { itemId: 'tome_of_ice',          price: 80, stock: 2 },
+    ],
+  },
+  {
+    shopId: 'merchant_shop', name: "The Merchant's Wares",
+    stock: [
+      { lootBoxId: 'small',  price: 10,  stock: -1 },
+      { lootBoxId: 'medium', price: 30,  stock: -1 },
+      { lootBoxId: 'large',  price: 100, stock: -1 },
     ],
   },
 ];
@@ -243,10 +263,59 @@ export const DIALOGUES = {
         speaker: 'Aria', portrait: '🧙‍♀️',
         text: "Hey! Settling in alright? The first week is always overwhelming, but you'll find your footing.",
         choices: [
-          { label: 'Tell me about the Academy.',        next: 'aria_about_academy' },
-          { label: 'I want to challenge you to a duel.', effects: [{ type: 'setFlag', flag: 'aria_challenged' }, { type: 'triggerQuest', questId: 'side_01' }], next: 'aria_challenge_accept' },
-          { label: 'Just checking in.',                 next: null },
+          { label: 'Tell me about the Academy.',                                                                effects: [{ type: 'relationship', value: 1 }],  next: 'aria_about_academy' },
+          { label: 'I want to challenge you to a duel.',                                                       effects: [{ type: 'setFlag', flag: 'aria_challenged' }, { type: 'triggerQuest', questId: 'side_01' }], next: 'aria_challenge_accept' },
+          { label: 'You seem really driven. What pushes you to keep going?',       requires: { min_charm: 20 }, effects: [{ type: 'relationship', value: 2 }],  next: 'aria_charm_20' },
+          { label: "Do you ever let your guard down around anyone?",               requires: { min_charm: 40 }, effects: [{ type: 'relationship', value: 3 }],  next: 'aria_charm_40' },
+          { label: "I think about you more than I probably should.",               requires: { min_charm: 60 }, effects: [{ type: 'relationship', value: 4 }],  next: 'aria_charm_60' },
+          { label: "Whatever happens at this Academy — I want to face it with you.", requires: { min_charm: 80 }, effects: [{ type: 'relationship', value: 5 }], next: 'aria_charm_80' },
+          { label: 'Just checking in.',                                                                         next: null },
+          { label: "I don't really have time for this.",                                                        effects: [{ type: 'relationship', value: -2 }], next: 'aria_rebuff' },
         ],
+      },
+      aria_rebuff: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "...*short pause* Okay. Sure. I'll leave you to it then.",
+        choices: [],
+      },
+      aria_charm_20: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "*pauses, surprised anyone asked* ...Honestly? I have something to prove. Everyone here knows my sister's name before they know mine. I refuse to let that define me.",
+        choices: [
+          { label: "You're making your own name. I've noticed.", effects: [{ type: 'relationship', value: 2 }], next: null },
+          { label: 'That must be exhausting.', effects: [{ type: 'relationship', value: 1 }], next: null },
+        ],
+      },
+      aria_charm_40: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "*quiet for a moment* Not easily. I learned early that showing weakness here gets used against you. But... there are maybe one or two people I don't feel like I have to perform for. *glances at you briefly*",
+        choices: [
+          { label: "I hope I'm one of them.", effects: [{ type: 'relationship', value: 3 }], next: 'aria_charm_40_response' },
+          { label: "That sounds lonely.", effects: [{ type: 'relationship', value: 2 }], next: null },
+        ],
+      },
+      aria_charm_40_response: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "*small smile, looks away* ...Yeah. You are.",
+        choices: [],
+      },
+      aria_charm_60: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "*blinks, then laughs quietly* Is that so. I'm not going to pretend I haven't noticed. But I'm not the kind of person who does things halfway — if you mean that, you'd better mean it.",
+        choices: [
+          { label: 'I mean it.', effects: [{ type: 'relationship', value: 4 }, { type: 'setFlag', flag: 'aria_romance_hint' }], next: 'aria_charm_60_response' },
+          { label: "I just meant as a friend.", effects: [{ type: 'relationship', value: 1 }], next: null },
+        ],
+      },
+      aria_charm_60_response: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "...Good. *she holds your gaze a moment longer than usual* Don't make me regret trusting you with that.",
+        choices: [],
+      },
+      aria_charm_80: {
+        speaker: 'Aria', portrait: '🧙‍♀️',
+        text: "*long breath* You know... when I first saw you, I thought: just another student who'd be gone before midterms. *turns to face you fully* I was very wrong about you. Whatever comes next — I'm not facing it without you either.",
+        choices: [{ label: 'Then we face it together.', effects: [{ type: 'relationship', value: 5 }, { type: 'setFlag', flag: 'aria_bonded' }], next: null }],
       },
       aria_about_academy: {
         speaker: 'Aria', portrait: '🧙‍♀️',
@@ -370,10 +439,58 @@ export const DIALOGUES = {
         speaker: 'Master Aldric', portrait: '🧓',
         text: "Ah. Back again. What brings you to the library today?",
         choices: [
-          { label: 'I wanted to ask about the lost tome.', requires: { flag_unset: 'asked_zephyr_tome' }, effects: [{ type: 'triggerQuest', questId: 'side_02' }], next: 'aldric_lost_tome' },
-          { label: 'Just looking for some guidance.', next: 'aldric_guidance' },
-          { label: 'Nothing in particular.', next: null },
+          { label: 'I wanted to ask about the lost tome.',                                     requires: { flag_unset: 'asked_zephyr_tome' }, effects: [{ type: 'triggerQuest', questId: 'side_02' }], next: 'aldric_lost_tome' },
+          { label: 'Just looking for some guidance.',                                           effects: [{ type: 'relationship', value: 1 }],  next: 'aldric_guidance' },
+          { label: 'What made you become a teacher?',                                          requires: { min_charm: 20 }, effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charm_20' },
+          { label: 'Do you ever regret staying at the Academy all these years?',               requires: { min_charm: 40 }, effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charm_40' },
+          { label: 'What really happened to the students who were expelled before Aria\'s sister?', requires: { min_charm: 60 }, effects: [{ type: 'relationship', value: 3 }], next: 'aldric_charm_60' },
+          { label: "Master Aldric — you're the only person here I genuinely trust.",           requires: { min_charm: 80 }, effects: [{ type: 'relationship', value: 4 }], next: 'aldric_charm_80' },
+          { label: 'Nothing in particular.',                                                    next: null },
+          { label: "Your lectures are a waste of time, frankly.",                               effects: [{ type: 'relationship', value: -3 }], next: 'aldric_rebuff' },
         ],
+      },
+      aldric_rebuff: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "*long silence* I see. Then I suggest you find somewhere else to waste it. Good day.",
+        choices: [],
+      },
+      aldric_charm_20: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "*sets down his quill* An unusual question. Most students only want to know what's on the exam. *brief pause* I stayed because I believed knowledge could be protected here. I am... less certain of that than I once was.",
+        choices: [
+          { label: 'What changed your mind?', effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charm_20_response' },
+          { label: 'I think the right people still care.', effects: [{ type: 'relationship', value: 1 }], next: null },
+        ],
+      },
+      aldric_charm_20_response: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "Years of watching the institution protect itself rather than its students. But we will speak no more of that today. *returns to his work*",
+        choices: [],
+      },
+      aldric_charm_40: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "*long silence* There were other paths. A research post in the eastern provinces. A small school of my own, perhaps. I chose this place because I thought I could change it from the inside. *dry exhale* That's the sort of optimism that only survives in young men.",
+        choices: [
+          { label: "It's not too late to change things.", effects: [{ type: 'relationship', value: 3 }], next: 'aldric_charm_40_response' },
+          { label: 'I understand the regret.', effects: [{ type: 'relationship', value: 2 }], next: null },
+        ],
+      },
+      aldric_charm_40_response: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "*looks at you for a long moment* ...Perhaps not. *quietly* Perhaps not.",
+        choices: [],
+      },
+      aldric_charm_60: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "*closes the door, voice lower* There were seven. All asking questions the headmaster considered dangerous. All gone within the same academic year. The official records cite 'conduct violations.' *he doesn't say more. He doesn't need to.*",
+        choices: [
+          { label: "This goes higher than we thought.", effects: [{ type: 'relationship', value: 3 }, { type: 'setFlag', flag: 'aldric_expulsion_lore' }], next: null },
+        ],
+      },
+      aldric_charm_80: {
+        speaker: 'Master Aldric', portrait: '🧓',
+        text: "*pauses mid-sentence, visibly moved* ...That is not a statement I take lightly. Nor one I've heard often in this building. *sets his work aside* You have my trust in return. Completely.",
+        choices: [{ label: 'Then let\'s use it to set things right.', effects: [{ type: 'relationship', value: 4 }, { type: 'setFlag', flag: 'aldric_final_arc' }], next: null }],
       },
       aldric_lost_tome: {
         speaker: 'Master Aldric', portrait: '🧓',
@@ -472,10 +589,69 @@ export const DIALOGUES = {
         speaker: 'Zephyr', portrait: '🧝',
         text: "[Player]. Back again. What is it this time?",
         choices: [
-          { label: 'Have you seen a lost tome? Master Aldric is looking for it.', requires: { flag: 'side_02_active' }, effects: [{ type: 'setFlag', flag: 'asked_zephyr_tome' }, { type: 'completeObjective', objectiveId: 's02_obj_01' }, { type: 'relationship', value: 2 }], next: 'zephyr_tome_info' },
-          { label: "I'd like to browse your shop.", effects: [{ type: 'openShop', shopId: 'general_shop', shopName: "Zephyr's Wares" }], next: null },
-          { label: 'Just passing by.', next: null },
+          { label: 'Have you seen a lost tome? Master Aldric is looking for it.',          requires: { flag: 'side_02_active' }, effects: [{ type: 'setFlag', flag: 'asked_zephyr_tome' }, { type: 'completeObjective', objectiveId: 's02_obj_01' }, { type: 'relationship', value: 2 }], next: 'zephyr_tome_info' },
+          { label: "I'd like to browse your shop.",                                         effects: [{ type: 'openShop', shopId: 'general_shop', shopName: "Zephyr's Wares" }, { type: 'relationship', value: 1 }], next: null },
+          { label: "You're not like any merchant I've met. Where are you actually from?",  requires: { min_charm: 20 }, effects: [{ type: 'relationship', value: 2 }], next: 'zephyr_charm_20' },
+          { label: "What do you actually want from staying near this place?",              requires: { min_charm: 40 }, effects: [{ type: 'relationship', value: 3 }], next: 'zephyr_charm_40' },
+          { label: "Do you miss what it felt like to be a student here?",                 requires: { min_charm: 60 }, effects: [{ type: 'relationship', value: 3 }], next: 'zephyr_charm_60' },
+          { label: "You've been watching this place for years. I think part of you never left.", requires: { min_charm: 80 }, effects: [{ type: 'relationship', value: 4 }], next: 'zephyr_charm_80' },
+          { label: 'Just passing by.',                                                      next: null },
+          { label: "Stop acting like you know me.",                                         effects: [{ type: 'relationship', value: -2 }], next: 'zephyr_rebuff' },
         ],
+      },
+      farewell: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*glances up briefly* Come back when you need something else.",
+        next: null,
+      },
+      zephyr_rebuff: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*expression flattens* I don't. *goes back to arranging stock, doesn't look up again*",
+        choices: [],
+      },
+      zephyr_charm_20: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*long pause* Far enough that 'home' stopped meaning anything specific. I've been in a lot of places. *taps the counter* Most of them weren't worth staying in. This one... has its complications.",
+        choices: [
+          { label: 'What kind of complications?', effects: [{ type: 'relationship', value: 2 }], next: 'zephyr_charm_20_response' },
+          { label: 'I understand that feeling.', effects: [{ type: 'relationship', value: 1 }], next: null },
+        ],
+      },
+      zephyr_charm_20_response: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "The kind with history. *waves a hand* Come back with more coin and fewer questions.",
+        choices: [],
+      },
+      zephyr_charm_40: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*still for a moment* That's a better question than most people ask. *quiet* I want to know why. Why I was expelled. Why the vault exists. Why the headmaster is so afraid of what's in it. I've been waiting a long time for someone to help me find out.",
+        choices: [
+          { label: "Maybe that someone is me.", effects: [{ type: 'relationship', value: 3 }, { type: 'setFlag', flag: 'zephyr_shared_goal' }], next: 'zephyr_charm_40_response' },
+          { label: "That sounds dangerous.", effects: [{ type: 'relationship', value: 1 }], next: null },
+        ],
+      },
+      zephyr_charm_40_response: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*studies you carefully* ...Don't say things you don't mean. *then, softer* But if you do mean it — I've been waiting a while for someone I could actually work with.",
+        choices: [],
+      },
+      zephyr_charm_60: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*stops what they're doing* Miss it. *exhales slowly* I miss who I was before I knew what I know. I miss thinking this place was something worth believing in. *beat* That probably sounds pathetic.",
+        choices: [
+          { label: "It sounds honest. That's rarer.", effects: [{ type: 'relationship', value: 4 }], next: 'zephyr_charm_60_response' },
+          { label: "The Academy still could be worth it — with the right people.", effects: [{ type: 'relationship', value: 2 }], next: null },
+        ],
+      },
+      zephyr_charm_60_response: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*quiet laugh* ...Yeah. It is rarer. *meets your eyes briefly* You're not what I expected when you first walked up to this stall.",
+        choices: [],
+      },
+      zephyr_charm_80: {
+        speaker: 'Zephyr', portrait: '🧝',
+        text: "*doesn't answer for a long moment* ...You're not wrong. I told myself I was just watching. Staying on the edge. But you — *quiet* you pulled me back in. I'm not sure if that's your fault or mine. *looks up* Either way. I'm not leaving.",
+        choices: [{ label: "Good. I need you here.", effects: [{ type: 'relationship', value: 5 }, { type: 'setFlag', flag: 'zephyr_final_arc' }], next: null }],
       },
       zephyr_tome_info: {
         speaker: 'Zephyr', portrait: '🧝',
@@ -518,6 +694,68 @@ export const DIALOGUES = {
         ],
       },
     },
+  },
+
+  merchant_courtyard: {
+    npcId: 'merchant_courtyard', portrait: '🧑‍💼',
+    nodes: {
+      start: {
+        speaker: 'The Merchant', portrait: '🧑‍💼',
+        text: "Ah, a student! You look like someone who appreciates a good deal. Loot boxes — guaranteed B-rank or better per pack. Interested?",
+        effects: [{ type: 'setFlag', flag: 'met_merchant_courtyard' }],
+        choices: [
+          { label: "Let me see your wares.", effects: [{ type: 'openShop', shopId: 'merchant_shop', shopName: "The Merchant's Wares" }], next: null },
+          { label: "Maybe another time.", next: null },
+        ],
+      },
+      returning: {
+        speaker: 'The Merchant', portrait: '🧑‍💼',
+        text: "Welcome back! Stock's the same as always — finest loot boxes around.",
+        choices: [
+          { label: "Show me what you have.", effects: [{ type: 'openShop', shopId: 'merchant_shop', shopName: "The Merchant's Wares" }], next: null },
+          { label: "Not today.", next: null },
+        ],
+      },
+      farewell: {
+        speaker: 'The Merchant', portrait: '🧑‍💼',
+        text: "Come back anytime — I'll have fresh stock waiting!",
+        next: null,
+      },
+    },
+    entries: [
+      { requires: { flag: 'met_merchant_courtyard' }, node: 'returning' },
+    ],
+  },
+
+  merchant: {
+    npcId: 'merchant', portrait: '🧑‍💼',
+    nodes: {
+      start: {
+        speaker: 'The Merchant', portrait: '🧑‍💼',
+        text: "Welcome, traveller! Finest loot boxes in the Academy — guaranteed B-rank or higher per pack. Take a look?",
+        effects: [{ type: 'setFlag', flag: 'met_merchant' }],
+        choices: [
+          { label: "Let me see your wares.", effects: [{ type: 'openShop', shopId: 'merchant_shop', shopName: "The Merchant's Wares" }], next: null },
+          { label: "Maybe another time.", next: null },
+        ],
+      },
+      returning: {
+        speaker: 'The Merchant', portrait: '🧑‍💼',
+        text: "Back again! Always a pleasure. The stock is fresh — rare finds today.",
+        choices: [
+          { label: "Show me what you have.", effects: [{ type: 'openShop', shopId: 'merchant_shop', shopName: "The Merchant's Wares" }], next: null },
+          { label: "Just browsing.", next: null },
+        ],
+      },
+      farewell: {
+        speaker: 'The Merchant', portrait: '🧑‍💼',
+        text: "Safe travels! Don't be a stranger.",
+        next: null,
+      },
+    },
+    entries: [
+      { requires: { flag: 'met_merchant' }, node: 'returning' },
+    ],
   },
 
   training_dummy: {
@@ -642,6 +880,166 @@ export const SPELL_CARD_DECK = [
   { cardId: 'spell_weaken',      type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',       effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
 ];
 
+// ── Loot box types ────────────────────────────────────────────────────────────
+export const LOOT_BOX_TYPES = {
+  small:  { id: 'small',  icon: '📦', label: 'Small Loot Box',  packCount: 1,  description: '1 Booster Pack · 6 cards\n✦ Guarantees 1× B rank or higher per pack\n✦ S rank: 5% · A rank: 15% · B rank: 30% · C rank: 50%' },
+  medium: { id: 'medium', icon: '🎁', label: 'Medium Loot Box', packCount: 3,  description: '3 Booster Packs · 18 cards total\n✦ Guarantees 1× B rank or higher per pack\n✦ S rank: 5% · A rank: 15% · B rank: 30% · C rank: 50%' },
+  large:  { id: 'large',  icon: '🎰', label: 'Large Loot Box',  packCount: 10, description: '10 Booster Packs · 60 cards total\n✦ Guarantees 1× B rank or higher per pack\n✦ S rank: 5% · A rank: 15% · B rank: 30% · C rank: 50%' },
+};
+
+// Unique obtainable card pool — built from grid card decks.
+// Spells have no rarity field so they are assigned 'B'.
+export const BOOSTER_CARD_POOL = (() => {
+  const seen = new Set();
+  const pool = [];
+  const addUnique = (cards, rarityOverride) => {
+    for (const c of cards) {
+      if (!seen.has(c.cardId)) {
+        seen.add(c.cardId);
+        pool.push(rarityOverride ? { ...c, rarity: rarityOverride } : { ...c });
+      }
+    }
+  };
+  addUnique(SUMMON_CARD_DECK, null);
+  addUnique(ELITE_CARD_DECK,  null);
+  addUnique(SPELL_CARD_DECK,  'B');
+  return pool;
+})();
+
+// Rarity drop rates (normal pull).
+const _RARITY_WEIGHTS  = [['S', 5], ['A', 15], ['B', 30], ['C', 50]];
+// Guaranteed-B-or-higher slot (normalised to 100 within B+).
+const _BPLUS_WEIGHTS   = [['S', 10], ['A', 30], ['B', 60]];
+
+function _rollRarity(weights) {
+  const roll = Math.random() * 100;
+  let acc = 0;
+  for (const [r, w] of weights) { acc += w; if (roll < acc) return r; }
+  return weights[weights.length - 1][0];
+}
+
+function _pickCard(rarity) {
+  const tier = BOOSTER_CARD_POOL.filter(c => c.rarity === rarity);
+  if (tier.length) return tier[Math.floor(Math.random() * tier.length)];
+  // Fallback: step up through rarities
+  for (const r of ['B', 'A', 'S']) {
+    const fb = BOOSTER_CARD_POOL.filter(c => c.rarity === r);
+    if (fb.length) return fb[Math.floor(Math.random() * fb.length)];
+  }
+  return BOOSTER_CARD_POOL[0];
+}
+
+/** Generate one booster pack: 6 cards, slot 1 guaranteed B+. */
+export function generateBoosterPack() {
+  const cards = [_pickCard(_rollRarity(_BPLUS_WEIGHTS))];
+  for (let i = 0; i < 5; i++) cards.push(_pickCard(_rollRarity(_RARITY_WEIGHTS)));
+  return cards; // array of full card objects
+}
+
+/** Generate all packs for a loot box and return a flat array of card objects grouped by pack. */
+export function openLootBox(boxTypeId) {
+  const def  = LOOT_BOX_TYPES[boxTypeId];
+  const count = def?.packCount ?? 1;
+  const packs = [];
+  for (let i = 0; i < count; i++) packs.push(generateBoosterPack());
+  return packs; // array of arrays
+}
+
+// ── Dialogue reactions ────────────────────────────────────────────────────────
+// Maps "npcId.nodeId" → reaction name.
+// Reactions: neutral | happy | sad | scared | mad | shy | aroused
+// DialogueSystem looks this up each time a node is shown; nodes can also
+// declare a `reaction` field directly to override this table.
+export const DIALOGUE_REACTIONS = {
+  // ── Aria ──────────────────────────────────────────────────────────────────
+  'aria.start':                    'neutral',
+  'aria.aria_intro_response':      'happy',
+  'aria.aria_intro_bold':          'happy',
+  'aria.aria_intro_challenge_tease': 'happy',
+  'aria.returning_greeting':       'neutral',
+  'aria.aria_rebuff':              'sad',
+  'aria.aria_about_academy':       'neutral',
+  'aria.aria_elements_debate':     'happy',
+  'aria.aria_challenge_accept':    'happy',
+  'aria.post_challenge_check':     'neutral',
+  'aria.friend_greeting':          'sad',
+  'aria.aria_friend_pressure':     'happy',
+  'aria.aria_friend_focus':        'neutral',
+  'aria.story_scene_greeting':     'sad',
+  'aria.aria_story_reveal':        'sad',
+  'aria.bonded_greeting':          'happy',
+  'aria.post_win':                 'happy',
+  'aria.aria_post_win_follow':     'happy',
+  'aria.post_lose':                'neutral',
+  'aria.aria_post_lose_response':  'happy',
+  'aria.aria_charm_20':            'sad',
+  'aria.aria_charm_40':            'shy',
+  'aria.aria_charm_40_response':   'shy',
+  'aria.aria_charm_60':            'shy',
+  'aria.aria_charm_60_response':   'aroused',
+  'aria.aria_charm_80':            'happy',
+
+  // ── Master Aldric ─────────────────────────────────────────────────────────
+  'master_aldric.start':                   'neutral',
+  'master_aldric.aldric_eager':            'neutral',
+  'master_aldric.aldric_polite':           'neutral',
+  'master_aldric.aldric_biting_books':     'neutral',
+  'master_aldric.aldric_arcane_theory':    'neutral',
+  'master_aldric.aldric_returning':        'neutral',
+  'master_aldric.aldric_rebuff':           'mad',
+  'master_aldric.aldric_lost_tome':        'sad',
+  'master_aldric.aldric_guidance':         'neutral',
+  'master_aldric.aldric_tome_return':      'neutral',
+  'master_aldric.aldric_tome_returned':    'happy',
+  'master_aldric.aldric_tome_done':        'happy',
+  'master_aldric.aldric_lessons_greeting': 'happy',
+  'master_aldric.aldric_secret_greeting':  'scared',
+  'master_aldric.aldric_vault_records':    'scared',
+  'master_aldric.aldric_final':            'sad',
+  'master_aldric.post_win':               'happy',
+  'master_aldric.aldric_post_win_response': 'happy',
+  'master_aldric.post_lose':              'neutral',
+  'master_aldric.aldric_charm_20':        'sad',
+  'master_aldric.aldric_charm_20_response': 'sad',
+  'master_aldric.aldric_charm_40':        'sad',
+  'master_aldric.aldric_charm_40_response': 'sad',
+  'master_aldric.aldric_charm_60':        'scared',
+  'master_aldric.aldric_charm_80':        'happy',
+
+  // ── Zephyr ────────────────────────────────────────────────────────────────
+  'zephyr.start':                  'neutral',
+  'zephyr.zephyr_obvious':         'neutral',
+  'zephyr.zephyr_wares':           'neutral',
+  'zephyr.zephyr_returning':       'neutral',
+  'zephyr.zephyr_rebuff':          'mad',
+  'zephyr.zephyr_tome_info':       'neutral',
+  'zephyr.zephyr_tip_greeting':    'neutral',
+  'zephyr.zephyr_source':          'neutral',
+  'zephyr.zephyr_serious':         'neutral',
+  'zephyr.zephyr_secret_greeting': 'sad',
+  'zephyr.zephyr_final':           'happy',
+  'zephyr.post_win':               'happy',
+  'zephyr.post_lose':              'neutral',
+  'zephyr.zephyr_charm_20':        'neutral',
+  'zephyr.zephyr_charm_20_response': 'neutral',
+  'zephyr.zephyr_charm_40':        'sad',
+  'zephyr.zephyr_charm_40_response': 'shy',
+  'zephyr.zephyr_charm_60':        'sad',
+  'zephyr.zephyr_charm_60_response': 'shy',
+  'zephyr.zephyr_charm_80':        'happy',
+
+  // ── Merchant ──────────────────────────────────────────────────────────────
+  'merchant.start':               'happy',
+  'merchant.returning':           'happy',
+  'merchant_courtyard.start':     'happy',
+  'merchant_courtyard.returning': 'happy',
+
+  // ── Training Dummy ────────────────────────────────────────────────────────
+  'training_dummy.start':    'neutral',
+  'training_dummy.post_win': 'happy',
+  'training_dummy.post_lose': 'neutral',
+};
+
 // ── Deck validation ───────────────────────────────────────────────────────────
 // Rules: exactly 10 elites, exactly 10 spells, at least 40 summons.
 export function validateDeck(deck) {
@@ -693,8 +1091,8 @@ export const STARTER_DECKS = [
       _ec('elite_knight'),  _ec('elite_golem'),
     ],
     summons: [
-      ..._sc('sum_imp',   3), ..._sc('sum_bat',    4), ..._sc('sum_hawk',  5),
-      ..._sc('sum_djinn', 5), ..._sc('sum_fox',    4), ..._sc('sum_titan', 5),
+      ..._sc('sum_imp',   5), ..._sc('sum_bat',    6), ..._sc('sum_hawk',  7),
+      ..._sc('sum_djinn', 7), ..._sc('sum_fox',    4), ..._sc('sum_titan', 5),
       ..._sc('sum_wyrm',  3), ..._sc('sum_leviathan', 2),
       _sc('sum_adragon', 1)[0],
     ],
@@ -721,7 +1119,7 @@ export const STARTER_DECKS = [
       _ec('elite_witch'), _ec('elite_assassin'),
     ],
     summons: [
-      ..._sc('sum_wisp',     4), ..._sc('sum_sprite',  6), ..._sc('sum_shaman',  6),
+      ..._sc('sum_wisp',     5), ..._sc('sum_sprite',  6), ..._sc('sum_shaman',  6),
       ..._sc('sum_bear',     6), ..._sc('sum_sentinel', 6), ..._sc('sum_wyrm',   6),
       ..._sc('sum_leviathan', 3), _sc('sum_ephoenix', 1)[0], _sc('sum_adragon', 1)[0],
     ],

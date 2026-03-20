@@ -19,7 +19,7 @@ import EventBus from '../EventBus.js';
 import SoundSystem from '../systems/SoundSystem.js';
 import MusicPlayer from '../systems/MusicPlayer.js';
 import GameState from '../GameState.js';
-import { NPCS, ITEMS, CARDS } from '../Data.js';
+import { NPCS, ITEMS, CARDS, LOOT_BOX_TYPES } from '../Data.js';
 import CardArtPreloader from '../systems/CardArtPreloader.js';
 
 const ROWS = 6;
@@ -1518,15 +1518,11 @@ const CardGameScreen = {
         <span class="cg-reward-label">${item?.name ?? r.itemId}${(r.count ?? 1) > 1 ? ` ×${r.count}` : ''}</span>
       </div>`;
     }
-    if (r.type === 'boosterPack') {
-      const preview = (r.cards ?? []).slice(0, 3).map(id => {
-        const c = CARDS.find(x => x.cardId === id);
-        return c?.art ?? '🃏';
-      }).join('');
+    if (r.type === 'lootBox') {
+      const def = LOOT_BOX_TYPES[r.boxTypeId] ?? LOOT_BOX_TYPES.small;
       return `<div class="cg-reward-item">
-        <span class="cg-reward-icon">📦</span>
-        <span class="cg-reward-label">${r.label}</span>
-        <span class="cg-reward-preview">${preview}</span>
+        <span class="cg-reward-icon">${def.icon}</span>
+        <span class="cg-reward-label">${r.label ?? def.label} <span style="font-size:0.75em;color:var(--color-text-dim)">(${def.packCount} pack${def.packCount !== 1 ? 's' : ''})</span></span>
       </div>`;
     }
     return '';
@@ -1535,20 +1531,13 @@ const CardGameScreen = {
   _applyRewards(rewards) {
     for (const r of rewards) {
       if (r.type === 'exp') {
-        GameState.player.xp += r.value;
-        while (GameState.player.xp >= GameState.player.xpToNext) {
-          GameState.player.xp      -= GameState.player.xpToNext;
-          GameState.player.level   += 1;
-          GameState.player.xpToNext = Math.floor(GameState.player.xpToNext * 1.4);
-        }
+        GameState.addXp(r.value);
       }
       if (r.type === 'item') {
         GameState.addItem(r.itemId, r.count ?? 1);
       }
-      if (r.type === 'boosterPack') {
-        for (const cardId of (r.cards ?? [])) {
-          GameState.addCardToCollection(cardId);
-        }
+      if (r.type === 'lootBox') {
+        GameState.addLootBox({ boxTypeId: r.boxTypeId ?? 'small', label: r.label, icon: r.icon ?? '📦' });
       }
     }
     EventBus.emit('toast', { message: '✓ Rewards collected!', type: 'success' });

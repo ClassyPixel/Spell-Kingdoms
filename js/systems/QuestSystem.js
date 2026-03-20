@@ -73,9 +73,13 @@ const QuestSystem = {
 
     // Apply rewards
     const rewards = quest.rewards ?? {};
-    if (rewards.gold) {
-      GameState.addGold(rewards.gold);
-      EventBus.emit('toast', { message: `Reward: ${rewards.gold}g`, type: 'success' });
+    if (rewards.exp) {
+      GameState.addXp(rewards.exp);
+      EventBus.emit('toast', { message: `+${rewards.exp} EXP`, type: 'success' });
+    }
+    if (rewards.coin) {
+      GameState.addCoin(rewards.coin);
+      EventBus.emit('toast', { message: `Reward: ${rewards.coin} coins`, type: 'success' });
     }
     (rewards.cards ?? []).forEach(cardId => {
       GameState.addCardToCollection(cardId);

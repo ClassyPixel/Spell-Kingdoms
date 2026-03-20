@@ -9,9 +9,11 @@ const GameState = {
   player: {
     name: 'Student',
     level: 1,
-    gold: 100,
+    coin: 100000,
+    gemstones: 0,
     xp: 0,
     xpToNext: 100,
+    charm: 0,      // 0–100; increases with level; unlocks charm-gated dialogue
   },
 
   progression: {
@@ -23,6 +25,7 @@ const GameState = {
   inventory: {
     items: [],       // [{ itemId, quantity }]
     maxSlots: 20,
+    lootBoxes: [],   // [{ label, icon, cards: [cardId, ...] }]
   },
 
   deck: {
@@ -32,6 +35,8 @@ const GameState = {
                  'shield_wall', 'shield_wall', 'healing_light', 'healing_light',
                  'arcane_blast', 'thunder_strike'],
     maxDeckSize: 20,
+    // IDs of STARTER_DECKS the player owns; all 3 are available from the start
+    savedDeckIds: ['blitz_rush', 'iron_bulwark', 'arcane_balance'],
   },
 
   relationships: {
@@ -73,6 +78,11 @@ const GameState = {
 
   shops: {},   // { shopId: { purchasedCounts: { itemId: count } } }
 
+  gameTime: {
+    startedAt: null,  // real timestamp when session began (ms); null = set on first use
+    baseHour:  8,     // in-game hour at session start (0–23)
+  },
+
   chapters: {
     current: 1,
     unlocked: [1],
@@ -97,8 +107,28 @@ const GameState = {
     return this.progression.gameFlags[key];
   },
 
-  addGold(amount) {
-    this.player.gold = Math.max(0, this.player.gold + amount);
+  addCoin(amount) {
+    this.player.coin = Math.max(0, this.player.coin + amount);
+  },
+
+  addGemstones(amount) {
+    this.player.gemstones = Math.max(0, (this.player.gemstones ?? 0) + amount);
+  },
+
+  addCharm(amount) {
+    this.player.charm = Math.min(100, Math.max(0, (this.player.charm ?? 0) + amount));
+  },
+
+  addXp(amount) {
+    if (this.player.level >= 100) return;
+    this.player.xp += amount;
+    while (this.player.xp >= this.player.xpToNext && this.player.level < 100) {
+      this.player.xp      -= this.player.xpToNext;
+      this.player.level   += 1;
+      this.player.xpToNext = Math.floor(this.player.xpToNext * 1.4);
+      this.addCharm(10);
+    }
+    if (this.player.level >= 100) this.player.xp = 0;
   },
 
   addItem(itemId, qty = 1) {
@@ -154,6 +184,11 @@ const GameState = {
     return this.progression.unlockedLocations.includes(locationId);
   },
 
+  addLootBox(box) {
+    // box: { boxTypeId, label, icon } — cards generated on open
+    this.inventory.lootBoxes.push(box);
+  },
+
   addCardToCollection(cardId) {
     this.deck.collection.push(cardId);
   },
@@ -169,6 +204,11 @@ const GameState = {
     if (idx !== -1) this.deck.activeDeck.splice(idx, 1);
   },
 
+  /** Lazily initialise game clock — call before reading gameTime. */
+  initGameClock() {
+    if (!this.gameTime.startedAt) this.gameTime.startedAt = Date.now();
+  },
+
   /** Serialize state for saving (deep-clone). */
   serialize() {
     return JSON.parse(JSON.stringify({
@@ -181,20 +221,25 @@ const GameState = {
       quests:       this.quests,
       shops:        this.shops,
       settings:     this.settings,
+      gameTime:     this.gameTime,
     }));
   },
 
   /** Restore state from a saved snapshot. */
   deserialize(data) {
     this.version      = data.version      ?? 1;
-    this.player       = data.player       ?? this.player;
+    const _pd = data.player ?? {};
+    this.player       = { coin: 100000, gemstones: 0, charm: 0, ...this.player, ..._pd };
+    // Backfill coin from old saves that used 'gold'
+    if (_pd.gold !== undefined && _pd.coin === undefined) this.player.coin = _pd.gold;
     this.progression  = data.progression  ?? this.progression;
-    this.inventory    = data.inventory    ?? this.inventory;
-    this.deck         = data.deck         ?? this.deck;
+    this.inventory    = { lootBoxes: [], ...this.inventory, ...(data.inventory ?? {}) };
+    this.deck         = { savedDeckIds: ['blitz_rush', 'iron_bulwark', 'arcane_balance'], ...this.deck, ...(data.deck ?? {}) };
     this.relationships = data.relationships ?? this.relationships;
     this.quests       = data.quests       ?? this.quests;
     this.shops        = data.shops        ?? this.shops;
     this.settings     = { ...this.settings, ...(data.settings ?? {}) };
+    this.gameTime     = { startedAt: null, baseHour: 8, ...(data.gameTime ?? {}) };
     // cardGame is always reset on load
     this.cardGame.active = false;
   },

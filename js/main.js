@@ -536,10 +536,12 @@ function hideHUD() {
 function updateHUD() {
   const nameEl  = document.getElementById('hud-name');
   const levelEl = document.getElementById('hud-level-val');
-  const goldEl  = document.getElementById('hud-gold-val');
+  const coinEl  = document.getElementById('hud-coin-val');
+  const gemsEl  = document.getElementById('hud-gems-val');
   if (nameEl)  nameEl.textContent  = GameState.player.name;
   if (levelEl) levelEl.textContent = GameState.player.level;
-  if (goldEl)  goldEl.textContent  = GameState.player.gold;
+  if (coinEl)  coinEl.textContent  = GameState.player.coin;
+  if (gemsEl)  gemsEl.textContent  = GameState.player.gemstones ?? 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -577,7 +579,7 @@ function setupGlobalEvents() {
     showToast(message, type);
   });
 
-  // Update HUD whenever gold/level changes
+  // Update HUD whenever coin/level changes
   EventBus.on('cardgame:result',     ({ win, npcId }) => {
     updateHUD();
     if (_quickMatchActive) {

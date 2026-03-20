@@ -140,7 +140,7 @@ const QuestJournalScreen = {
       </div>
       <div class="quest-rewards" style="margin-top:16px">
         <h4>Rewards</h4>
-        ${quest.rewards?.gold ? `<div class="objective-item"><span style="color:var(--color-gold)">💰</span><span>${quest.rewards.gold} gold</span></div>` : ''}
+        ${quest.rewards?.coin ? `<div class="objective-item"><span style="color:var(--color-gold)">🪙</span><span>${quest.rewards.coin} coins</span></div>` : ''}
         ${(quest.rewards?.cards ?? []).map(cid => `<div class="objective-item"><span>🃏</span><span>${cid}</span></div>`).join('')}
       </div>
     `;

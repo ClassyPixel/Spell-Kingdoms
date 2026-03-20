@@ -15,7 +15,7 @@
 import EventBus from '../EventBus.js';
 import GameState from '../GameState.js';
 import SaveSystem from '../SaveSystem.js';
-import { DIALOGUES } from '../Data.js';
+import { DIALOGUES, DIALOGUE_REACTIONS } from '../Data.js';
 
 const TIER_NAMES = ['Stranger', 'Acquaintance', 'Friend', 'Close Friend', 'Bonded'];
 
@@ -51,6 +51,7 @@ const DialogueSystem = {
   _nodes:        null,
   _currentNode:  null,
   _npcPortrait:  null,
+  _shopPending:  false,
 
   init() {
     EventBus.on('dialogue:start',   (d) => this._start(d.npcId, d.nodeOverride));
@@ -60,8 +61,9 @@ const DialogueSystem = {
 
   _start(npcId, nodeOverride) {
     const data = loadDialogue(npcId);
-    this._npcId   = npcId;
-    this._nodes   = data.nodes ?? {};
+    this._npcId       = npcId;
+    this._nodes       = data.nodes ?? {};
+    this._shopPending = false;
     this._npcPortrait = data.portrait ?? GameState.relationships[npcId]?.portrait ?? '🧙';
 
     // Push dialogue screen first so its listeners are registered before dialogue:show fires
@@ -99,6 +101,7 @@ const DialogueSystem = {
       return {
         label:           ch.label,
         locked,
+        charmLocked:     locked && ch.requires?.min_charm !== undefined,
         requirementText: locked ? this._requirementLabel(ch.requires) : null,
         _raw:            ch,
       };
@@ -106,12 +109,18 @@ const DialogueSystem = {
 
     const canContinue = !choices.length && !!node.next;
 
+    // Reaction: node-level override first, then lookup table, then neutral
+    const reaction = node.reaction
+      ?? DIALOGUE_REACTIONS[`${this._npcId}.${nodeId}`]
+      ?? 'neutral';
+
     EventBus.emit('dialogue:show', {
       speaker:     node.speaker ?? this._npcId,
       portrait:    node.portrait ?? this._npcPortrait,
       text:        node.text ?? '',
       choices,
       canContinue,
+      reaction,
     });
   },
 
@@ -137,7 +146,7 @@ const DialogueSystem = {
 
     if (choice.next) {
       this._goTo(choice.next);
-    } else {
+    } else if (!this._shopPending) {
       this._end();
     }
   },
@@ -174,7 +183,7 @@ const DialogueSystem = {
     }
 
     if (req.min_gold !== undefined) {
-      if (GameState.player.gold < req.min_gold) return false;
+      if (GameState.player.coin < req.min_gold) return false;
     }
 
     if (req.quest_active) {
@@ -185,17 +194,24 @@ const DialogueSystem = {
       if (!GameState.quests.completed.includes(req.quest_completed)) return false;
     }
 
+    if (req.min_charm !== undefined) {
+      if ((GameState.player.charm ?? 0) < req.min_charm) return false;
+    }
+
     return true;
   },
 
   _requirementLabel(req) {
     if (!req) return null;
+    if (req.min_charm !== undefined) {
+      return `(Lv.${req.min_charm} Charm Required)`;
+    }
     if (req.relationship_tier !== undefined) {
       return `[${TIER_NAMES[req.relationship_tier] ?? `Tier ${req.relationship_tier}`} needed]`;
     }
     if (req.flag) return `[Requires: ${req.flag}]`;
     if (req.has_item) return `[Need: ${req.has_item}]`;
-    if (req.min_gold !== undefined) return `[Need: ${req.min_gold}g]`;
+    if (req.min_gold !== undefined) return `[Need: ${req.min_gold} coins]`;
     return '[Locked]';
   },
 
@@ -205,10 +221,12 @@ const DialogueSystem = {
 
   _applyEffect(effect) {
     switch (effect.type) {
-      case 'relationship':
-        GameState.addRelationshipPoints(effect.npcId ?? this._npcId, effect.value ?? 1);
-        EventBus.emit('relationship:changed', { npcId: effect.npcId ?? this._npcId });
+      case 'relationship': {
+        const delta = effect.value ?? 1;
+        GameState.addRelationshipPoints(effect.npcId ?? this._npcId, delta);
+        EventBus.emit('relationship:changed', { npcId: effect.npcId ?? this._npcId, delta });
         break;
+      }
 
       case 'setFlag':
         GameState.setFlag(effect.flag, effect.value ?? true);
@@ -220,8 +238,9 @@ const DialogueSystem = {
         break;
 
       case 'addGold':
-        GameState.addGold(effect.amount ?? 0);
-        EventBus.emit('toast', { message: `Received ${effect.amount}g`, type: 'success' });
+      case 'addCoin':
+        GameState.addCoin(effect.amount ?? 0);
+        EventBus.emit('toast', { message: `Received ${effect.amount} coins`, type: 'success' });
         break;
 
       case 'triggerCardGame':
@@ -229,9 +248,20 @@ const DialogueSystem = {
         EventBus.emit('cardgame:start', { npcId: effect.npcId ?? this._npcId });
         break;
 
-      case 'openShop':
+      case 'openShop': {
+        this._shopPending = true;
         EventBus.emit('shop:open', { shopId: effect.shopId, shopName: effect.shopName });
+        const _unsubShop = EventBus.on('shop:closed', () => {
+          _unsubShop();
+          this._shopPending = false;
+          if (this._nodes?.farewell) {
+            this._goTo('farewell');
+          } else {
+            this._end();
+          }
+        });
         break;
+      }
 
       case 'triggerQuest':
         EventBus.emit('quest:trigger', { questId: effect.questId });

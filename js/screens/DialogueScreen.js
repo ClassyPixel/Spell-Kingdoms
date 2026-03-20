@@ -15,12 +15,15 @@ import GameState from '../GameState.js';
 
 const TEXT_SPEEDS = { slow: 20, normal: 40, fast: 80, instant: Infinity };
 
-const CHAR_IMAGES = {
+const CHAR_BASE = {
   aria:           'assets/images/characters/aria.svg',
   master_aldric:  'assets/images/characters/master_aldric.svg',
   zephyr:         'assets/images/characters/zephyr.svg',
   training_dummy: 'assets/images/characters/training_dummy.svg',
 };
+// Reactions map to filename suffixes: aria_happy.svg, aria_sad.svg, etc.
+// 'neutral' uses the base image (no suffix).
+const REACTIONS = ['neutral', 'happy', 'sad', 'scared', 'mad', 'shy', 'aroused'];
 const PLAYER_IMAGE = 'assets/images/characters/player.svg';
 
 const DialogueScreen = {
@@ -43,6 +46,7 @@ const DialogueScreen = {
 
   unmount() {
     this._clearTypewriter();
+    clearTimeout(this._relFeedbackTimer);
     this._unsub.forEach(fn => fn());
     this._unsub   = [];
     this._container = null;
@@ -74,7 +78,7 @@ const DialogueScreen = {
     const npcImg = document.createElement('img');
     npcImg.className = 'dialogue-char dialogue-char-npc';
     npcImg.id  = 'dlg-char-npc';
-    npcImg.src = CHAR_IMAGES[this._npcId] ?? CHAR_IMAGES.training_dummy;
+    npcImg.src = CHAR_BASE[this._npcId] ?? CHAR_BASE.training_dummy;
     npcImg.alt = this._npcId ?? 'NPC';
     chars.appendChild(npcImg);
 
@@ -92,6 +96,11 @@ const DialogueScreen = {
     const text = document.createElement('div');
     text.className = 'dialogue-text';
     text.id = 'dlg-text';
+
+    const relFeedback = document.createElement('div');
+    relFeedback.className = 'dlg-rel-feedback hidden';
+    relFeedback.id = 'dlg-rel-feedback';
+    box.appendChild(relFeedback);
 
     const continueHint = document.createElement('div');
     continueHint.className = 'dialogue-continue hidden';
@@ -119,12 +128,13 @@ const DialogueScreen = {
 
   _bindEvents() {
     this._unsub.push(
-      EventBus.on('dialogue:show', (data) => this._showNode(data)),
-      EventBus.on('dialogue:end',  ()     => this._handleEnd()),
+      EventBus.on('dialogue:show',        (data) => this._showNode(data)),
+      EventBus.on('dialogue:end',         ()     => this._handleEnd()),
+      EventBus.on('relationship:changed', (data) => this._showRelFeedback(data)),
     );
   },
 
-  _showNode({ speaker, portrait, text, choices = [], canContinue = false }) {
+  _showNode({ speaker, portrait, text, choices = [], canContinue = false, reaction = 'neutral' }) {
     this._choices     = choices;
     this._canContinue = canContinue;
     this._fullText    = text ?? '';
@@ -140,6 +150,9 @@ const DialogueScreen = {
     if (textEl)    textEl.textContent    = '';
     if (contEl)    contEl.classList.add('hidden');
     if (choicesEl) { choicesEl.innerHTML = ''; choicesEl.classList.add('hidden'); }
+
+    // Update NPC reaction image
+    this._setReaction(reaction);
 
     // NPC is speaking — highlight NPC, dim player
     this._setSpeaking('npc');
@@ -214,7 +227,7 @@ const DialogueScreen = {
 
     this._choices.forEach((choice, i) => {
       const btn = document.createElement('button');
-      btn.className = 'choice-btn' + (choice.locked ? ' locked' : '');
+      btn.className = 'choice-btn' + (choice.locked ? ' locked' : '') + (choice.charmLocked ? ' charm-locked' : '');
 
       const label = document.createElement('span');
       label.textContent = choice.label;
@@ -249,8 +262,70 @@ const DialogueScreen = {
     }
   },
 
+  _setReaction(reaction) {
+    const npcEl = document.getElementById('dlg-char-npc');
+    if (!npcEl) return;
+
+    const base    = CHAR_BASE[this._npcId] ?? CHAR_BASE.training_dummy;
+    const target  = (!reaction || reaction === 'neutral')
+      ? base
+      : base.replace(/(\.[^.]+)$/, `_${reaction}$1`);
+
+    if (npcEl.src.endsWith(target)) return; // no change needed
+
+    // Crossfade: briefly dim, swap src, brighten back
+    npcEl.classList.add('reacting');
+    setTimeout(() => {
+      npcEl.onerror = () => { npcEl.src = base; npcEl.onerror = null; };
+      npcEl.src = target;
+      npcEl.classList.remove('reacting');
+      // Add reaction badge to the character
+      this._updateReactionBadge(reaction);
+    }, 120);
+  },
+
+  _updateReactionBadge(reaction) {
+    const existing = document.getElementById('dlg-reaction-badge');
+    if (existing) existing.remove();
+    if (!reaction || reaction === 'neutral') return;
+
+    const ICONS = {
+      happy:   '😊', sad:     '😢', scared:  '😨',
+      mad:     '😠', shy:     '😳', aroused: '😍',
+    };
+    const icon = ICONS[reaction];
+    if (!icon) return;
+
+    const badge = document.createElement('div');
+    badge.id        = 'dlg-reaction-badge';
+    badge.className = `dlg-reaction-badge reaction-${reaction}`;
+    badge.textContent = icon;
+
+    const chars = document.querySelector('.dialogue-chars');
+    if (chars) chars.appendChild(badge);
+
+    // Auto-remove after 1.5s
+    setTimeout(() => badge.remove(), 1500);
+  },
+
   _handleEnd() {
     EventBus.emit('screen:pop');
+  },
+
+  _showRelFeedback({ npcId, delta }) {
+    if (!delta || delta === 0) return;
+    const el = document.getElementById('dlg-rel-feedback');
+    if (!el) return;
+
+    const positive = delta > 0;
+    const name = GameState.relationships[npcId]?.name ?? npcId;
+    el.textContent = positive ? `❤️ ${name} +${delta}` : `💔 ${name} ${delta}`;
+    el.className   = `dlg-rel-feedback ${positive ? 'rel-positive' : 'rel-negative'}`;
+
+    clearTimeout(this._relFeedbackTimer);
+    this._relFeedbackTimer = setTimeout(() => {
+      el.className = 'dlg-rel-feedback hidden';
+    }, 1800);
   },
 
   update(dt) {},

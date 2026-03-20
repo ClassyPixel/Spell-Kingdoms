@@ -4,7 +4,7 @@
  */
 import EventBus from '../EventBus.js';
 import GameState from '../GameState.js';
-import { ITEMS, SHOP_STOCK } from '../Data.js';
+import { ITEMS, SHOP_STOCK, LOOT_BOX_TYPES } from '../Data.js';
 
 const ShopScreen = {
   _container: null,
@@ -33,6 +33,7 @@ const ShopScreen = {
 
   unmount() {
     this._container = null;
+    EventBus.emit('shop:closed');
   },
 
   _render() {
@@ -54,11 +55,11 @@ const ShopScreen = {
     header.appendChild(backBtn);
     header.appendChild(title);
 
-    const goldDisplay = document.createElement('span');
-    goldDisplay.id = 'shop-gold';
-    goldDisplay.style.cssText = 'margin-left:auto;color:var(--color-gold);font-weight:600';
-    goldDisplay.textContent = `Gold: ${GameState.player.gold}`;
-    header.appendChild(goldDisplay);
+    const coinDisplay = document.createElement('span');
+    coinDisplay.id = 'shop-coin';
+    coinDisplay.style.cssText = 'margin-left:auto;color:var(--color-gold);font-weight:600';
+    coinDisplay.textContent = `🪙 ${GameState.player.coin} coins`;
+    header.appendChild(coinDisplay);
     screen.appendChild(header);
 
     // Stock grid
@@ -79,54 +80,67 @@ const ShopScreen = {
     const shopState = GameState.shops[this._shopId];
 
     this._stock.forEach(entry => {
-      const item = this._itemMap[entry.itemId];
-      const purchased = shopState.purchasedCounts[entry.itemId] ?? 0;
+      const isLootBox = !!entry.lootBoxId;
+      const lootDef   = isLootBox ? (LOOT_BOX_TYPES[entry.lootBoxId] ?? {}) : null;
+      const item      = isLootBox ? null : this._itemMap[entry.itemId];
+
+      const stockKey  = isLootBox ? `lootbox_${entry.lootBoxId}` : entry.itemId;
+      const purchased = shopState.purchasedCounts[stockKey] ?? 0;
       const available = entry.stock === -1 ? Infinity : (entry.stock - purchased);
       const outOfStock = available <= 0;
+
+      const icon  = isLootBox ? (lootDef.icon ?? '📦')  : (item?.icon ?? '📦');
+      const name  = isLootBox ? (lootDef.label ?? entry.lootBoxId) : (item?.name ?? entry.itemId);
+      const desc  = isLootBox ? `${lootDef.packCount} pack${lootDef.packCount !== 1 ? 's' : ''} · ${lootDef.packCount * 6} cards` : '';
 
       const el = document.createElement('div');
       el.className = 'shop-item' + (outOfStock ? ' out-of-stock' : '');
       el.innerHTML = `
-        <div class="shop-item-icon">${item?.icon ?? '📦'}</div>
-        <div class="shop-item-name">${item?.name ?? entry.itemId}</div>
-        <div class="shop-item-price">💰 ${entry.price}</div>
+        <div class="shop-item-icon">${icon}</div>
+        <div class="shop-item-name">${name}</div>
+        ${desc ? `<div class="shop-item-desc" style="font-size:0.8em;color:var(--color-text-dim)">${desc}</div>` : ''}
+        <div class="shop-item-price">🪙 ${entry.price}</div>
         <div class="shop-item-stock">${entry.stock === -1 ? '∞' : `${available} left`}</div>
       `;
 
       if (!outOfStock) {
-        el.addEventListener('click', () => this._buy(entry, item));
+        el.addEventListener('click', () => this._buy(entry, { isLootBox, lootDef, item, stockKey, name }));
       }
 
       grid.appendChild(el);
     });
   },
 
-  _buy(entry, itemData) {
-    if (GameState.player.gold < entry.price) {
-      EventBus.emit('toast', { message: 'Not enough gold!', type: 'error' });
+  _buy(entry, { isLootBox, lootDef, item, stockKey, name }) {
+    if (GameState.player.coin < entry.price) {
+      EventBus.emit('toast', { message: 'Not enough coins!', type: 'error' });
       return;
     }
 
     const shopState = GameState.shops[this._shopId];
-    const purchased = shopState.purchasedCounts[entry.itemId] ?? 0;
+    const purchased = shopState.purchasedCounts[stockKey] ?? 0;
     const available = entry.stock === -1 ? Infinity : (entry.stock - purchased);
     if (available <= 0) {
       EventBus.emit('toast', { message: 'Out of stock!', type: 'error' });
       return;
     }
 
-    GameState.addGold(-entry.price);
-    GameState.addItem(entry.itemId, 1);
-    shopState.purchasedCounts[entry.itemId] = purchased + 1;
+    GameState.addCoin(-entry.price);
+    if (isLootBox) {
+      GameState.addLootBox({ boxTypeId: entry.lootBoxId, label: lootDef?.label, icon: lootDef?.icon });
+    } else {
+      GameState.addItem(entry.itemId, 1);
+    }
+    shopState.purchasedCounts[stockKey] = purchased + 1;
 
-    EventBus.emit('toast', { message: `Bought ${itemData?.name ?? entry.itemId}!`, type: 'success' });
-    EventBus.emit('shop:purchased', { itemId: entry.itemId, shopId: this._shopId });
+    EventBus.emit('toast', { message: `Bought ${name}!`, type: 'success' });
+    EventBus.emit('shop:purchased', { itemId: stockKey, shopId: this._shopId });
 
     // Refresh
     const grid = document.getElementById('shop-grid');
-    const goldEl = document.getElementById('shop-gold');
-    if (grid) this._renderStock(grid);
-    if (goldEl) goldEl.textContent = `Gold: ${GameState.player.gold}`;
+    const coinEl = document.getElementById('shop-coin');
+    if (grid)   this._renderStock(grid);
+    if (coinEl) coinEl.textContent = `🪙 ${GameState.player.coin} coins`;
   },
 
   update(dt) {},

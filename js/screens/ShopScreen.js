@@ -48,7 +48,7 @@ const ShopScreen = {
     header.className = 'screen-header';
     const backBtn = document.createElement('button');
     backBtn.className = 'btn-back';
-    backBtn.textContent = '← Back';
+    backBtn.textContent = '← Exit';
     backBtn.addEventListener('click', () => EventBus.emit('screen:pop'));
     const title = document.createElement('h2');
     title.textContent = `🛒 ${this._shopName}`;
@@ -104,11 +104,71 @@ const ShopScreen = {
       `;
 
       if (!outOfStock) {
-        el.addEventListener('click', () => this._buy(entry, { isLootBox, lootDef, item, stockKey, name }));
+        el.addEventListener('click', () => this._showBuyModal(entry, { isLootBox, lootDef, item, stockKey, name, available }));
       }
 
       grid.appendChild(el);
     });
+  },
+
+  _showBuyModal(entry, { isLootBox, lootDef, item, stockKey, name, available }) {
+    const maxBuy = available === Infinity ? 99 : available;
+    let qty = 1;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'shop-buy-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'shop-buy-modal';
+
+    const icon  = isLootBox ? (lootDef?.icon ?? '📦') : (item?.icon ?? '📦');
+    const priceEach = entry.price;
+
+    modal.innerHTML = `
+      <div class="shop-buy-icon">${icon}</div>
+      <div class="shop-buy-name">${name}</div>
+      <div class="shop-buy-unit-price">🪙 ${priceEach} each</div>
+      <div class="shop-buy-stepper">
+        <button class="shop-buy-dec shop-qty-btn">−</button>
+        <span class="shop-buy-qty" id="shop-modal-qty">1</span>
+        <button class="shop-buy-inc shop-qty-btn">+</button>
+      </div>
+      <div class="shop-buy-total" id="shop-modal-total">Total: 🪙 ${priceEach}</div>
+    `;
+
+    const updateDisplay = () => {
+      modal.querySelector('#shop-modal-qty').textContent   = qty;
+      modal.querySelector('#shop-modal-total').textContent = `Total: 🪙 ${priceEach * qty}`;
+    };
+
+    modal.querySelector('.shop-buy-dec').addEventListener('click', () => { if (qty > 1) { qty--; updateDisplay(); } });
+    modal.querySelector('.shop-buy-inc').addEventListener('click', () => { if (qty < maxBuy) { qty++; updateDisplay(); } });
+
+    const actions = document.createElement('div');
+    actions.className = 'shop-buy-actions';
+
+    const buyBtn = document.createElement('button');
+    buyBtn.className = 'btn-primary';
+    buyBtn.textContent = 'Buy';
+    buyBtn.addEventListener('click', () => {
+      overlay.remove();
+      for (let i = 0; i < qty; i++) {
+        this._buy(entry, { isLootBox, lootDef, item, stockKey, name });
+      }
+    });
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-back';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    actions.appendChild(buyBtn);
+    actions.appendChild(cancelBtn);
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    this._container.appendChild(overlay);
   },
 
   _buy(entry, { isLootBox, lootDef, item, stockKey, name }) {

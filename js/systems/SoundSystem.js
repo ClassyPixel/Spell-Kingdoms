@@ -82,6 +82,27 @@ const SoundSystem = {
     });
   },
 
+  // Paper-swish: card sliding in (booster reveal, card draw)
+  cardSlide() {
+    this._run(ctx => {
+      const buf  = ctx.createBuffer(1, ctx.sampleRate * 0.11, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      const src    = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const gain   = ctx.createGain();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(2200, ctx.currentTime);
+      filter.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.09);
+      filter.Q.value = 0.7;
+      src.buffer = buf;
+      src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.1);
+      src.start(ctx.currentTime);
+    });
+  },
+
   // Soft slide: card moved/rallied
   move() {
     this._run(ctx => {

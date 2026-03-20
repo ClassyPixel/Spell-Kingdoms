@@ -1,5 +1,4 @@
-const ART_BASE       = 'assets/images/CardGameArt/CardArt/';
-const ART_THUMB_BASE = 'assets/images/CardGameArt/CardArt_thumb/';
+const ART_BASE = 'assets/images/CardGameArt/CardArt/';
 
 const _loaded   = new Set();
 const _inflight = new Map();
@@ -36,11 +35,20 @@ function _collectArtFiles(state) {
   return [...files];
 }
 
+const BG_IMAGES = [
+  'assets/images/CardGameArt/galaxybg1.jpg',
+  'assets/images/CardGameArt/summoncircle1.png',
+];
+
 const CardArtPreloader = {
+  preloadBattleBackgrounds() {
+    for (const url of BG_IMAGES) _loadOne(url);
+  },
+
   async preloadMatchThumbs(state) {
     const files = _collectArtFiles(state);
-    const urls  = files.map(f => ART_THUMB_BASE + f.replace(/\.[^.]+$/, '.jpg'));
-    await Promise.all(urls.map(_loadOne));
+    const urls  = files.map(f => ART_BASE + f);
+    await Promise.all([...urls.map(_loadOne), ...BG_IMAGES.map(_loadOne)]);
   },
 
   preloadMatchFullInBackground(state) {

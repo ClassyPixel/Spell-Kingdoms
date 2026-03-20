@@ -10,7 +10,7 @@ export const CHAPTERS = [
     number: 1,
     title: 'A Spark of Potential',
     subtitle: 'Every great mage begins somewhere.',
-    intro: 'The iron gates of Arcane Card Kingdom swing open before you, revealing a world unlike anything you have known. The courtyard hums with restless energy — students practising incantations, sparks of arcane light tracing patterns in the morning air. You are a scholarship student: no noble bloodline, no legendary mentor. Just potential, and the stubborn belief that it is enough.\n\nThis is where your story begins.',
+    intro: 'The iron gates of Conjuring Masters swing open before you, revealing a world unlike anything you have known. The courtyard hums with restless energy — students practising incantations, sparks of arcane light tracing patterns in the morning air. You are a scholarship student: no noble bloodline, no legendary mentor. Just potential, and the stubborn belief that it is enough.\n\nThis is where your story begins.',
     triggerFlag: null,
     completionFlag: 'main_01_complete',
     scenes: [
@@ -48,12 +48,12 @@ export const CHAPTERS = [
       {
         sceneId: 'ch2_the_challenge',
         title: 'The Challenge',
-        text: "Aria's challenge has been circling in your mind. She is skilled — more skilled than she lets on. Accepting means risking humiliation in front of the entire student body. Declining means something worse.",
+        text: "Sofi's challenge has been circling in your mind. She is skilled — more skilled than she lets on. Accepting means risking humiliation in front of the entire student body. Declining means something worse.",
       },
       {
         sceneId: 'ch2_after_the_duel',
         title: 'After the Duel',
-        text: "Win or lose, the duel changes something. Aria looks at you differently now — with a respect that wasn't there before. On the dueling grounds, stripped of pretence, people show you who they really are.",
+        text: "Win or lose, the duel changes something. Sofi looks at you differently now — with a respect that wasn't there before. On the dueling grounds, stripped of pretence, people show you who they really are.",
       },
     ],
   },
@@ -86,7 +86,7 @@ export const CHAPTERS = [
 ];
 
 export const LOCATIONS = [
-  { id: 'academy_courtyard', name: 'Academy Courtyard', tag: 'Starting Area', description: 'The central hub of Arcane Card Kingdom. Students gather here between classes.', icon: '🏛️', bgIcon: '🏛️' },
+  { id: 'academy_courtyard', name: 'Academy Courtyard', tag: 'Starting Area', description: 'The central hub of Conjuring Masters. Students gather here between classes.', icon: '🏛️', bgIcon: '🏛️', bgImage: 'assets/images/CardGameArt/SceneryArt/XtBwQy7.png' },
   { id: 'library',           name: 'Grand Library',     tag: 'Study',         description: 'Ancient tomes line every shelf. Knowledge awaits those who seek it.',           icon: '📚', bgIcon: '📚' },
   { id: 'dueling_grounds',   name: 'Dueling Grounds',   tag: 'Combat',        description: 'A ring of ancient stones where students test their spells in controlled duels.', icon: '⚔️', bgIcon: '⚔️' },
   { id: 'market',            name: 'Academy Market',    tag: 'Shopping',      description: 'Merchants hawking spell components, potions, and rare cards.',                  icon: '🛒', bgIcon: '🛒' },
@@ -96,7 +96,7 @@ export const LOCATIONS = [
 
 export const NPCS = [
   {
-    id: 'aria', name: 'Aria', portrait: '🧙‍♀️', location: 'academy_courtyard',
+    id: 'aria', name: 'Sofi', portrait: '🧙‍♀️', portraitImg: 'assets/images/CardGameArt/NPCart/Sofi/Lenadisplay.png', location: 'academy_courtyard',
     description: 'A confident second-year student with fire-elemental magic.',
     deck: ['ember_bolt','ember_bolt','ember_bolt','phoenix_feather','flame_shield','healing_light','frost_shard','thunder_strike','arcane_blast','ember_bolt'],
     matchRewards: [
@@ -131,7 +131,7 @@ export const NPCS = [
     matchRewards: [],
   },
   {
-    id: 'merchant_courtyard', name: 'The Merchant', portrait: '🧑‍💼', location: 'academy_courtyard',
+    id: 'merchant_courtyard', name: 'The Merchant', portrait: '🧑‍💼', portraitImg: 'assets/images/CardGameArt/NPCart/Merchant_A/wizard_npc.png', scenePosition: 'right', location: 'academy_courtyard',
     description: 'A traveling merchant dealing in rare loot boxes and booster packs.',
     deck: [],
     matchRewards: [],
@@ -174,19 +174,19 @@ export const ITEMS = [
 export const QUESTS = [
   {
     questId: 'main_01', title: 'Enrollment Day', type: 'main',
-    description: 'Your first day at Arcane Card Kingdom. Get acquainted with your surroundings and meet your fellow students.',
+    description: 'Your first day at Conjuring Masters. Get acquainted with your surroundings and meet your fellow students.',
     objectives: [
-      { id: 'm01_obj_01', type: 'dialogue',     description: 'Speak with Aria in the Courtyard',                    target: { npcId: 'aria',          flag: 'met_aria' } },
+      { id: 'm01_obj_01', type: 'dialogue',     description: 'Speak with Sofi in the Courtyard',                    target: { npcId: 'aria',          flag: 'met_aria' } },
       { id: 'm01_obj_02', type: 'dialogue',     description: 'Visit the Grand Library and speak with Master Aldric', target: { npcId: 'master_aldric', flag: 'met_aldric' } },
       { id: 'm01_obj_03', type: 'dialogue',     description: 'Explore the Academy Market and meet Zephyr',           target: { npcId: 'zephyr',        flag: 'met_zephyr' } },
     ],
     rewards: { exp: 100, coin: 50, cards: ['mana_surge'], unlockLocations: ['dueling_grounds','dormitory','headmaster_office'] },
   },
   {
-    questId: 'side_01', title: "Aria's Challenge", type: 'side',
-    description: 'Aria has challenged you to a card duel.',
+    questId: 'side_01', title: "Sofi's Challenge", type: 'side',
+    description: 'Sofi has challenged you to a card duel.',
     objectives: [
-      { id: 's01_obj_01', type: 'card_victory', description: 'Defeat Aria in a card duel', target: { npcId: 'aria' } },
+      { id: 's01_obj_01', type: 'card_victory', description: 'Defeat Sofi in a card duel', target: { npcId: 'aria' } },
     ],
     rewards: { exp: 60, coin: 30, cards: ['flame_shield'] },
   },
@@ -234,15 +234,15 @@ export const DIALOGUES = {
     ],
     nodes: {
       start: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
-        text: "Oh! A new student? Welcome to Arcane Card Kingdom. I'm Aria — second year, fire specialisation. Word of advice: don't wander into the Dueling Grounds alone on your first day.",
+        speaker: 'Sofi', portrait: '🧙‍♀️',
+        text: "Oh! A new student? Welcome to Conjuring Masters. I'm Sofi — second year, fire specialisation. Word of advice: don't wander into the Dueling Grounds alone on your first day.",
         choices: [
           { label: 'Thanks for the warning. Nice to meet you!', effects: [{ type: 'setFlag', flag: 'met_aria' }, { type: 'relationship', value: 3 }, { type: 'completeObjective', objectiveId: 'm01_obj_01' }], next: 'aria_intro_response' },
           { label: 'I think I can handle myself.',              effects: [{ type: 'setFlag', flag: 'met_aria' }, { type: 'relationship', value: 1 }, { type: 'completeObjective', objectiveId: 'm01_obj_01' }], next: 'aria_intro_bold' },
         ],
       },
       aria_intro_response: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "Nice to meet you! Hmm, there's something about you... Come find me when you're settled in — I have a feeling we'll be seeing a lot of each other.",
         choices: [
           { label: 'I look forward to it.',  next: null },
@@ -250,17 +250,17 @@ export const DIALOGUES = {
         ],
       },
       aria_intro_bold: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "Ha! Confident. I like that. Most first-years are practically shaking on arrival. Alright, prove it — come find me at the Dueling Grounds sometime.",
         choices: [],
       },
       aria_intro_challenge_tease: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: '*grins* Maybe it is. We\'ll see how strong you are once you\'ve got your bearings.',
         choices: [],
       },
       returning_greeting: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "Hey! Settling in alright? The first week is always overwhelming, but you'll find your footing.",
         choices: [
           { label: 'Tell me about the Academy.',                                                                effects: [{ type: 'relationship', value: 1 }],  next: 'aria_about_academy' },
@@ -274,12 +274,12 @@ export const DIALOGUES = {
         ],
       },
       aria_rebuff: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "...*short pause* Okay. Sure. I'll leave you to it then.",
         choices: [],
       },
       aria_charm_20: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*pauses, surprised anyone asked* ...Honestly? I have something to prove. Everyone here knows my sister's name before they know mine. I refuse to let that define me.",
         choices: [
           { label: "You're making your own name. I've noticed.", effects: [{ type: 'relationship', value: 2 }], next: null },
@@ -287,7 +287,7 @@ export const DIALOGUES = {
         ],
       },
       aria_charm_40: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*quiet for a moment* Not easily. I learned early that showing weakness here gets used against you. But... there are maybe one or two people I don't feel like I have to perform for. *glances at you briefly*",
         choices: [
           { label: "I hope I'm one of them.", effects: [{ type: 'relationship', value: 3 }], next: 'aria_charm_40_response' },
@@ -295,12 +295,12 @@ export const DIALOGUES = {
         ],
       },
       aria_charm_40_response: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*small smile, looks away* ...Yeah. You are.",
         choices: [],
       },
       aria_charm_60: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*blinks, then laughs quietly* Is that so. I'm not going to pretend I haven't noticed. But I'm not the kind of person who does things halfway — if you mean that, you'd better mean it.",
         choices: [
           { label: 'I mean it.', effects: [{ type: 'relationship', value: 4 }, { type: 'setFlag', flag: 'aria_romance_hint' }], next: 'aria_charm_60_response' },
@@ -308,17 +308,17 @@ export const DIALOGUES = {
         ],
       },
       aria_charm_60_response: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "...Good. *she holds your gaze a moment longer than usual* Don't make me regret trusting you with that.",
         choices: [],
       },
       aria_charm_80: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*long breath* You know... when I first saw you, I thought: just another student who'd be gone before midterms. *turns to face you fully* I was very wrong about you. Whatever comes next — I'm not facing it without you either.",
         choices: [{ label: 'Then we face it together.', effects: [{ type: 'relationship', value: 5 }, { type: 'setFlag', flag: 'aria_bonded' }], next: null }],
       },
       aria_about_academy: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "The Academy has four specialisations: Fire, Ice, Arcane, and Light. Most students have a natural affinity, but some are elementally neutral — they can learn from all schools.",
         choices: [
           { label: 'Which is the strongest?', next: 'aria_elements_debate' },
@@ -326,12 +326,12 @@ export const DIALOGUES = {
         ],
       },
       aria_elements_debate: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "Fire, obviously. Speed, aggression, pure damage. Ice is defensive but slow. Arcane is powerful but mana-hungry. Light is healing — useful, but not exactly intimidating.",
         choices: [],
       },
       aria_challenge_accept: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "Oh! Finally! I was starting to think you'd never ask. Let's go — I won't hold back!",
         choices: [
           { label: "Let's duel right now!", effects: [{ type: 'triggerCardGame', npcId: 'aria' }], next: null },
@@ -339,7 +339,7 @@ export const DIALOGUES = {
         ],
       },
       post_challenge_check: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "Still thinking about our duel? I'm ready whenever you are.",
         choices: [
           { label: "Let's duel!", effects: [{ type: 'triggerCardGame', npcId: 'aria' }], next: null },
@@ -347,33 +347,33 @@ export const DIALOGUES = {
         ],
       },
       friend_greeting: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "I've been thinking... the truth is, I'm trying to prove myself. My older sister was the top student here, and everyone expects me to surpass her. It's a lot of pressure.",
         choices: [
           { label: 'That sounds really hard.', effects: [{ type: 'relationship', value: 3 }], next: 'aria_friend_pressure' },
           { label: 'You should just focus on yourself.', effects: [{ type: 'relationship', value: 2 }], next: 'aria_friend_focus' },
         ],
       },
-      aria_friend_pressure: { speaker: 'Aria', portrait: '🧙‍♀️', text: "Yeah... it really is. But talking to you about it helps. *smiles warmly* You're a good friend.", choices: [] },
-      aria_friend_focus:    { speaker: 'Aria', portrait: '🧙‍♀️', text: "You're right. I should stop competing with her ghost and just be myself.", choices: [] },
+      aria_friend_pressure: { speaker: 'Sofi', portrait: '🧙‍♀️', text: "Yeah... it really is. But talking to you about it helps. *smiles warmly* You're a good friend.", choices: [] },
+      aria_friend_focus:    { speaker: 'Sofi', portrait: '🧙‍♀️', text: "You're right. I should stop competing with her ghost and just be myself.", choices: [] },
       story_scene_greeting: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "I've been looking for you. There's something I need to tell you — about my sister, and why she really left the Academy.",
         effects: [{ type: 'setFlag', flag: 'aria_story_told' }],
         choices: [{ label: 'Tell me everything.', effects: [{ type: 'relationship', value: 5 }], next: 'aria_story_reveal' }],
       },
       aria_story_reveal: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "She was expelled. For forbidden magic. The headmaster covered it up. I think it has something to do with the sealed vault beneath the library.",
         choices: [{ label: "I'll help you find the truth.", effects: [{ type: 'relationship', value: 3 }, { type: 'setFlag', flag: 'vault_investigation' }], next: null }],
       },
       bonded_greeting: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "When I first met you, I thought you were just another wide-eyed first-year. I had no idea you'd become this important to me. Whatever happens — I'm glad you're by my side.",
-        choices: [{ label: 'Me too, Aria. Always.', effects: [{ type: 'relationship', value: 1 }], next: null }],
+        choices: [{ label: 'Me too, Sofi. Always.', effects: [{ type: 'relationship', value: 1 }], next: null }],
       },
       post_win: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*breathless* That was... incredible. I didn't hold back, and you still beat me. I don't hand out compliments lightly, but — well done. Genuinely.",
         choices: [
           { label: 'You pushed me hard. That was a great duel.', effects: [{ type: 'relationship', value: 4 }, { type: 'setFlag', flag: 'beat_aria' }], next: 'aria_post_win_follow' },
@@ -381,12 +381,12 @@ export const DIALOGUES = {
         ],
       },
       aria_post_win_follow: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "Lucky? No. You read my moves and countered them. You earned this. *pauses* Come find me again soon — I want a rematch.",
         choices: [],
       },
       post_lose: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*extends a hand* You fought well. Most first-years don't even land a hit. Don't be discouraged — keep training and come back when you're ready.",
         choices: [
           { label: 'I will. Thank you for the challenge.', effects: [{ type: 'relationship', value: 2 }], next: null },
@@ -394,7 +394,7 @@ export const DIALOGUES = {
         ],
       },
       aria_post_lose_response: {
-        speaker: 'Aria', portrait: '🧙‍♀️',
+        speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*smiles* I'm counting on it.",
         choices: [],
       },
@@ -443,7 +443,7 @@ export const DIALOGUES = {
           { label: 'Just looking for some guidance.',                                           effects: [{ type: 'relationship', value: 1 }],  next: 'aldric_guidance' },
           { label: 'What made you become a teacher?',                                          requires: { min_charm: 20 }, effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charm_20' },
           { label: 'Do you ever regret staying at the Academy all these years?',               requires: { min_charm: 40 }, effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charm_40' },
-          { label: 'What really happened to the students who were expelled before Aria\'s sister?', requires: { min_charm: 60 }, effects: [{ type: 'relationship', value: 3 }], next: 'aldric_charm_60' },
+          { label: 'What really happened to the students who were expelled before Sofi\'s sister?', requires: { min_charm: 60 }, effects: [{ type: 'relationship', value: 3 }], next: 'aldric_charm_60' },
           { label: "Master Aldric — you're the only person here I genuinely trust.",           requires: { min_charm: 80 }, effects: [{ type: 'relationship', value: 4 }], next: 'aldric_charm_80' },
           { label: 'Nothing in particular.',                                                    next: null },
           { label: "Your lectures are a waste of time, frankly.",                               effects: [{ type: 'relationship', value: -3 }], next: 'aldric_rebuff' },
@@ -524,7 +524,7 @@ export const DIALOGUES = {
       },
       aldric_vault_records: {
         speaker: 'Master Aldric', portrait: '🧓',
-        text: "Expulsion records. Students who were silenced. I believe Aria's sister wasn't the only one. I need someone I can trust to help me investigate.",
+        text: "Expulsion records. Students who were silenced. I believe Sofi's sister wasn't the only one. I need someone I can trust to help me investigate.",
         choices: [{ label: "I'll help you.", effects: [{ type: 'setFlag', flag: 'aldric_investigation_partner' }, { type: 'relationship', value: 5 }], next: null }],
       },
       aldric_final: {
@@ -1070,7 +1070,7 @@ export function validateDeck(deck) {
 
 export const QUICK_MATCH_OPPONENTS = [
   { npcId: 'training_dummy', name: 'Training Dummy', portrait: '🪆', difficulty: 1, difficultyLabel: 'Beginner', description: 'A magical training construct. Perfect for first-timers and warm-up rounds.' },
-  { npcId: 'aria',           name: 'Aria',           portrait: '🧙‍♀️', difficulty: 2, difficultyLabel: 'Medium',   description: 'Aggressive fire specialist. Expects to win fast — do not let her.' },
+  { npcId: 'aria',           name: 'Sofi',           portrait: '🧙‍♀️', difficulty: 2, difficultyLabel: 'Medium',   description: 'Aggressive fire specialist. Expects to win fast — do not let her.' },
   { npcId: 'zephyr',         name: 'Zephyr',         portrait: '🧝', difficulty: 2, difficultyLabel: 'Medium',   description: 'Void and ice tactics. Unpredictable and hard to read until it\'s too late.' },
   { npcId: 'master_aldric',  name: 'Master Aldric',  portrait: '🧓', difficulty: 3, difficultyLabel: 'Expert',   description: 'Arcane grandmaster. Controls the board with surgical, patient precision.' },
 ];
@@ -1141,6 +1141,76 @@ export const STARTER_DECKS = [
     description: 'A versatile toolkit with answers to every situation. Balanced offense and defense backed by the full spell collection.',
     champions: CHAMPION_CARDS,
     elites: ELITE_CARD_DECK,
+    summons: SUMMON_CARD_DECK,
+    spells: SPELL_CARD_DECK,
+  },
+];
+
+// Story-mode starter decks — separate from quickmatch; icon art driven by first elite.
+export const STORY_STARTER_DECKS = [
+  {
+    id: 'story_ember_adept', name: 'Ember Adept', art: '🔥', color: '#7a1808',
+    description: 'A relentless assault strategy built around fast elites and cheap summons that flood the field before the enemy can react.',
+    champions: CHAMPION_CARDS,
+    elites: [
+      _ec('elite_phoenix'), _ec('elite_dragon'),   _ec('elite_elemental'), _ec('elite_vampire'),
+      _ec('elite_witch'),   _ec('elite_assassin'), _ec('elite_necromancer'), _ec('elite_knight'),
+      _ec('elite_paladin'), _ec('elite_golem'),
+    ],
+    summons: [
+      ..._sc('sum_imp',   7), ..._sc('sum_bat',      6), ..._sc('sum_hawk',      7),
+      ..._sc('sum_djinn', 6), ..._sc('sum_fox',      4), ..._sc('sum_titan',     5),
+      ..._sc('sum_wyrm',  3), ..._sc('sum_leviathan', 2), _sc('sum_adragon', 1)[0],
+    ],
+    spells: [
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' } },
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' } },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
+      { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
+      { cardId: 'spell_teleport',       type: 'spell', name: 'Arcane Gate',   art: '🌀', description: 'Teleport target player elite to the front of its nearest champion.',           effect: { type: 'teleport_elite' }, needsTarget: 'player_elite' },
+      { cardId: 'spell_teleport',       type: 'spell', name: 'Arcane Gate',   art: '🌀', description: 'Teleport target player elite to the front of its nearest champion.',           effect: { type: 'teleport_elite' }, needsTarget: 'player_elite' },
+      { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                              effect: { type: 'revive' } },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                       effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+    ],
+  },
+  {
+    id: 'story_iron_sentinel', name: 'Iron Sentinel', art: '🗿', color: '#0e3a6a',
+    description: 'A fortress strategy anchored by high-HP elites and defensive summons that grind down attackers while sustaining your champions.',
+    champions: CHAMPION_CARDS,
+    elites: [
+      _ec('elite_golem'),  _ec('elite_knight'),  _ec('elite_paladin'),  _ec('elite_dragon'),
+      _ec('elite_phoenix'), _ec('elite_elemental'), _ec('elite_vampire'), _ec('elite_necromancer'),
+      _ec('elite_witch'),   _ec('elite_assassin'),
+    ],
+    summons: [
+      ..._sc('sum_wisp',     6), ..._sc('sum_sprite',   7), ..._sc('sum_bear',      7),
+      ..._sc('sum_shaman',   6), ..._sc('sum_sentinel',  6), ..._sc('sum_wyrm',     5),
+      ..._sc('sum_leviathan', 2), _sc('sum_ephoenix', 1)[0], _sc('sum_adragon', 1)[0],
+    ],
+    spells: [
+      { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
+      { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+      { cardId: 'spell_shield',         type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                    effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_shield',         type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                    effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                   effect: { type: 'extra_roll' } },
+      { cardId: 'spell_teleport_champ', type: 'spell', name: 'Teleportation', art: '✈️', description: 'Relocate a champion to any open space in your champion row.',            effect: { type: 'teleport_champion' }, needsTarget: 'teleport_champion' },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',               effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',       effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
+    ],
+  },
+  {
+    id: 'story_void_scholar', name: 'Void Scholar', art: '💀', color: '#1a0840',
+    description: 'Command shadow elites and a complete spell arsenal to control the battlefield with knowledge and cunning rather than brute force.',
+    champions: CHAMPION_CARDS,
+    elites: [
+      _ec('elite_necromancer'), _ec('elite_assassin'), _ec('elite_witch'),   _ec('elite_vampire'),
+      _ec('elite_elemental'),   _ec('elite_phoenix'),  _ec('elite_dragon'),  _ec('elite_paladin'),
+      _ec('elite_knight'),      _ec('elite_golem'),
+    ],
     summons: SUMMON_CARD_DECK,
     spells: SPELL_CARD_DECK,
   },

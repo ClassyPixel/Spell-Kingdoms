@@ -93,6 +93,7 @@ const GameState = {
     sfxVolume:   1.0,
     textSpeed:   'normal',   // 'slow' | 'normal' | 'fast' | 'instant'
     fullscreen:  false,
+    font:        'default',  // 'default' | 'lutin'
   },
 
   // ──────────────────────────────────────────

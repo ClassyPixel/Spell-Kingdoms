@@ -66,10 +66,10 @@ const DialogueSystem = {
     this._shopPending = false;
     this._npcPortrait = data.portrait ?? GameState.relationships[npcId]?.portrait ?? '🧙';
 
-    // Push dialogue screen first so its listeners are registered before dialogue:show fires
-    EventBus.emit('screen:push', { screen: DialogueScreen_ref, params: { npcId } });
+    // Mount dialogue overlay (registers its listeners before dialogue:show fires)
+    DialogueScreen_ref.showOverlay(npcId);
 
-    // Now start dialogue — dialogue:show will be caught by the mounted screen
+    // Now start dialogue — dialogue:show will be caught by the overlay
     const entryNode = nodeOverride ?? this._resolveEntry(data);
     this._goTo(entryNode);
   },
@@ -254,11 +254,15 @@ const DialogueSystem = {
         const _unsubShop = EventBus.on('shop:closed', () => {
           _unsubShop();
           this._shopPending = false;
-          if (this._nodes?.farewell) {
-            this._goTo('farewell');
-          } else {
-            this._end();
-          }
+          // Defer by one tick so ScreenManager finishes re-mounting DialogueScreen
+          // before we emit dialogue:show / dialogue:end.
+          setTimeout(() => {
+            if (this._nodes?.farewell) {
+              this._goTo('farewell');
+            } else {
+              this._end();
+            }
+          }, 0);
         });
         break;
       }

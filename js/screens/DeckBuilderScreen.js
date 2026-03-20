@@ -33,7 +33,31 @@ const REQ = {
 };
 
 const SUB_ORDER = ['champions', 'elites', 'summons', 'spells'];
-const RARITY_COLOR = { S: '#e0b84a', A: '#9060e0', B: '#4ab0d0', C: '#888' };
+
+// ── Card art / rarity helpers (mirrors CardGameScreen) ───────────────────────
+const TERRAIN_ICON = {
+  fire:  'assets/images/CardGameArt/TypeArt/fire_img.png',
+  ice:   'assets/images/CardGameArt/TypeArt/ice_img.png',
+  water: 'assets/images/CardGameArt/TypeArt/water_img.png',
+  wind:  'assets/images/CardGameArt/TypeArt/wind_img.png',
+  earth: 'assets/images/CardGameArt/TypeArt/earth_img.png',
+  spell: 'assets/images/CardGameArt/TypeArt/spell_img.png',
+};
+const RARITY_COLOR   = { C: '#aaa', B: '#4ab87c', A: '#9b30d0', S: '#c07820' };
+const ART_BASE = 'assets/images/CardGameArt/CardArt/';
+
+function _cardArtImg(card) {
+  if (!card.artFile) return `<div class="cg-art-emoji">${card.art ?? '✨'}</div>`;
+  return `<img class="cg-card-art-img" src="${ART_BASE}${card.artFile}" alt="${card.name}" decoding="sync">`;
+}
+function _terrainCircle(card) {
+  if (!card.terrain || !TERRAIN_ICON[card.terrain]) return '';
+  return `<img class="cg-terrain-icon" src="${TERRAIN_ICON[card.terrain]}" alt="${card.terrain}">`;
+}
+function _rarityBadge(card) {
+  if (!card.rarity) return '';
+  return `<span class="cg-rarity" style="color:${RARITY_COLOR[card.rarity] ?? '#aaa'}">${card.rarity}</span>`;
+}
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 const DeckBuilderScreen = {
@@ -43,12 +67,24 @@ const DeckBuilderScreen = {
   _pending:    [],     // cards staged but not yet confirmed
   _deckName:   'Deck1',
 
-  mount(container) {
+  mount(container, params = {}) {
     this._container = container;
     this._draft     = { champions: [], elites: [], summons: [], spells: [] };
     this._activeSub = null;
     this._pending   = [];
     this._deckName  = 'Deck1';
+
+    if (params.deck) {
+      const d = params.deck;
+      this._draft = {
+        champions: [...(d.champions ?? [])],
+        elites:    [...(d.elites    ?? [])],
+        summons:   [...(d.summons   ?? [])],
+        spells:    [...(d.spells    ?? [])],
+      };
+      this._deckName = d.name ?? 'Deck1';
+    }
+
     this._render();
   },
 
@@ -202,14 +238,14 @@ const DeckBuilderScreen = {
     `;
     container.appendChild(ph);
 
-    // Card grid
+    // Card grid — same visual as Card List tab
     const grid = document.createElement('div');
-    grid.className = 'db-picker-grid';
+    grid.className = 'inv-card-grid';
 
     pool.forEach(card => {
-      const inDraft   = this._draft[sub].filter(c => c.cardId === card.cardId).length;
-      const inPending = this._pending.filter(c => c.cardId === card.cardId).length;
-      const total     = inDraft + inPending;
+      const inDraft    = this._draft[sub].filter(c => c.cardId === card.cardId).length;
+      const inPending  = this._pending.filter(c => c.cardId === card.cardId).length;
+      const total      = inDraft + inPending;
       const draftTotal = this._draft[sub].length + this._pending.length;
 
       let canAdd = true, blockedMsg = '';
@@ -226,26 +262,7 @@ const DeckBuilderScreen = {
       }
       // summons: no cap
 
-      const rc = RARITY_COLOR[card.rarity] ?? '#888';
-      const el = document.createElement('div');
-      el.className = 'db-pcard' + (!canAdd ? ' disabled' : '') + (total > 0 ? ' staged' : '');
-
-      el.innerHTML = `
-        <div class="db-pcard-art">${card.art ?? '✨'}</div>
-        <div class="db-pcard-name">${card.name}</div>
-        <div class="db-pcard-meta">${card.cardType ?? card.type ?? ''}${card.rarity ? ` · <span style="color:${rc}">${card.rarity}</span>` : ''}</div>
-        ${card.hp !== undefined ? `<div class="db-pcard-stat">HP ${card.hp}  PWR ${card.power}</div>` : ''}
-        ${total > 0 ? `<div class="db-pcard-badge">×${total}</div>` : ''}
-        ${!canAdd ? `<div class="db-pcard-block">${blockedMsg}</div>` : ''}
-      `;
-
-      if (canAdd) {
-        el.addEventListener('click', () => {
-          this._pending.push({ ...card });
-          this._renderPicker(document.getElementById('db-picker-area'));
-          this._renderRight(document.getElementById('db-right-panel'));
-        });
-      }
+      const el = this._buildPickerCard(card, { canAdd, blockedMsg, total });
       grid.appendChild(el);
     });
 
@@ -279,6 +296,158 @@ const DeckBuilderScreen = {
     actions.appendChild(confirmBtn);
     actions.appendChild(cancelBtn);
     container.appendChild(actions);
+  },
+
+  // Build a single picker card using the cg-hand-card visual
+  _buildPickerCard(card, { canAdd, blockedMsg, total }) {
+    const el = document.createElement('div');
+    el.className = 'cg-hand-card inv-card-tile db-picker-card'
+      + (!canAdd  ? ' db-pcard-disabled' : '')
+      + (total > 0 ? ' db-pcard-staged'   : '');
+
+    if (card.type === 'spell') {
+      el.innerHTML = `
+        <div class="cg-card-top">
+          <span class="cg-card-name">${card.name}</span>
+          <span class="cg-hcard-cost">0</span>
+        </div>
+        <div class="cg-type-label">Spell</div>
+        <div class="cg-card-art-wrap"><div class="cg-art-emoji">${card.art ?? '✨'}</div></div>
+      `;
+    } else if (card.type === 'champion') {
+      el.innerHTML = `
+        <div class="cg-card-top">
+          <span class="cg-card-name">${card.name}</span>
+        </div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:100%;background:#4ab87c"></div></div>
+        <div class="cg-card-stats"><span class="cg-stat-hp">HP ${card.hp}</span></div>
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    } else if (card.type === 'elite') {
+      el.innerHTML = `
+        <div class="cg-card-top">
+          <span class="cg-card-name">${card.name}</span>
+        </div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:100%;background:#4ab87c"></div></div>
+        <div class="cg-card-stats">
+          <span class="cg-stat-hp">HP ${card.hp}</span>
+          <span class="cg-stat-pow">POW ${card.power}</span>
+        </div>
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    } else {
+      // summon
+      el.innerHTML = `
+        <div class="cg-card-top">
+          <span class="cg-card-name">${card.name}</span>
+          <span class="cg-hcard-cost">${card.summonCost ?? ''}</span>
+        </div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:100%;background:#4ab87c"></div></div>
+        <div class="cg-card-stats">
+          <span class="cg-stat-hp">HP ${card.hp}</span>
+          <span class="cg-stat-pow">POW ${card.power}</span>
+        </div>
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    }
+
+    // Staged count badge (top-right corner)
+    if (total > 0) {
+      const badge = document.createElement('div');
+      badge.className = 'db-pcard-badge';
+      badge.textContent = `×${total}`;
+      el.appendChild(badge);
+    }
+
+    // Disabled overlay
+    if (!canAdd) {
+      const block = document.createElement('div');
+      block.className = 'db-pcard-block';
+      block.textContent = blockedMsg;
+      el.appendChild(block);
+    }
+
+    el.dataset.cardid = card.cardId;
+
+    if (canAdd) {
+      el.addEventListener('click', () => {
+        this._pending.push({ ...card });
+        this._updatePickerCardState(this._activeSub);
+        this._updateConfirmBtn();
+        this._renderRight(document.getElementById('db-right-panel'));
+      });
+    }
+
+    return el;
+  },
+
+  // Update picker card visuals in-place after a selection (no full re-render)
+  _updatePickerCardState(sub) {
+    const grid = document.getElementById('db-picker-area')?.querySelector('.inv-card-grid');
+    if (!grid) return;
+
+    const draftTotal = this._draft[sub].length + this._pending.length;
+    const subFull = (sub === 'champions' && draftTotal >= 3)
+                 || (sub === 'elites'    && draftTotal >= 10)
+                 || (sub === 'spells'    && draftTotal >= 10);
+
+    POOLS[sub].forEach(card => {
+      const el = grid.querySelector(`[data-cardid="${card.cardId}"]`);
+      if (!el) return;
+
+      const inDraft   = this._draft[sub].filter(c => c.cardId === card.cardId).length;
+      const inPending = this._pending.filter(c => c.cardId === card.cardId).length;
+      const total     = inDraft + inPending;
+
+      // Staged badge
+      let badge = el.querySelector('.db-pcard-badge');
+      if (total > 0) {
+        if (!badge) { badge = document.createElement('div'); badge.className = 'db-pcard-badge'; el.appendChild(badge); }
+        badge.textContent = `×${total}`;
+        el.classList.add('db-pcard-staged');
+      } else {
+        badge?.remove();
+        el.classList.remove('db-pcard-staged');
+      }
+
+      // Disabled state
+      let disabled = false, blockedMsg = '';
+      if (sub === 'champions') {
+        if (total >= 1) { disabled = true; blockedMsg = 'Added'; }
+        else if (subFull) { disabled = true; blockedMsg = 'Full (3/3)'; }
+      } else if (sub === 'elites') {
+        if (total >= 1) { disabled = true; blockedMsg = 'Added'; }
+        else if (subFull) { disabled = true; blockedMsg = 'Full (10/10)'; }
+      } else if (sub === 'spells') {
+        if (total >= 2) { disabled = true; blockedMsg = 'Max ×2'; }
+        else if (subFull) { disabled = true; blockedMsg = 'Full (10/10)'; }
+      }
+
+      if (disabled) {
+        el.classList.add('db-pcard-disabled');
+        let block = el.querySelector('.db-pcard-block');
+        if (!block) { block = document.createElement('div'); block.className = 'db-pcard-block'; el.appendChild(block); }
+        block.textContent = blockedMsg;
+      } else {
+        el.classList.remove('db-pcard-disabled');
+        el.querySelector('.db-pcard-block')?.remove();
+      }
+    });
+  },
+
+  // Update confirm button count in-place
+  _updateConfirmBtn() {
+    const btn = document.querySelector('#db-picker-area .btn-primary');
+    if (!btn) return;
+    const n = this._pending.length;
+    btn.textContent = `✓ Confirm  (${n} card${n !== 1 ? 's' : ''})`;
+    btn.disabled = n === 0;
   },
 
   // ── Right panel ─────────────────────────────────────────────────────────────

@@ -70,7 +70,7 @@ const MapScreen = {
     // Title
     const title = document.createElement('div');
     title.className = 'map-title';
-    title.textContent = '— Arcane Card Kingdom —';
+    title.textContent = '— Conjuring Masters —';
     screen.appendChild(title);
 
     // Map canvas
@@ -99,8 +99,10 @@ const MapScreen = {
         <div class="map-pin-diamond">
           <div class="map-pin-icon">${loc.icon ?? '🏛️'}</div>
         </div>
-        <div class="map-pin-label">${loc.name}</div>
-        <div class="map-pin-tag">${loc.tag ?? ''}</div>
+        <div class="map-pin-tooltip">
+          <div class="map-pin-tooltip-name">${loc.name}</div>
+          ${loc.tag ? `<div class="map-pin-tooltip-tag">${loc.tag}</div>` : ''}
+        </div>
         ${isCurrent ? '<div class="map-pin-pulse"></div>' : ''}
         ${!unlocked ? '<div class="map-pin-lock">🔒</div>' : ''}
       `;
@@ -216,7 +218,7 @@ const MapScreen = {
       <rect x="14" y="14" width="168" height="36" rx="4"
             fill="rgba(0,0,0,0.45)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
       <text x="98" y="37" text-anchor="middle" font-size="13" fill="rgba(232,200,74,0.85)"
-            font-style="italic">Arcane Card Kingdom</text>
+            font-style="italic">Conjuring Masters</text>
     </svg>`;
   },
 

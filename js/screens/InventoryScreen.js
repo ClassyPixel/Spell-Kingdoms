@@ -3,12 +3,35 @@
  */
 import EventBus from '../EventBus.js';
 import GameState from '../GameState.js';
-import { CARDS, ITEMS, STARTER_DECKS, validateDeck, LOOT_BOX_TYPES, openLootBox } from '../Data.js';
+import SoundSystem from '../systems/SoundSystem.js';
+import DeckBuilderScreen from './DeckBuilderScreen.js';
+import {
+  ITEMS, STORY_STARTER_DECKS, validateDeck, LOOT_BOX_TYPES, openLootBox,
+} from '../Data.js';
 
-function buildCardMap() {
-  const m = {};
-  CARDS.forEach(c => { m[c.cardId] = c; });
-  return m;
+// ── Card art / rarity helpers (mirrors CardGameScreen) ───────────────────────
+const TERRAIN_ICON = {
+  fire:  'assets/images/CardGameArt/TypeArt/fire_img.png',
+  ice:   'assets/images/CardGameArt/TypeArt/ice_img.png',
+  water: 'assets/images/CardGameArt/TypeArt/water_img.png',
+  wind:  'assets/images/CardGameArt/TypeArt/wind_img.png',
+  earth: 'assets/images/CardGameArt/TypeArt/earth_img.png',
+  spell: 'assets/images/CardGameArt/TypeArt/spell_img.png',
+};
+const RARITY_COLOR   = { C: '#aaa', B: '#4ab87c', A: '#9b30d0', S: '#c07820' };
+const ART_BASE = 'assets/images/CardGameArt/CardArt/';
+
+function _cardArtImg(card) {
+  if (!card.artFile) return `<div class="cg-art-emoji">${card.art ?? '✨'}</div>`;
+  return `<img class="cg-card-art-img" src="${ART_BASE}${card.artFile}" alt="${card.name}" decoding="sync">`;
+}
+function _terrainCircle(card) {
+  if (!card.terrain || !TERRAIN_ICON[card.terrain]) return '';
+  return `<img class="cg-terrain-icon" src="${TERRAIN_ICON[card.terrain]}" alt="${card.terrain}">`;
+}
+function _rarityBadge(card) {
+  if (!card.rarity) return '';
+  return `<span class="cg-rarity" style="color:${RARITY_COLOR[card.rarity] ?? '#aaa'}">${card.rarity}</span>`;
 }
 
 function buildItemsMap() {
@@ -17,23 +40,15 @@ function buildItemsMap() {
   return m;
 }
 
-function countArr(arr) {
-  const counts = {};
-  arr.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
-  return counts;
-}
-
 const TABS = ['Card List', 'Decks', 'Loot', 'Key Items'];
 
 const InventoryScreen = {
   _container: null,
-  _cardMap: {},
   _itemsMap: {},
   _activeTab: 'Card List',
 
   mount(container, params = {}) {
     this._container = container;
-    this._cardMap = buildCardMap();
     this._itemsMap = buildItemsMap();
     this._activeTab = params.tab || 'Card List';
     this._render();
@@ -104,103 +119,263 @@ const InventoryScreen = {
   // ── Card List ──────────────────────────────────────────────────────────────
 
   _renderCardList(content) {
-    const collection = GameState.deck.collection;
+    // Count cards from collection; also ensure active-deck cards are always counted
+    // (quick-match STARTER_DECKS are separate and don't contribute here)
+    const ownedCounts = {};
+    (GameState.deck.collection ?? []).forEach(id => {
+      ownedCounts[id] = (ownedCounts[id] ?? 0) + 1;
+    });
+    // Active deck cards count as owned — take the higher of the two counts
+    const activeCounts = {};
+    (GameState.deck.activeDeck ?? []).forEach(id => {
+      activeCounts[id] = (activeCounts[id] ?? 0) + 1;
+    });
+    Object.entries(activeCounts).forEach(([id, cnt]) => {
+      if ((ownedCounts[id] ?? 0) < cnt) ownedCounts[id] = cnt;
+    });
+
+    // Collect unique owned cards from all story starter decks
+    const seen = new Set();
+    const addOwned = (arr) => (arr ?? []).filter(c => {
+      if (seen.has(c.cardId)) return false;
+      seen.add(c.cardId);
+      return (ownedCounts[c.cardId] ?? 0) > 0;
+    });
+
+    let champions = [], elites = [], summons = [], spells = [];
+    STORY_STARTER_DECKS.forEach(deck => {
+      champions = champions.concat(addOwned(deck.champions));
+      elites    = elites   .concat(addOwned(deck.elites));
+      summons   = summons  .concat(addOwned(deck.summons));
+      spells    = spells   .concat(addOwned(deck.spells));
+    });
+    const total     = champions.length + elites.length + summons.length + spells.length;
 
     const sectionTitle = document.createElement('div');
     sectionTitle.className = 'inv-section-title';
-    sectionTitle.textContent = collection.length
-      ? `${collection.length} cards total · ${Object.keys(countArr(collection)).length} unique`
-      : 'No cards in collection yet.';
+    sectionTitle.textContent = total > 0 ? `${total} unique cards owned` : 'No cards in collection yet.';
     content.appendChild(sectionTitle);
 
-    if (!collection.length) return;
+    if (total === 0) return;
 
-    const counts = countArr(collection);
-    const list = document.createElement('div');
-    list.className = 'inv-card-list';
+    const sections = [
+      { label: '👑 Champions', cards: champions },
+      { label: '🐉 Elites',    cards: elites },
+      { label: '✨ Summons',   cards: summons },
+      { label: '🔮 Spells',    cards: spells },
+    ];
 
-    Object.keys(counts).forEach(cardId => {
-      const card = this._cardMap[cardId];
-      if (!card) return;
-      const row = document.createElement('div');
-      row.className = 'inv-card-row';
-      row.innerHTML = `
-        <span class="inv-card-art">${card.art}</span>
-        <div class="inv-card-info">
-          <span class="inv-card-name">${card.name}</span>
-          <span class="inv-card-meta">${card.element} · ${card.type} · ${card.manaCost} mana — ${card.description}</span>
-        </div>
-        <span class="inv-card-count">×${counts[cardId]}</span>
-      `;
+    sections.forEach(({ label, cards }) => {
+      if (cards.length === 0) return;
 
-      // Floating card preview on hover
-      const preview = this._buildCardPreview(card);
-      row.appendChild(preview);
-      row.addEventListener('mouseenter', () => preview.classList.add('visible'));
-      row.addEventListener('mouseleave', () => preview.classList.remove('visible'));
+      const heading = document.createElement('div');
+      heading.className = 'inv-card-section-heading';
+      heading.textContent = `${label} (${cards.length})`;
+      content.appendChild(heading);
 
-      list.appendChild(row);
+      const grid = document.createElement('div');
+      grid.className = 'inv-card-grid';
+
+      cards.forEach(card => {
+        const tile  = this._buildCardTile(card);
+        const badge = document.createElement('div');
+        badge.className = 'inv-card-count';
+        badge.textContent = `×${ownedCounts[card.cardId]}`;
+        tile.appendChild(badge);
+        grid.appendChild(tile);
+      });
+
+      content.appendChild(grid);
     });
+  },
 
-    content.appendChild(list);
+  _buildCardTile(card) {
+    const div = document.createElement('div');
+    div.className = 'cg-hand-card inv-card-tile';
+
+    if (card.type === 'spell') {
+      div.innerHTML = `
+        <div class="cg-card-top">
+          <span class="cg-card-name">${card.name}</span>
+          <span class="cg-hcard-cost">0</span>
+        </div>
+        <div class="cg-type-label">Spell</div>
+        <div class="cg-card-art-wrap"><div class="cg-art-emoji">${card.art ?? '✨'}</div></div>
+      `;
+    } else if (card.type === 'champion') {
+      div.innerHTML = `
+        <div class="cg-card-top">
+          <span class="cg-card-name">${card.name}</span>
+        </div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:100%;background:#4ab87c"></div></div>
+        <div class="cg-card-stats"><span class="cg-stat-hp">HP ${card.hp}</span></div>
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    } else if (card.type === 'elite') {
+      div.innerHTML = `
+        <div class="cg-card-top">
+          <span class="cg-card-name">${card.name}</span>
+        </div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:100%;background:#4ab87c"></div></div>
+        <div class="cg-card-stats">
+          <span class="cg-stat-hp">HP ${card.hp}</span>
+          <span class="cg-stat-pow">POW ${card.power}</span>
+        </div>
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    } else {
+      // summon
+      div.innerHTML = `
+        <div class="cg-card-top">
+          <span class="cg-card-name">${card.name}</span>
+          <span class="cg-hcard-cost">${card.summonCost ?? ''}</span>
+        </div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:100%;background:#4ab87c"></div></div>
+        <div class="cg-card-stats">
+          <span class="cg-stat-hp">HP ${card.hp}</span>
+          <span class="cg-stat-pow">POW ${card.power}</span>
+        </div>
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    }
+
+    div.addEventListener('click', () => this._showCardPreviewModal(card));
+    return div;
+  },
+
+  _showCardPreviewModal(card) {
+    const overlay = document.createElement('div');
+    overlay.className = 'inv-preview-overlay';
+
+    const previewCard = document.createElement('div');
+    previewCard.className = 'cg-hand-card inv-preview-card';
+    previewCard.innerHTML = this._buildCardPreviewHTML(card);
+
+    overlay.appendChild(previewCard);
+
+    const close = () => {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+    };
+
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', onKey);
+
+    this._container.appendChild(overlay);
+  },
+
+  _buildCardPreviewHTML(card) {
+    if (card.type === 'spell') {
+      return `
+        <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Spell'}</span><span class="cg-hcard-cost">0</span></div>
+        <div class="cg-type-label">Spell Card</div>
+        <div class="cg-card-art-wrap"><div class="cg-art-emoji">${card.art ?? '✨'}</div></div>
+        ${card.description ? `<div class="cg-ability-panel">${card.description}</div>` : ''}
+      `;
+    }
+    if (card.type === 'champion') {
+      return `
+        <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Champion'}</span></div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:100%;background:#4ab87c"></div></div>
+        <div class="cg-card-stats"><span class="cg-stat-hp">HP ${card.hp} / ${card.maxHp}</span></div>
+        ${card.ability?.desc ? `<div class="cg-ability-panel">${card.ability.desc}</div>` : ''}
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    }
+    if (card.type === 'elite') {
+      return `
+        <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Elite'}</span></div>
+        ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+        <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+        <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:100%;background:#4ab87c"></div></div>
+        <div class="cg-card-stats">
+          <span class="cg-stat-hp">HP ${card.hp}</span>
+          <span class="cg-stat-pow">POW ${card.power}</span>
+          <span class="cg-stat-mov">MOV ${card.ability?.type === 'extended_rally' ? 2 : 1}</span>
+        </div>
+        ${card.ability?.desc ? `<div class="cg-ability-panel">${card.ability.desc}</div>` : ''}
+        <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+      `;
+    }
+    // summon
+    return `
+      <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Summon'}</span><span class="cg-hcard-cost">${card.summonCost ?? ''}</span></div>
+      ${card.cardType ? `<div class="cg-type-label">${card.cardType}</div>` : ''}
+      <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+      <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:100%;background:#4ab87c"></div></div>
+      <div class="cg-card-stats"><span class="cg-stat-hp">HP ${card.hp}</span><span class="cg-stat-pow">POW ${card.power}</span></div>
+      ${card.ability?.desc ? `<div class="cg-ability-panel">${card.ability.desc}</div>` : ''}
+      <div class="cg-card-bottom">${_rarityBadge(card)}<div class="cg-terrain-circle">${_terrainCircle(card)}</div><span class="cg-card-uid">${card.cardUid ?? ''}</span></div>
+    `;
   },
 
   // ── Decks ──────────────────────────────────────────────────────────────────
 
   _renderDecks(content) {
-    const savedIds = GameState.deck.savedDeckIds || [];
-    const ownedDecks = STARTER_DECKS.filter(d => savedIds.includes(d.id));
+    const customDecks = (GameState.deck.customDecks ?? []).map(d => ({
+      ...d,
+      art:         d.art         ?? '🃏',
+      color:       d.color       ?? '#3a3060',
+      description: d.description ?? 'Custom deck',
+    }));
+    const allDecks = [...STORY_STARTER_DECKS, ...customDecks];
 
     const sectionTitle = document.createElement('div');
     sectionTitle.className = 'inv-section-title';
-    sectionTitle.textContent = `${ownedDecks.length} deck${ownedDecks.length !== 1 ? 's' : ''} in collection`;
+    sectionTitle.textContent = `${allDecks.length} deck${allDecks.length !== 1 ? 's' : ''}`;
     content.appendChild(sectionTitle);
 
-    if (!ownedDecks.length) {
+    if (!allDecks.length) {
       const empty = document.createElement('p');
       empty.className = 'inv-empty';
-      empty.textContent = 'No decks in your collection yet.';
+      empty.textContent = 'No decks yet.';
       content.appendChild(empty);
       return;
     }
 
-    const list = document.createElement('div');
-    list.className = 'inv-deck-list';
+    const grid = document.createElement('div');
+    grid.className = 'inv-deck-grid';
 
-    ownedDecks.forEach(deck => {
+    allDecks.forEach(deck => {
+      const tile = document.createElement('div');
+      tile.className = 'inv-deck-icon-tile';
+      tile.style.cssText += 'cursor:pointer';
+      tile.style.setProperty('--deck-color', deck.color ?? '#5a3a8a');
+
+      const firstElite = deck.elites?.[0];
+      const deckArtHtml = firstElite?.artFile
+        ? `<img src="${ART_BASE}${firstElite.artFile}" alt="${firstElite.name}" class="inv-deck-elite-img">`
+        : `<span>${firstElite?.art ?? deck.art ?? '🃏'}</span>`;
+
       const vd = validateDeck(deck);
-
-      const card = document.createElement('div');
-      card.className = 'inv-deck-card';
-      card.style.setProperty('--deck-color', deck.color);
-
-      const header = document.createElement('div');
-      header.className = 'inv-deck-card-header';
-      header.innerHTML = `
-        <span class="inv-deck-art">${deck.art}</span>
-        <div class="inv-card-info">
-          <span class="inv-card-name">${deck.name}</span>
-          <span class="inv-card-meta">${deck.description}</span>
+      tile.innerHTML = `
+        <div class="inv-deck-icon-art">${deckArtHtml}</div>
+        <div class="inv-deck-icon-name">${deck.name}</div>
+        <div class="inv-deck-icon-tooltip">
+          <div class="inv-dit-name">${deck.name}</div>
+          ${deck.description ? `<div class="inv-dit-desc">${deck.description}</div><div class="inv-dit-divider"></div>` : ''}
+          <div class="inv-dit-row"><span>👑 Champions</span><span>${deck.champions?.length ?? 0}</span></div>
+          <div class="inv-dit-row"><span>🐉 Elites</span><span>${deck.elites?.length ?? 0} / 10</span></div>
+          <div class="inv-dit-row"><span>✨ Summons</span><span>${deck.summons?.length ?? 0} / 40+</span></div>
+          <div class="inv-dit-row"><span>🔮 Spells</span><span>${deck.spells?.length ?? 0} / 10</span></div>
+          <div class="inv-dit-status ${vd.valid ? 'inv-dit-valid' : 'inv-dit-invalid'}" style="margin-top:6px">${vd.valid ? '✓ Valid' : '✗ Invalid'}</div>
         </div>
-        <span class="inv-deck-status ${vd.valid ? 'inv-deck-valid' : 'inv-deck-invalid'}">
-          ${vd.valid ? '✓ Valid' : '✗ Invalid'}
-        </span>
       `;
 
-      const counts = document.createElement('div');
-      counts.className = 'inv-deck-counts';
-      counts.innerHTML = `
-        <span class="${deck.elites.length === 10 ? 'inv-count-ok' : 'inv-count-bad'}">🐉 ${deck.elites.length}/10 elites</span>
-        <span class="${deck.summons.length >= 40 ? 'inv-count-ok' : 'inv-count-bad'}">✨ ${deck.summons.length}/40+ summons</span>
-        <span class="${deck.spells.length === 10 ? 'inv-count-ok' : 'inv-count-bad'}">🔮 ${deck.spells.length}/10 spells</span>
-      `;
-
-      card.appendChild(header);
-      card.appendChild(counts);
-      list.appendChild(card);
+      tile.addEventListener('click', () => this._showDeckEditModal(deck));
+      grid.appendChild(tile);
     });
 
-    content.appendChild(list);
+    content.appendChild(grid);
   },
 
   // ── Loot ───────────────────────────────────────────────────────────────────
@@ -223,64 +398,116 @@ const InventoryScreen = {
       return;
     }
 
-    const list = document.createElement('div');
-    list.className = 'inv-loot-list';
+    const grid = document.createElement('div');
+    grid.className = 'inv-deck-grid';
 
     boxes.forEach((box, idx) => {
       const def = LOOT_BOX_TYPES[box.boxTypeId] ?? LOOT_BOX_TYPES.small;
-      const totalCards = def.packCount * 6;
 
-      const row = document.createElement('div');
-      row.className = 'inv-loot-row';
-
-      // Icon with tooltip
-      const iconWrap = document.createElement('div');
-      iconWrap.className = 'inv-loot-icon-wrap';
-
-      const icon = document.createElement('span');
-      icon.className = 'inv-loot-icon';
-      icon.textContent = box.icon || def.icon;
-
-      const tooltip = document.createElement('div');
-      tooltip.className = 'inv-loot-tooltip';
-      tooltip.innerHTML = `<strong>${box.label ?? def.label}</strong><br>${def.description.replace(/\n/g, '<br>')}`;
-
-      iconWrap.appendChild(icon);
-      iconWrap.appendChild(tooltip);
-
-      const info = document.createElement('div');
-      info.className = 'inv-card-info';
-      info.innerHTML = `
-        <span class="inv-card-name">${box.label ?? def.label}</span>
-        <span class="inv-card-meta">${def.packCount} booster pack${def.packCount !== 1 ? 's' : ''} · ${totalCards} cards total · Each pack guarantees 1× B rank+</span>
+      const tile = document.createElement('div');
+      tile.className = 'inv-loot-tile';
+      tile.style.setProperty('--deck-color', def.color ?? '#5a3a8a');
+      tile.innerHTML = `
+        <div class="inv-deck-icon-art"><span>${box.icon || def.icon || '📦'}</span></div>
+        <div class="inv-deck-icon-name">${box.label ?? def.label}</div>
       `;
-
-      const openBtn = document.createElement('button');
-      openBtn.className = 'btn-primary inv-loot-open';
-      openBtn.textContent = 'Open';
-      openBtn.addEventListener('click', () => this._openLootBox(idx, content));
-
-      row.appendChild(iconWrap);
-      row.appendChild(info);
-      row.appendChild(openBtn);
-      list.appendChild(row);
+      tile.addEventListener('click', () => this._showLootBoxModal(idx, content));
+      grid.appendChild(tile);
     });
 
-    content.appendChild(list);
+    content.appendChild(grid);
+  },
+
+  _showLootBoxModal(idx, content) {
+    const boxes = GameState.inventory.lootBoxes;
+    const box   = boxes[idx];
+    if (!box) return;
+    const def        = LOOT_BOX_TYPES[box.boxTypeId] ?? LOOT_BOX_TYPES.small;
+    const totalCards = def.packCount * 6;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'inv-center-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'inv-center-modal';
+    modal.innerHTML = `
+      <div class="inv-modal-icon">${box.icon || def.icon || '📦'}</div>
+      <div class="inv-modal-title">${box.label ?? def.label}</div>
+      <div class="inv-modal-desc">${(def.description ?? '').replace(/\n/g, '<br>')}</div>
+      <div class="inv-modal-meta">${def.packCount} pack${def.packCount !== 1 ? 's' : ''} · ${totalCards} cards · Each pack guarantees 1× B rank+</div>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'inv-modal-actions';
+
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btn-primary';
+    openBtn.textContent = '✦ Open';
+    openBtn.addEventListener('click', () => { overlay.remove(); this._openLootBox(idx, content); });
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-back';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    actions.appendChild(openBtn);
+    actions.appendChild(cancelBtn);
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    this._container.appendChild(overlay);
+  },
+
+  _showDeckEditModal(deck) {
+    const overlay = document.createElement('div');
+    overlay.className = 'inv-center-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'inv-center-modal';
+
+    const firstElite = deck.elites?.[0];
+    const artHtml = firstElite?.artFile
+      ? `<img src="${ART_BASE}${firstElite.artFile}" alt="${firstElite.name}" class="inv-modal-deck-img">`
+      : `<div class="inv-modal-icon">${firstElite?.art ?? deck.art ?? '🃏'}</div>`;
+
+    modal.innerHTML = `
+      ${artHtml}
+      <div class="inv-modal-title">${deck.name}</div>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'inv-modal-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-primary';
+    editBtn.textContent = '✏️ Edit Deck';
+    editBtn.addEventListener('click', () => {
+      overlay.remove();
+      EventBus.emit('screen:push', { screen: DeckBuilderScreen, params: { deck } });
+    });
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-back';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    actions.appendChild(editBtn);
+    actions.appendChild(cancelBtn);
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    this._container.appendChild(overlay);
   },
 
   _openLootBox(idx, content) {
-    const boxes  = GameState.inventory.lootBoxes;
-    const box    = boxes[idx];
+    const boxes = GameState.inventory.lootBoxes;
+    const box   = boxes[idx];
     if (!box) return;
 
-    // Generate all packs
     const packs = openLootBox(box.boxTypeId ?? 'small');
-    // Remove box from inventory now (before confirm, so user can't double-open)
     boxes.splice(idx, 1);
-
-    const RARITY_COLORS = { S: '#e0b84a', A: '#9060e0', B: '#4ab0d0', C: '#888' };
-    const RARITY_LABELS = { S: 'S', A: 'A', B: 'B', C: 'C' };
 
     content.innerHTML = '';
 
@@ -294,6 +521,12 @@ const InventoryScreen = {
 
     const allCards = [];
 
+    // Animation timing constants
+    const STAGGER       = 0.08;   // s between cards within a pack
+    const ANIM_DUR      = 0.38;   // s for the slide-in
+    const PACK_GAP      = 0.28;   // s pause after last card of each pack before next
+    const PACK_INTERVAL = STAGGER * 6 + ANIM_DUR + PACK_GAP; // ~1.12s per pack
+
     packs.forEach((pack, packIdx) => {
       const packSection = document.createElement('div');
       packSection.className = 'inv-pack-section';
@@ -306,46 +539,74 @@ const InventoryScreen = {
       const packGrid = document.createElement('div');
       packGrid.className = 'inv-pack-grid';
 
-      pack.forEach(card => {
+      pack.forEach((card, cardIdx) => {
         allCards.push(card);
-        const tile = document.createElement('div');
-        tile.className = 'inv-card-tile';
-        tile.style.setProperty('--rarity-color', RARITY_COLORS[card.rarity] ?? '#888');
+        const tile = this._buildCardTile(card);
 
-        tile.innerHTML = `
-          <div class="inv-tile-art">${card.art ?? '🃏'}</div>
-          <div class="inv-tile-name">${card.name}</div>
-          <div class="inv-tile-meta">${card.type ?? ''}</div>
-          <div class="inv-tile-rarity" style="color:${RARITY_COLORS[card.rarity] ?? '#888'}">${RARITY_LABELS[card.rarity] ?? '?'}</div>
-        `;
+        const slideDelay = packIdx * PACK_INTERVAL + cardIdx * STAGGER;
+        const glowDelay  = slideDelay + ANIM_DUR;
+        const isGlow     = card.rarity === 'S' || card.rarity === 'A';
+
+        if (isGlow) {
+          tile.classList.add('inv-rank-glow');
+          tile.style.setProperty('--rank-glow-color', RARITY_COLOR[card.rarity] ?? '#c07820');
+          tile.style.animation = [
+            `card-slide-in ${ANIM_DUR}s cubic-bezier(0.22,0.61,0.36,1) ${slideDelay}s both`,
+            `rank-glow-pulse 2s ease-in-out ${glowDelay}s infinite`,
+          ].join(', ');
+        } else {
+          tile.style.animation =
+            `card-slide-in ${ANIM_DUR}s cubic-bezier(0.22,0.61,0.36,1) ${slideDelay}s both`;
+        }
+
+        // Play card slide SFX in sync with each card's animation start
+        setTimeout(() => SoundSystem.cardSlide(), slideDelay * 1000);
+
         packGrid.appendChild(tile);
       });
 
       packSection.appendChild(packGrid);
       revealArea.appendChild(packSection);
+
+      // Scroll to this pack section as its first card begins sliding in
+      const scrollAt = (packIdx * PACK_INTERVAL + 0.05) * 1000;
+      setTimeout(() => {
+        packSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, scrollAt);
     });
 
     content.appendChild(revealArea);
 
-    // Summary
+    // Summary + collect button fade in after all packs finish
+    const totalMs = (packs.length * PACK_INTERVAL + ANIM_DUR) * 1000;
+
     const summary = document.createElement('div');
     summary.className = 'inv-reveal-summary';
+    summary.style.cssText = 'opacity:0;transition:opacity 0.5s ease';
     const rarityCount = {};
     allCards.forEach(c => { rarityCount[c.rarity] = (rarityCount[c.rarity] || 0) + 1; });
     const summaryParts = ['S','A','B','C']
       .filter(r => rarityCount[r])
-      .map(r => `<span style="color:${RARITY_COLORS[r]}">${r}: ${rarityCount[r]}</span>`);
+      .map(r => `<span style="color:${RARITY_COLOR[r] ?? '#888'}">${r}: ${rarityCount[r]}</span>`);
     summary.innerHTML = `${allCards.length} cards obtained — ${summaryParts.join(' · ')}`;
     content.appendChild(summary);
 
     const collectBtn = document.createElement('button');
     collectBtn.className = 'btn-primary inv-deck-edit-btn';
+    collectBtn.style.cssText = 'opacity:0;pointer-events:none;transition:opacity 0.5s ease';
     collectBtn.textContent = `✓ Collect All (${allCards.length} cards)`;
     collectBtn.addEventListener('click', () => {
       allCards.forEach(card => GameState.addCardToCollection(card.cardId));
       this._renderTabContent(content);
     });
     content.appendChild(collectBtn);
+
+    setTimeout(() => {
+      summary.style.opacity = '1';
+      collectBtn.style.opacity = '1';
+      collectBtn.style.pointerEvents = '';
+      content.scrollTo({ top: content.scrollHeight, behavior: 'smooth' });
+    }, totalMs);
   },
 
   // ── Key Items ──────────────────────────────────────────────────────────────
@@ -355,28 +616,6 @@ const InventoryScreen = {
     empty.className = 'inv-empty';
     empty.textContent = 'Nothing here yet.';
     content.appendChild(empty);
-  },
-
-  _buildCardPreview(card) {
-    const ELEMENT_COLORS = {
-      fire: '#c0401a', ice: '#2a80c0', arcane: '#7c5cbf',
-      earth: '#5a8a30', light: '#c0a020', wind: '#40a080',
-    };
-    const borderColor = ELEMENT_COLORS[card.element] ?? 'var(--color-border)';
-
-    const el = document.createElement('div');
-    el.className = 'inv-card-preview';
-    el.style.setProperty('--preview-color', borderColor);
-    el.innerHTML = `
-      <div class="icp-art">${card.art}</div>
-      <div class="icp-name">${card.name}</div>
-      <div class="icp-divider"></div>
-      <div class="icp-row"><span class="icp-label">Element</span><span>${card.element ?? '—'}</span></div>
-      <div class="icp-row"><span class="icp-label">Type</span><span>${card.type ?? '—'}</span></div>
-      <div class="icp-row"><span class="icp-label">Mana</span><span>${card.manaCost ?? 0}</span></div>
-      <div class="icp-desc">${card.description ?? ''}</div>
-    `;
-    return el;
   },
 
   update(dt) {},

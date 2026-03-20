@@ -23,6 +23,7 @@ import RelationshipSystem from './systems/RelationshipSystem.js';
 import InventorySystem from './systems/InventorySystem.js';
 import ShopSystem, { setShopScreenRef } from './systems/ShopSystem.js';
 import MusicPlayer from './systems/MusicPlayer.js';
+import CardArtPreloader from './systems/CardArtPreloader.js';
 
 // Wire forward references
 import { setSceneScreenRef } from './screens/MapScreen.js';
@@ -52,8 +53,12 @@ async function boot() {
   InventorySystem.init();
   ShopSystem.init();
 
+  // Kick off background image preloads as early as possible
+  CardArtPreloader.preloadBattleBackgrounds();
+
   // Load settings
   SaveSystem.loadSettings();
+  applyFont(GameState.settings.font);
 
   // Init screen infrastructure
   const container = document.getElementById('screen-container');
@@ -114,7 +119,7 @@ function showTitleScreen() {
       screen.className = 'title-screen fade-in';
 
       const h1 = document.createElement('h1');
-      h1.textContent = 'Arcane Card Kingdom';
+      h1.textContent = 'Conjuring Masters';
       screen.appendChild(h1);
 
       const sub = document.createElement('p');
@@ -525,35 +530,27 @@ function enterGame() {
 // HUD
 // ──────────────────────────────────────────────────────────────────────────────
 
-function showHUD() {
-  document.getElementById('hud').classList.remove('hidden');
-}
-
-function hideHUD() {
-  document.getElementById('hud').classList.add('hidden');
-}
+function showHUD() {}
+function hideHUD() {}
 
 function updateHUD() {
-  const nameEl  = document.getElementById('hud-name');
-  const levelEl = document.getElementById('hud-level-val');
-  const coinEl  = document.getElementById('hud-coin-val');
-  const gemsEl  = document.getElementById('hud-gems-val');
-  if (nameEl)  nameEl.textContent  = GameState.player.name;
-  if (levelEl) levelEl.textContent = GameState.player.level;
-  if (coinEl)  coinEl.textContent  = GameState.player.coin;
-  if (gemsEl)  gemsEl.textContent  = GameState.player.gemstones ?? 0;
+  const coinEl = document.getElementById('sidebar-coin-val');
+  const gemsEl = document.getElementById('sidebar-gems-val');
+  if (coinEl) coinEl.textContent = GameState.player.coin;
+  if (gemsEl) gemsEl.textContent = GameState.player.gemstones ?? 0;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// ── Font helper ───────────────────────────────────────────────────────────────
+
+function applyFont(fontKey) {
+  document.body.classList.toggle('font-lutin', fontKey === 'lutin');
+}
+
 // Global event wiring
 // ──────────────────────────────────────────────────────────────────────────────
 
 function setupGlobalEvents() {
-  // HUD menu button
-  document.getElementById('hud-menu-btn')?.addEventListener('click', () => {
-    EventBus.emit('menu:open');
-  });
-
   // Menu open
   EventBus.on('menu:open', () => {
     ScreenManager.push(MenuScreen);
@@ -564,10 +561,6 @@ function setupGlobalEvents() {
     hideHUD();
     showTitleScreen();
   });
-
-  // Hide/restore HUD during card game
-  EventBus.on('hud:hide', () => document.getElementById('hud').classList.add('hidden'));
-  EventBus.on('hud:show', () => { if (GameState.player.name) document.getElementById('hud').classList.remove('hidden'); });
 
   // Toast notifications
   const toastContainer = document.createElement('div');
@@ -603,6 +596,7 @@ function setupGlobalEvents() {
   EventBus.on('quest:completed',     () => updateHUD());
   EventBus.on('screen:changed',      () => updateHUD());
   EventBus.on('inventory:useItem',   () => setTimeout(updateHUD, 50));
+  EventBus.on('settings:changed',    ({ key, value }) => { if (key === 'font') applyFont(value); });
 
   // Side effect: zephyr's quest flag when entering quest
   EventBus.on('quest:started', ({ questId }) => {

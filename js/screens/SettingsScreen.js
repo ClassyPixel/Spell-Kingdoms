@@ -56,6 +56,11 @@ const SettingsScreen = {
     gameGroup.appendChild(this._makeTextSpeed());
     body.appendChild(gameGroup);
 
+    // Display
+    const displayGroup = this._makeGroup('Display');
+    displayGroup.appendChild(this._makeFontToggle());
+    body.appendChild(displayGroup);
+
     // Data
     const dataGroup = this._makeGroup('Data');
     dataGroup.appendChild(this._makeClearDataBtn());
@@ -134,6 +139,50 @@ const SettingsScreen = {
 
     row.appendChild(lbl);
     row.appendChild(select);
+    return row;
+  },
+
+  _makeFontToggle() {
+    const row = document.createElement('div');
+    row.className = 'setting-row';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'setting-label';
+    lbl.textContent = 'Game Font';
+
+    const btnGroup = document.createElement('div');
+    btnGroup.style.cssText = 'display:flex;gap:6px';
+
+    const FONTS = [
+      { key: 'default', label: 'Default' },
+      { key: 'lutin',   label: 'Lutin Paniquangoisse' },
+    ];
+
+    const buttons = FONTS.map(({ key, label }) => {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.style.cssText = 'padding:4px 12px;border-radius:4px;cursor:pointer;border:1px solid var(--color-border);background:var(--color-panel);color:var(--color-text);font-family:inherit;transition:all 0.15s';
+      if (GameState.settings.font === key) {
+        btn.style.background    = 'var(--color-accent)';
+        btn.style.borderColor   = 'var(--color-accent2)';
+      }
+      btn.addEventListener('click', () => {
+        GameState.settings.font = key;
+        EventBus.emit('settings:changed', { key: 'font', value: key });
+        SaveSystem.saveSettings();
+        // Update button active states
+        buttons.forEach((b, i) => {
+          const active = FONTS[i].key === key;
+          b.style.background  = active ? 'var(--color-accent)' : 'var(--color-panel)';
+          b.style.borderColor = active ? 'var(--color-accent2)' : 'var(--color-border)';
+        });
+      });
+      btnGroup.appendChild(btn);
+      return btn;
+    });
+
+    row.appendChild(lbl);
+    row.appendChild(btnGroup);
     return row;
   },
 

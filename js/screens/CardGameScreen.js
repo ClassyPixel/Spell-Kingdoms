@@ -49,14 +49,12 @@ const TERRAIN_ICON = {
   earth: 'assets/images/CardGameArt/TypeArt/earth_img.png',
   spell: 'assets/images/CardGameArt/TypeArt/spell_img.png',
 };
-const RARITY_COLOR = { C: '#aaa', B: '#4ab87c', A: '#c07820', S: '#9b30d0' };
-const ART_BASE       = 'assets/images/CardGameArt/CardArt/';
-const ART_THUMB_BASE = 'assets/images/CardGameArt/CardArt_thumb/';
+const RARITY_COLOR = { C: '#aaa', B: '#4ab87c', A: '#9b30d0', S: '#c07820' };
+const ART_BASE = 'assets/images/CardGameArt/CardArt/';
 
 function _cardArtImg(card) {
   if (!card.artFile) return `<div class="cg-art-emoji">${card.art ?? '✨'}</div>`;
-  const thumbFile = card.artFile.replace(/\.[^.]+$/, '.jpg');
-  return `<img class="cg-card-art-img" src="${ART_THUMB_BASE}${thumbFile}" alt="${card.name}" decoding="sync">`;
+  return `<img class="cg-card-art-img" src="${ART_BASE}${card.artFile}" alt="${card.name}" decoding="sync">`;
 }
 function _terrainCircle(card) {
   if (!card.terrain || !TERRAIN_ICON[card.terrain]) return '';
@@ -236,7 +234,7 @@ const CardGameScreen = {
         CardArtPreloader.preloadMatchFullInBackground(this._state);
       }),
       EventBus.on('cardgame:cardDrawn', () => {
-        SoundSystem.drawCard();
+        SoundSystem.cardSlide();
       }),
       EventBus.on('cardgame:attackPerformed', ({ attackerRow, attackerCol, targetRow, targetCol, art }) => {
         SoundSystem.attack();

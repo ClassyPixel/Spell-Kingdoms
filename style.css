@@ -2,6 +2,21 @@
    SPELLCASTER ACADEMY — Global Styles
    ============================================ */
 
+/* ── Custom fonts ──────────────────────────── */
+@font-face {
+  font-family: 'Lutin Paniquangoisse';
+  src: url('assets/fonts/Lutin_Paniquangoisse.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Applied when body has .font-lutin class */
+body.font-lutin,
+body.font-lutin * {
+  font-family: 'Lutin Paniquangoisse', sans-serif !important;
+}
+
 :root {
   --color-bg:        #0d0d1a;
   --color-bg2:       #13132a;
@@ -52,45 +67,6 @@ body {
   overflow: hidden;
 }
 
-/* ============================================
-   HUD
-   ============================================ */
-#hud {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 48px;
-  background: linear-gradient(180deg, rgba(13,13,26,0.95) 0%, rgba(13,13,26,0.7) 100%);
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  z-index: 100;
-  backdrop-filter: blur(4px);
-}
-
-#hud-left, #hud-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-#hud-name { font-weight: 600; color: var(--color-accent2); }
-#hud-level { color: var(--color-text-dim); font-size: 0.9em; }
-#hud-coin { color: var(--color-gold); font-size: 0.95em; }
-#hud-gems { color: #88d4f0; font-size: 0.95em; }
-
-.btn-hud {
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  padding: 6px 14px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: var(--transition);
-}
-.btn-hud:hover { background: var(--color-accent); border-color: var(--color-accent2); }
 
 /* ============================================
    LOADING SCREEN
@@ -98,7 +74,7 @@ body {
 #loading-screen {
   position: fixed;
   inset: 0;
-  background: radial-gradient(ellipse at center, #1a0d35 0%, #0d0d1a 100%);
+  background: url('assets/images/CardGameArt/bdarkness_img.jpg') center/cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,12 +123,13 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at 50% 30%, #1a0d35 0%, #0d0d1a 70%);
+  background: url('assets/images/CardGameArt/bdarkness_img.jpg') center/cover no-repeat;
   gap: 16px;
 }
 
 .title-screen h1 {
   font-size: 3.5em;
+  font-family: 'Lutin Paniquangoisse', sans-serif;
   color: var(--color-accent2);
   text-shadow: 0 0 40px var(--color-accent);
   letter-spacing: 0.05em;
@@ -456,10 +433,9 @@ body {
 .map-pin:hover { transform: translate(-50%, -54%) scale(1.1); }
 
 .map-pin-diamond {
-  width: 44px;
-  height: 44px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   background: var(--color-panel);
   border: 2px solid var(--color-border);
   display: flex;
@@ -471,8 +447,7 @@ body {
 }
 
 .map-pin-icon {
-  transform: rotate(45deg);
-  font-size: 1.3em;
+  font-size: 1.4em;
   line-height: 1;
   pointer-events: none;
   user-select: none;
@@ -483,23 +458,33 @@ body {
   box-shadow: 0 4px 18px rgba(124,92,191,0.5);
 }
 
-.map-pin-label {
-  margin-top: 6px;
-  font-size: 0.72em;
+.map-pin-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10,8,28,0.96);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 20;
+  text-align: center;
+}
+.map-pin:hover .map-pin-tooltip { opacity: 1; }
+.map-pin.locked:hover .map-pin-tooltip { opacity: 1; }
+.map-pin-tooltip-name {
+  font-size: 0.78em;
   font-weight: 700;
   color: #e8e8f0;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.8);
-  white-space: nowrap;
-  text-align: center;
-  pointer-events: none;
 }
-
-.map-pin-tag {
-  font-size: 0.62em;
+.map-pin-tooltip-tag {
+  font-size: 0.66em;
   color: rgba(200,200,220,0.6);
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-  white-space: nowrap;
-  pointer-events: none;
+  margin-top: 2px;
 }
 
 /* Current location */
@@ -592,6 +577,7 @@ body {
   padding-bottom: 20px;
   position: relative;
   z-index: 1;
+  min-height: 380px;
 }
 
 .scene-npc {
@@ -607,28 +593,41 @@ body {
 .npc-sprite {
   width: 80px;
   height: 120px;
-  border-radius: var(--radius-lg);
-  background: var(--color-panel);
-  border: 2px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 3.5em;
   transition: var(--transition);
+  overflow: hidden;
+  background: none;
+  border: none;
+}
+
+/* Image-based NPCs (Sofi, merchant) — 3× base size */
+.scene-npc--img .npc-sprite {
+  width: 240px;
+  height: 360px;
+}
+.npc-sprite-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+/* Merchant anchored to the right of the scene */
+.scene-npc--right {
+  position: absolute;
+  right: 40px;
+  bottom: 0;
 }
 
 .scene-npc:hover .npc-sprite {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 16px rgba(124,92,191,0.4);
+  filter: brightness(1.15) drop-shadow(0 0 14px rgba(124,92,191,0.5));
 }
 
 .npc-name-tag {
-  margin-top: 6px;
-  font-size: 0.8em;
-  color: var(--color-text-dim);
-  background: rgba(13,13,26,0.8);
-  padding: 2px 8px;
-  border-radius: 10px;
+  display: none;
 }
 
 .scene-bottom-bar {
@@ -692,6 +691,13 @@ body {
   font-size: 2em;
   margin: 0 auto 8px;
   box-shadow: 0 0 12px rgba(124,92,191,0.35);
+  overflow: hidden;
+}
+.sidebar-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .sidebar-player-name {
@@ -704,6 +710,14 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.sidebar-currency {
+  font-size: 0.85em;
+  color: var(--color-gold);
+  text-align: center;
+  margin-bottom: 2px;
+}
+.sidebar-currency + .sidebar-currency { color: #88d4f0; }
 
 .sidebar-stat {
   font-size: 0.78em;
@@ -775,73 +789,80 @@ body {
    ============================================ */
 
 /* Full-screen container, no internal flex — children are all absolute */
-.dialogue-screen {
-  width: 100%;
-  height: 100%;
-  position: relative;
+/* ── Dialogue overlay — sits on top of any screen ────────────────────────── */
+.dlg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
 }
 
-/* Background fills the area behind characters */
-.dialogue-scene-bg {
+/* Grayout — semi-transparent backdrop that blocks all scene interaction */
+.dlg-grayout {
   position: absolute;
   inset: 0;
-  top: 48px; /* below HUD */
-  background: linear-gradient(180deg, #0a0a1a 0%, #1a1230 60%, #0d0d1a 100%);
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: all;
 }
 
-/* Character art layer — sits above background, below dialogue box */
-.dialogue-chars {
+/* Panel — characters + box pinned to the bottom */
+.dlg-panel {
   position: absolute;
+  bottom: 0;
   left: 0;
   right: 0;
-  bottom: 230px; /* sits flush above the dialogue box min-height */
-  top: 48px;
   display: flex;
-  justify-content: space-between;
   align-items: flex-end;
-  padding: 0 30px;
+  justify-content: center;
   pointer-events: none;
-  z-index: 5;
+  z-index: 1;
 }
 
-.dialogue-char {
-  height: 100%;
-  max-height: 310px;
-  width: 170px;
+/* Character wrappers */
+.dlg-char-wrap {
+  width: 160px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.dlg-char-img {
+  width: 160px;
+  height: 200px; /* overridden by JS to 3× dialogue box height */
   object-fit: contain;
   object-position: bottom center;
-  filter: drop-shadow(0 10px 28px rgba(0,0,0,0.7)) brightness(0.7) saturate(0.8);
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,0.7)) brightness(0.7) saturate(0.8);
   opacity: 0.65;
   transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease;
   transform-origin: bottom center;
 }
 
-/* Active / speaking character */
-.dialogue-char.speaking {
+.dlg-char-img.speaking {
   opacity: 1;
-  filter: drop-shadow(0 10px 28px rgba(0,0,0,0.5)) brightness(1.05);
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,0.5)) brightness(1.05);
   transform: scale(1.04) translateY(-6px);
 }
 
-/* NPC is on the right side — mirror to face left (toward the player) */
-.dialogue-char-npc {
+/* NPC on right — mirror to face left toward the player */
+.dlg-char-wrap-npc .dlg-char-img {
   transform: scaleX(-1);
 }
-.dialogue-char-npc.speaking {
+.dlg-char-wrap-npc .dlg-char-img.speaking {
   transform: scaleX(-1) scale(1.04) translateY(-6px);
 }
 
 /* Reaction swap — brief dip in opacity while src swaps */
-.dialogue-char.reacting {
+.dlg-char-img.reacting {
   opacity: 0.2 !important;
   transition: opacity 0.12s ease !important;
 }
 
-/* Reaction badge — floats near the NPC, fades out */
+/* Reaction badge — floats near the NPC */
 .dlg-reaction-badge {
   position: absolute;
-  right: 140px;
-  bottom: 260px;
+  right: 20px;
+  bottom: 230px;
   font-size: 1.8em;
   pointer-events: none;
   animation: react-badge 1.5s ease forwards;
@@ -855,19 +876,22 @@ body {
   100% { opacity: 0; transform: scale(0.9) translateY(-12px); }
 }
 
-/* Dialogue box — fixed at the bottom, never overlaps characters */
+/* Dialogue box — 50% viewport width, centered, semi-transparent */
 .dialogue-box {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex: 0 1 50%;
+  min-width: 360px;
   z-index: 10;
-  background: linear-gradient(180deg, rgba(20,14,44,0.97) 0%, rgba(10,8,22,0.98) 100%);
+  background: linear-gradient(180deg, rgba(20,14,44,0.50) 0%, rgba(10,8,22,0.50) 100%);
   border-top: 2px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: 18px 28px 16px;
-  min-height: 230px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 -4px 30px rgba(0,0,0,0.6);
+  min-height: 200px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 -4px 30px rgba(0,0,0,0.5);
+  pointer-events: all;
+  position: relative;
 }
 
 .dlg-rel-feedback {
@@ -2714,7 +2738,128 @@ body {
   text-align: center;
 }
 
-/* ── Card list rows ─────────────────────────────────────────────────────── */
+/* ── Card list — section headings & card grid ──────────────────────────── */
+.inv-card-section-heading {
+  padding: 10px 20px 6px;
+  font-size: 0.8em;
+  font-weight: 700;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.inv-card-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 20px 18px;
+}
+
+/* Clickable tile tweak on top of .cg-hand-card */
+.inv-card-tile {
+  cursor: pointer;
+  height: auto;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.inv-card-tile:hover {
+  transform: translateY(-6px) scale(1.06);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  border-color: #a060e0;
+}
+/* Fix art-wrap aspect ratio inside card grid (not the hand arch layout) */
+.inv-card-tile .cg-card-art-wrap {
+  aspect-ratio: 1;
+  flex: unset;
+}
+/* Make type-label static in card grid (it's absolute in the hand) */
+.inv-card-tile .cg-type-label {
+  position: static;
+  transform: none;
+  font-size: 0.5rem;
+  color: #b8a0d8;
+  background: rgba(60, 20, 80, 0.45);
+  padding: 1px 6px;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Collection count badge */
+.inv-card-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.72);
+  color: #e0d090;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.12);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── Card preview overlay (click-to-show modal) ─────────────────────────── */
+.inv-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  animation: inv-overlay-in 0.15s ease;
+}
+@keyframes inv-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Enlarged version of .cg-hand-card for the preview modal */
+.inv-preview-card {
+  width: 220px !important;
+  height: auto !important;
+  font-size: 1.1rem !important;
+  cursor: default;
+  animation: inv-preview-pop 0.18s ease;
+  pointer-events: none;
+}
+@keyframes inv-preview-pop {
+  from { transform: scale(0.88); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+/* Scaled internals for the larger preview card */
+.inv-preview-card .cg-card-top   { min-height: 28px; padding: 5px 8px 4px 26px; }
+.inv-preview-card .cg-card-name  { font-size: 0.72rem; max-width: 140px; }
+.inv-preview-card .cg-hcard-cost { width: 22px; height: 22px; font-size: 0.72rem; }
+.inv-preview-card .cg-card-art-wrap { aspect-ratio: 1; flex: unset; }
+.inv-preview-card .cg-card-stats { font-size: 0.72rem; padding: 4px 8px; }
+.inv-preview-card .cg-ability-panel { font-size: 0.65rem; margin: 4px 6px; padding: 5px 6px; }
+.inv-preview-card .cg-card-bottom { min-height: 22px; padding: 3px 6px; }
+.inv-preview-card .cg-rarity { font-size: 0.8rem; }
+.inv-preview-card .cg-terrain-circle { width: 22px; height: 22px; }
+.inv-preview-card .cg-type-label {
+  position: static;
+  transform: none;
+  font-size: 0.58rem;
+  color: #b8a0d8;
+  background: rgba(60, 20, 80, 0.45);
+  padding: 2px 8px;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  align-self: flex-start;
+  white-space: nowrap;
+}
+.inv-preview-card .cg-art-emoji { font-size: 3.2em; }
+
+/* ── Old card list rows (kept for loot-reveal compat) ───────────────────── */
 .inv-card-list {
   display: flex;
   flex-direction: column;
@@ -2819,56 +2964,204 @@ body {
 }
 
 /* ── Decks tab ──────────────────────────────────────────────────────────── */
-.inv-deck-list {
+/* ── Deck icon grid ─────────────────────────────────────────────────────── */
+.inv-deck-grid {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px;
 }
 
-.inv-deck-card {
+.inv-deck-icon-tile {
+  position: relative;
+  width: 90px;
   background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-left: 4px solid var(--deck-color, var(--color-accent));
-  border-radius: var(--radius);
-  padding: 14px 16px;
+  border: 2px solid var(--deck-color, var(--color-border));
+  border-radius: 12px;
+  padding: 14px 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.inv-deck-icon-tile:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.5);
 }
 
-.inv-deck-card-header {
+.inv-deck-icon-art {
+  font-size: 2.4em;
+  line-height: 1;
+  width: 66px;
+  height: 66px;
+  overflow: hidden;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+}
+.inv-deck-elite-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
 }
 
-.inv-deck-art { font-size: 1.8em; flex-shrink: 0; }
-
-.inv-deck-status {
-  font-size: 0.8em;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  flex-shrink: 0;
+.inv-deck-icon-name {
+  font-size: 0.66em;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-text);
+  line-height: 1.3;
+  word-break: break-word;
 }
-.inv-deck-valid   { background: rgba(74,184,124,0.15); color: var(--color-success); }
-.inv-deck-invalid { background: rgba(192,74,74,0.15);  color: var(--color-danger); }
 
-.inv-deck-counts {
+.inv-deck-icon-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.92);
+  width: 200px;
+  background: var(--color-bg2);
+  border: 1px solid var(--deck-color, var(--color-border));
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.65);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 200;
+}
+.inv-deck-icon-tile:hover .inv-deck-icon-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+.inv-dit-name {
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--color-accent2);
+  margin-bottom: 4px;
+}
+.inv-dit-desc {
+  font-size: 0.7em;
+  color: var(--color-text-dim);
+  line-height: 1.35;
+  margin-bottom: 7px;
+}
+.inv-dit-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin-bottom: 7px;
+}
+.inv-dit-row {
   display: flex;
-  gap: 16px;
-  font-size: 0.8em;
+  justify-content: space-between;
+  font-size: 0.72em;
+  color: var(--color-text);
+  margin-bottom: 3px;
 }
-.inv-count-ok  { color: var(--color-success); }
-.inv-count-bad { color: var(--color-danger); }
+.inv-dit-status {
+  margin-top: 7px;
+  font-size: 0.74em;
+  font-weight: 700;
+  text-align: center;
+  padding: 2px 0;
+}
+.inv-dit-valid   { color: var(--color-success); }
+.inv-dit-invalid { color: var(--color-danger); }
 
 .inv-deck-edit-btn {
   margin: 16px 20px;
   align-self: flex-start;
 }
 
+/* ── Centered overlay modal ─────────────────────────────────────────────── */
+.inv-center-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  animation: fade-in 0.15s ease;
+}
+.inv-center-modal {
+  background: var(--color-bg2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px 24px;
+  min-width: 280px;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  text-align: center;
+}
+.inv-modal-icon {
+  font-size: 3em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.inv-modal-deck-img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  border: 2px solid var(--color-border);
+}
+.inv-modal-title {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--color-accent2);
+}
+.inv-modal-desc {
+  font-size: 0.78em;
+  color: var(--color-text-dim);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.inv-modal-meta {
+  font-size: 0.75em;
+  color: var(--color-text-dim);
+  margin-top: 2px;
+}
+.inv-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.inv-center-modal .inv-dit-row {
+  width: 100%;
+}
+
 /* ── Loot tab ───────────────────────────────────────────────────────────── */
+.inv-loot-tile {
+  position: relative;
+  width: 90px;
+  background: var(--color-panel);
+  border: 2px solid var(--deck-color, var(--color-border));
+  border-radius: 12px;
+  padding: 12px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.inv-loot-tile:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.5);
+}
+
 .inv-loot-list {
   display: flex;
   flex-direction: column;
@@ -2942,46 +3235,25 @@ body {
 }
 
 .inv-pack-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-}
-
-/* Individual card tile in reveal */
-.inv-card-tile {
-  background: var(--color-panel);
-  border: 2px solid var(--rarity-color, var(--color-border));
-  border-radius: 8px;
-  padding: 10px 6px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-  box-shadow: 0 0 8px rgba(0,0,0,0.3), inset 0 0 12px rgba(0,0,0,0.2);
-  animation: tile-appear 0.3s ease both;
+  flex-wrap: wrap;
+  gap: 10px;
 }
-@keyframes tile-appear {
-  from { opacity: 0; transform: scale(0.8) translateY(8px); }
-  to   { opacity: 1; transform: scale(1)   translateY(0); }
-}
-.inv-card-tile:nth-child(1) { animation-delay: 0.05s; }
-.inv-card-tile:nth-child(2) { animation-delay: 0.10s; }
-.inv-card-tile:nth-child(3) { animation-delay: 0.15s; }
-.inv-card-tile:nth-child(4) { animation-delay: 0.20s; }
-.inv-card-tile:nth-child(5) { animation-delay: 0.25s; }
-.inv-card-tile:nth-child(6) { animation-delay: 0.30s; }
 
-.inv-tile-art  { font-size: 1.6em; }
-.inv-tile-name { font-size: 0.72em; color: var(--color-text); font-weight: 500; line-height: 1.2; }
-.inv-tile-meta { font-size: 0.65em; color: var(--color-text-dim); }
-.inv-tile-rarity {
-  font-size: 0.7em;
-  font-weight: 700;
-  margin-top: 2px;
-  background: rgba(0,0,0,0.3);
-  padding: 1px 6px;
-  border-radius: 4px;
+/* Pack reveal: cards slide in from the right, sequenced per pack (timing set via JS) */
+@keyframes card-slide-in {
+  from { opacity: 0; transform: translateX(280px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* S / A rank pulsing glow (animation set inline by JS after slide completes) */
+@keyframes rank-glow-pulse {
+  0%, 100% { box-shadow: 0 0 14px 4px var(--rank-glow-color, #c07820); }
+  50%       { box-shadow: 0 0 32px 16px var(--rank-glow-color, #c07820); }
+}
+.inv-rank-glow:hover {
+  box-shadow: 0 0 32px 16px var(--rank-glow-color, #c07820),
+              0 8px 24px rgba(0,0,0,0.6) !important;
 }
 
 /* Reveal summary bar */
@@ -3156,6 +3428,20 @@ body {
   padding: 1px 5px;
   border-radius: 10px;
   white-space: nowrap;
+}
+
+/* ── Picker card states (cg-hand-card based) ───────────────────────────── */
+.db-picker-card {
+  cursor: pointer;
+}
+.db-picker-card.db-pcard-staged {
+  border-color: #3a8a50;
+  box-shadow: 0 0 8px rgba(58,138,80,0.4);
+}
+.db-picker-card.db-pcard-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .db-picker-actions {
@@ -3595,6 +3881,56 @@ body {
 .shop-item-name { font-size: 0.85em; font-weight: 600; text-align: center; }
 .shop-item-price { color: var(--color-gold); font-size: 0.85em; font-weight: 700; }
 .shop-item-stock { font-size: 0.75em; color: var(--color-text-dim); }
+
+/* ── Shop buy quantity modal ───────────────────────────────────────────────── */
+.shop-buy-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+.shop-buy-modal {
+  background: var(--color-bg2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 36px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+}
+.shop-buy-icon  { font-size: 3em; }
+.shop-buy-name  { font-size: 1.1em; font-weight: 700; color: var(--color-accent2); text-align: center; }
+.shop-buy-unit-price { font-size: 0.85em; color: var(--color-text-dim); }
+.shop-buy-stepper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 6px 0;
+}
+.shop-qty-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 1.3em;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.shop-qty-btn:hover { background: var(--color-accent); border-color: var(--color-accent2); }
+.shop-buy-qty   { font-size: 1.6em; font-weight: 700; min-width: 32px; text-align: center; }
+.shop-buy-total { font-size: 1em; font-weight: 700; color: var(--color-gold); }
+.shop-buy-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
 
 /* ============================================
    SETTINGS SCREEN

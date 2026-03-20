@@ -6,7 +6,7 @@
  */
 import EventBus           from '../EventBus.js';
 import GameState           from '../GameState.js';
-import { NPCS, LOCATIONS, STARTER_DECKS } from '../Data.js';
+import { NPCS, LOCATIONS, STORY_STARTER_DECKS } from '../Data.js';
 import InventoryScreen     from './InventoryScreen.js';
 import DeckBuilderScreen   from './DeckBuilderScreen.js';
 import QuestJournalScreen  from './QuestJournalScreen.js';
@@ -68,7 +68,7 @@ const SceneScreen = {
   _deckLabel() {
     const active = GameState.deck.activeDeck;
     // Try to match against a saved starter deck by comparing card sets
-    const match = STARTER_DECKS.find(d => {
+    const match = STORY_STARTER_DECKS.find(d => {
       const allCards = [...d.elites, ...d.summons, ...d.spells];
       return allCards.length === active.length &&
         allCards.every((id, i) => id === active[i]);
@@ -85,7 +85,7 @@ const SceneScreen = {
     // Avatar
     const avatar = document.createElement('div');
     avatar.className = 'sidebar-avatar';
-    avatar.textContent = '🧑‍🎓';
+    avatar.innerHTML = `<img src="assets/images/CardGameArt/AvatarArt/playeravatar_img.JPG" alt="Player Avatar" class="sidebar-avatar-img">`;
 
     // Player name
     const nameEl = document.createElement('div');
@@ -101,6 +101,15 @@ const SceneScreen = {
     const deckEl = document.createElement('div');
     deckEl.className = 'sidebar-stat sidebar-deck-label';
     deckEl.textContent = `🃏 ${this._deckLabel()}`;
+
+    // Currency
+    const coinEl = document.createElement('div');
+    coinEl.className = 'sidebar-stat sidebar-currency';
+    coinEl.innerHTML = `🪙 <span id="sidebar-coin-val">${GameState.player.coin}</span>`;
+
+    const gemsEl = document.createElement('div');
+    gemsEl.className = 'sidebar-stat sidebar-currency';
+    gemsEl.innerHTML = `💎 <span id="sidebar-gems-val">${GameState.player.gemstones ?? 0}</span>`;
 
     // Clock
     const clockEl = document.createElement('div');
@@ -126,6 +135,8 @@ const SceneScreen = {
     sidebar.appendChild(nameEl);
     sidebar.appendChild(levelEl);
     sidebar.appendChild(deckEl);
+    sidebar.appendChild(coinEl);
+    sidebar.appendChild(gemsEl);
     sidebar.appendChild(clockEl);
     sidebar.appendChild(divider);
 
@@ -161,7 +172,14 @@ const SceneScreen = {
     // Backdrop
     const backdrop = document.createElement('div');
     backdrop.className = 'scene-backdrop';
-    backdrop.innerHTML = `<div class="scene-backdrop-art">${location.bgIcon ?? location.icon ?? '🏛️'}</div>`;
+    if (location.bgImage) {
+      backdrop.style.backgroundImage = `url('${location.bgImage}')`;
+      backdrop.style.backgroundSize  = 'cover';
+      backdrop.style.backgroundPosition = 'center';
+    }
+    backdrop.innerHTML = location.bgImage
+      ? ''
+      : `<div class="scene-backdrop-art">${location.bgIcon ?? location.icon ?? '🏛️'}</div>`;
 
     // NPC sprites
     const npcArea = document.createElement('div');
@@ -176,9 +194,11 @@ const SceneScreen = {
 
     npcs.forEach(npc => {
       const el = document.createElement('div');
-      el.className = 'scene-npc';
+      el.className = 'scene-npc' +
+        (npc.portraitImg              ? ' scene-npc--img'   : '') +
+        (npc.scenePosition === 'right' ? ' scene-npc--right' : '');
       el.innerHTML = `
-        <div class="npc-sprite">${npc.portrait ?? '🧙'}</div>
+        <div class="npc-sprite">${npc.portraitImg ? `<img src="${npc.portraitImg}" alt="${npc.name}" class="npc-sprite-img">` : (npc.portrait ?? '🧙')}</div>
         <div class="npc-name-tag">${npc.name}</div>
       `;
       el.addEventListener('click', () => this._talkTo(npc));

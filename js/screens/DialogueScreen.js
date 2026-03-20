@@ -1,6 +1,7 @@
 /**
- * DialogueScreen — typewriter conversation UI with branching choices.
- * Player art (left) and NPC art (right) flank a bottom dialogue box.
+ * DialogueScreen — typewriter conversation overlay.
+ * Renders as a fixed overlay on document.body, staying on top of the current screen.
+ * A semi-transparent grayout blocks interaction with the scene behind it.
  *
  * Events listened:
  *   dialogue:show  { speaker, portrait, text, choices, canContinue }
@@ -16,78 +17,86 @@ import GameState from '../GameState.js';
 const TEXT_SPEEDS = { slow: 20, normal: 40, fast: 80, instant: Infinity };
 
 const CHAR_BASE = {
-  aria:           'assets/images/characters/aria.svg',
-  master_aldric:  'assets/images/characters/master_aldric.svg',
-  zephyr:         'assets/images/characters/zephyr.svg',
-  training_dummy: 'assets/images/characters/training_dummy.svg',
+  aria:                'assets/images/CardGameArt/NPCart/Sofi/Lenadisplay.png',
+  master_aldric:       'assets/images/characters/master_aldric.svg',
+  zephyr:              'assets/images/characters/zephyr.svg',
+  training_dummy:      'assets/images/characters/training_dummy.svg',
+  merchant:            'assets/images/CardGameArt/NPCart/Merchant_A/wizard_npc.png',
+  merchant_courtyard:  'assets/images/CardGameArt/NPCart/Merchant_A/wizard_npc.png',
 };
-// Reactions map to filename suffixes: aria_happy.svg, aria_sad.svg, etc.
-// 'neutral' uses the base image (no suffix).
-const REACTIONS = ['neutral', 'happy', 'sad', 'scared', 'mad', 'shy', 'aroused'];
-const PLAYER_IMAGE = 'assets/images/characters/player.svg';
+const PLAYER_IMAGE = 'assets/images/CardGameArt/MainPlayerArt/mage_npc.png';
 
 const DialogueScreen = {
-  _container:      null,
+  _overlayEl:       null,
   _typewriterTimer: null,
-  _fullText:       '',
-  _charIdx:        0,
-  _isDone:         false,
-  _choices:        [],
-  _canContinue:    false,
-  _unsub:          [],
-  _npcId:          null,
+  _fullText:        '',
+  _charIdx:         0,
+  _isDone:          false,
+  _choices:         [],
+  _canContinue:     false,
+  _unsub:           [],
+  _npcId:           null,
 
-  mount(container, params = {}) {
-    this._container = container;
-    this._npcId     = params.npcId ?? null;
+  // Called directly by DialogueSystem (not via ScreenManager)
+  showOverlay(npcId) {
+    this._npcId = npcId ?? null;
     this._render();
     this._bindEvents();
+  },
+
+  // Legacy mount — in case ScreenManager ever calls it
+  mount(container, params = {}) {
+    this.showOverlay(params.npcId ?? null);
   },
 
   unmount() {
     this._clearTypewriter();
     clearTimeout(this._relFeedbackTimer);
     this._unsub.forEach(fn => fn());
-    this._unsub   = [];
-    this._container = null;
+    this._unsub = [];
+    if (this._overlayEl) {
+      this._overlayEl.remove();
+      this._overlayEl = null;
+    }
+    this._npcId = null;
   },
 
   _render() {
-    const c = this._container;
-    c.innerHTML = '';
+    // Remove any existing overlay
+    if (this._overlayEl) this._overlayEl.remove();
 
-    const screen = document.createElement('div');
-    screen.className = 'dialogue-screen';
+    const overlay = document.createElement('div');
+    overlay.className = 'dlg-overlay';
 
-    // ── Scene background ───────────────────────────────────────────────
-    const bg = document.createElement('div');
-    bg.className = 'dialogue-scene-bg';
-    screen.appendChild(bg);
+    // ── Grayout — blocks all clicks on scene behind ────────────────────
+    const grayout = document.createElement('div');
+    grayout.className = 'dlg-grayout';
+    overlay.appendChild(grayout);
 
-    // ── Character art layer ────────────────────────────────────────────
-    const chars = document.createElement('div');
-    chars.className = 'dialogue-chars';
+    // ── Panel — characters flanking the dialogue box ───────────────────
+    const panel = document.createElement('div');
+    panel.className = 'dlg-panel';
 
+    // Player character (left)
+    const playerWrap = document.createElement('div');
+    playerWrap.className = 'dlg-char-wrap dlg-char-wrap-player';
     const playerImg = document.createElement('img');
-    playerImg.className = 'dialogue-char dialogue-char-player';
+    playerImg.className = 'dlg-char-img';
     playerImg.id  = 'dlg-char-player';
     playerImg.src = PLAYER_IMAGE;
     playerImg.alt = 'Player';
-    chars.appendChild(playerImg);
+    playerWrap.appendChild(playerImg);
+    panel.appendChild(playerWrap);
 
-    const npcImg = document.createElement('img');
-    npcImg.className = 'dialogue-char dialogue-char-npc';
-    npcImg.id  = 'dlg-char-npc';
-    npcImg.src = CHAR_BASE[this._npcId] ?? CHAR_BASE.training_dummy;
-    npcImg.alt = this._npcId ?? 'NPC';
-    chars.appendChild(npcImg);
-
-    screen.appendChild(chars);
-
-    // ── Dialogue box ───────────────────────────────────────────────────
+    // ── Dialogue box (center) ──────────────────────────────────────────
     const box = document.createElement('div');
     box.className = 'dialogue-box';
     box.id = 'dlg-box';
+
+    const relFeedback = document.createElement('div');
+    relFeedback.className = 'dlg-rel-feedback hidden';
+    relFeedback.id = 'dlg-rel-feedback';
+    box.appendChild(relFeedback);
 
     const speaker = document.createElement('div');
     speaker.className = 'dialogue-speaker';
@@ -96,11 +105,6 @@ const DialogueScreen = {
     const text = document.createElement('div');
     text.className = 'dialogue-text';
     text.id = 'dlg-text';
-
-    const relFeedback = document.createElement('div');
-    relFeedback.className = 'dlg-rel-feedback hidden';
-    relFeedback.id = 'dlg-rel-feedback';
-    box.appendChild(relFeedback);
 
     const continueHint = document.createElement('div');
     continueHint.className = 'dialogue-continue hidden';
@@ -115,15 +119,42 @@ const DialogueScreen = {
     box.appendChild(text);
     box.appendChild(continueHint);
     box.appendChild(choices);
-    screen.appendChild(box);
 
-    // Click anywhere on screen (not a choice button) to advance
-    screen.addEventListener('click', (e) => {
+    // Click inside the box (not on a choice) to advance
+    box.addEventListener('click', (e) => {
       if (e.target.classList.contains('choice-btn')) return;
       this._handleAdvance();
     });
 
-    c.appendChild(screen);
+    panel.appendChild(box);
+
+    // NPC character (right)
+    const npcWrap = document.createElement('div');
+    npcWrap.className = 'dlg-char-wrap dlg-char-wrap-npc';
+    const npcImg = document.createElement('img');
+    npcImg.className = 'dlg-char-img';
+    npcImg.id  = 'dlg-char-npc';
+    npcImg.src = CHAR_BASE[this._npcId] ?? CHAR_BASE.training_dummy;
+    npcImg.alt = this._npcId ?? 'NPC';
+    npcWrap.appendChild(npcImg);
+    panel.appendChild(npcWrap);
+
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    this._overlayEl = overlay;
+
+    // Size characters to 3× the dialogue box height once layout is known
+    requestAnimationFrame(() => this._updateCharHeight());
+  },
+
+  _updateCharHeight() {
+    const box    = document.getElementById('dlg-box');
+    const player = document.getElementById('dlg-char-player');
+    const npc    = document.getElementById('dlg-char-npc');
+    if (!box || !player || !npc) return;
+    const h = box.offsetHeight * 3;
+    player.style.height = h + 'px';
+    npc.style.height    = h + 'px';
   },
 
   _bindEvents() {
@@ -131,10 +162,21 @@ const DialogueScreen = {
       EventBus.on('dialogue:show',        (data) => this._showNode(data)),
       EventBus.on('dialogue:end',         ()     => this._handleEnd()),
       EventBus.on('relationship:changed', (data) => this._showRelFeedback(data)),
+      EventBus.on('shop:open',            ()     => this._hideOverlay()),
     );
   },
 
+  _hideOverlay() {
+    if (this._overlayEl) this._overlayEl.style.display = 'none';
+  },
+
+  _showOverlayEl() {
+    if (this._overlayEl) this._overlayEl.style.display = '';
+  },
+
   _showNode({ speaker, portrait, text, choices = [], canContinue = false, reaction = 'neutral' }) {
+    this._showOverlayEl();
+    requestAnimationFrame(() => this._updateCharHeight());
     this._choices     = choices;
     this._canContinue = canContinue;
     this._fullText    = text ?? '';
@@ -151,10 +193,7 @@ const DialogueScreen = {
     if (contEl)    contEl.classList.add('hidden');
     if (choicesEl) { choicesEl.innerHTML = ''; choicesEl.classList.add('hidden'); }
 
-    // Update NPC reaction image
     this._setReaction(reaction);
-
-    // NPC is speaking — highlight NPC, dim player
     this._setSpeaking('npc');
 
     const speed = TEXT_SPEEDS[GameState.settings.textSpeed] ?? 40;
@@ -208,12 +247,11 @@ const DialogueScreen = {
     if (textEl) textEl.textContent = this._fullText;
 
     if (this._choices.length > 0) {
-      // Player's turn to choose
       this._setSpeaking('player');
       this._renderChoices(choicesEl);
       choicesEl?.classList.remove('hidden');
+      requestAnimationFrame(() => this._updateCharHeight());
     } else {
-      // No choices: show continue hint whether there's a next node or not
       if (contEl) {
         contEl.textContent = this._canContinue ? '▼ Click to continue' : '▼ Click to close';
         contEl.classList.remove('hidden');
@@ -253,11 +291,9 @@ const DialogueScreen = {
 
   _handleAdvance() {
     if (!this._isDone) {
-      // Skip typewriter animation
       this._clearTypewriter();
       this._finishTypewriter();
     } else if (this._choices.length === 0) {
-      // Always advance when there are no choices (ends the dialogue if no next node)
       EventBus.emit('dialogue:advance');
     }
   },
@@ -266,20 +302,18 @@ const DialogueScreen = {
     const npcEl = document.getElementById('dlg-char-npc');
     if (!npcEl) return;
 
-    const base    = CHAR_BASE[this._npcId] ?? CHAR_BASE.training_dummy;
-    const target  = (!reaction || reaction === 'neutral')
+    const base   = CHAR_BASE[this._npcId] ?? CHAR_BASE.training_dummy;
+    const target = (!reaction || reaction === 'neutral')
       ? base
       : base.replace(/(\.[^.]+)$/, `_${reaction}$1`);
 
-    if (npcEl.src.endsWith(target)) return; // no change needed
+    if (npcEl.src.endsWith(target)) return;
 
-    // Crossfade: briefly dim, swap src, brighten back
     npcEl.classList.add('reacting');
     setTimeout(() => {
       npcEl.onerror = () => { npcEl.src = base; npcEl.onerror = null; };
       npcEl.src = target;
       npcEl.classList.remove('reacting');
-      // Add reaction badge to the character
       this._updateReactionBadge(reaction);
     }, 120);
   },
@@ -301,15 +335,14 @@ const DialogueScreen = {
     badge.className = `dlg-reaction-badge reaction-${reaction}`;
     badge.textContent = icon;
 
-    const chars = document.querySelector('.dialogue-chars');
-    if (chars) chars.appendChild(badge);
+    const panel = document.querySelector('.dlg-panel');
+    if (panel) panel.appendChild(badge);
 
-    // Auto-remove after 1.5s
     setTimeout(() => badge.remove(), 1500);
   },
 
   _handleEnd() {
-    EventBus.emit('screen:pop');
+    this.unmount();
   },
 
   _showRelFeedback({ npcId, delta }) {

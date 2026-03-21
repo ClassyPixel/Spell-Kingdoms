@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spell Kingdoms — Story Editor</title>
+  <title>Conjuring Masters — Story Editor</title>
   <style>
     :root {
       --bg:      #0d0d1a;
@@ -58,7 +58,52 @@
     .btn-save   { background: var(--accent); color: #fff; }
     .btn-reset  { background: transparent; border: 1px solid var(--border); color: var(--dim); }
     .btn-reset:hover  { border-color: var(--danger); color: var(--danger); filter: none; }
-    .btn-export { background: transparent; border: 1px solid var(--border); color: var(--dim); }
+    .btn-export   { background: transparent; border: 1px solid var(--border); color: var(--dim); }
+    .btn-refresh  { background: transparent; border: 1px solid var(--border); color: var(--dim); }
+    .btn-refresh:hover { border-color: var(--accent2); color: var(--accent2); filter: none; }
+
+    /* ── Disabled node ───────────────────────────────────── */
+    .node-disabled .card-hdr-title { text-decoration: line-through; color: var(--dim); }
+    .node-disabled .card-hdr-label { opacity: 0.45; }
+    .node-disabled .card-body      { opacity: 0.45; pointer-events: none; }
+    .node-disabled-toggle {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.72em; color: var(--dim); cursor: pointer;
+      padding: 2px 8px; border-radius: 4px; border: 1px solid transparent;
+      user-select: none; flex-shrink: 0; transition: border-color 0.15s, color 0.15s;
+    }
+    .node-disabled-toggle:hover { border-color: var(--border); color: var(--text); }
+    .node-disabled-toggle input  { cursor: pointer; accent-color: var(--warn); }
+    .node-disabled .node-disabled-toggle { color: var(--warn); border-color: rgba(212,144,42,0.4); pointer-events: all; }
+
+    /* ── Choice result selector ──────────────────────────── */
+    .choice-result { display: flex; gap: 3px; flex-shrink: 0; }
+    .result-btn {
+      font-size: 0.68em; padding: 2px 7px; border-radius: 4px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--dim); cursor: pointer; transition: all 0.15s; font-weight: 600;
+    }
+    .result-btn.pos.active { background: rgba(74,184,124,0.18); border-color: var(--success); color: var(--success); }
+    .result-btn.neu.active { background: rgba(136,136,170,0.15); border-color: var(--dim);     color: var(--text); }
+    .result-btn.neg.active { background: rgba(192,74,74,0.18);   border-color: var(--danger);  color: var(--danger); }
+    .result-btn:not(.active):hover { border-color: var(--accent); color: var(--accent2); }
+
+    /* ── Remove choice button ────────────────────────────── */
+    .choice-remove {
+      background: transparent; border: none; color: var(--dim);
+      cursor: pointer; font-size: 1.1em; padding: 0 4px; flex-shrink: 0;
+      line-height: 1; transition: color 0.15s;
+    }
+    .choice-remove:hover { color: var(--danger); }
+
+    /* ── Add choice button ───────────────────────────────── */
+    .choice-add {
+      width: 100%; margin-top: 6px; padding: 7px;
+      background: transparent; border: 1px dashed var(--border);
+      border-radius: var(--r); color: var(--dim);
+      cursor: pointer; font-size: 0.82em; transition: all 0.15s;
+    }
+    .choice-add:hover { border-color: var(--accent); color: var(--accent2); }
 
     /* ── Layout ──────────────────────────────────────────── */
     #layout { display: flex; flex: 1; overflow: hidden; }
@@ -244,10 +289,11 @@
 <div id="topbar">
   <h1>✍️ Story Editor</h1>
   <span class="sep">|</span>
-  <span class="sub">Spell Kingdoms</span>
+  <span class="sub">Conjuring Masters</span>
   <div id="unsaved-dot" title="Unsaved changes"></div>
   <div class="spacer"></div>
   <span id="status"></span>
+  <button class="btn btn-refresh" id="btn-refresh">↻ Reload NPC</button>
   <button class="btn btn-export" id="btn-export">⬇ Export</button>
   <button class="btn btn-reset"  id="btn-reset">↺ Reset All</button>
   <button class="btn btn-save"   id="btn-save">💾 Save Changes</button>
@@ -396,11 +442,14 @@ function mergeNpcOverrides(saved) {
     Object.entries(ov.nodes ?? {}).forEach(([nodeId, nv]) => {
       const node = dlg.nodes[nodeId];
       if (!node) return;
-      if (nv.speaker !== undefined) { node.speaker = nv.speaker; dirty.npc.add(`${npcId}::${nodeId}`); }
-      if (nv.text    !== undefined) { node.text    = nv.text;    dirty.npc.add(`${npcId}::${nodeId}`); }
-      (nv.choices ?? []).forEach((ch, i) => {
-        if (node.choices?.[i] && ch.label !== undefined) { node.choices[i].label = ch.label; dirty.npc.add(`${npcId}::${nodeId}`); }
-      });
+      if (nv.speaker  !== undefined) { node.speaker  = nv.speaker;  dirty.npc.add(`${npcId}::${nodeId}`); }
+      if (nv.text     !== undefined) { node.text     = nv.text;     dirty.npc.add(`${npcId}::${nodeId}`); }
+      if (nv.disabled !== undefined) { node.disabled = nv.disabled; dirty.npc.add(`${npcId}::${nodeId}`); }
+      if (nv.choices  !== undefined) {
+        // Full replacement — includes added/removed choices and result tags
+        node.choices = JSON.parse(JSON.stringify(nv.choices));
+        dirty.npc.add(`${npcId}::${nodeId}`);
+      }
     });
   });
 }
@@ -679,6 +728,25 @@ function renderNpc(npcId) {
     const card = makeEditCard({ label: nodeId, title: node.speaker ?? nodeId, isDirty });
     const cb = card.querySelector('.card-body');
 
+    // ── Disabled toggle (in card header) ──────────────────
+    const hdr = card.querySelector('.card-hdr');
+    const disabledToggle = document.createElement('label');
+    disabledToggle.className = 'node-disabled-toggle';
+    disabledToggle.title = 'When checked, this dialogue node is skipped in-game';
+    disabledToggle.addEventListener('click', e => e.stopPropagation());
+    const disabledCb = document.createElement('input');
+    disabledCb.type = 'checkbox';
+    disabledCb.checked = !!(node.disabled);
+    if (node.disabled) card.classList.add('node-disabled');
+    disabledCb.addEventListener('change', () => {
+      wk.dialogues[npcId].nodes[nodeId].disabled = disabledCb.checked;
+      card.classList.toggle('node-disabled', disabledCb.checked);
+      markDirty('npc', dk, card);
+    });
+    disabledToggle.appendChild(disabledCb);
+    disabledToggle.append('\u00a0Skip');
+    hdr.insertBefore(disabledToggle, hdr.querySelector('.card-toggle'));
+
     cb.appendChild(makeField({
       label: 'Speaker Name', value: node.speaker ?? '', multiline: false,
       onChange(v) {
@@ -692,50 +760,107 @@ function renderNpc(npcId) {
       onChange(v) { wk.dialogues[npcId].nodes[nodeId].text = v; markDirty('npc', dk, card); },
     }));
 
-    if (node.choices?.length) {
+    // ── Choices section (always rendered) ─────────────────
+    const choicesWrap = document.createElement('div');
+    const choicesHdr  = document.createElement('div');
+    choicesHdr.className = 'choices-lbl';
+
+    function updateChoicesLabel() {
+      const n = wk.dialogues[npcId].nodes[nodeId].choices?.length ?? 0;
+      choicesHdr.textContent = `Player Choices (${n})`;
+    }
+
+    function makeResultSelector(choice, idx) {
       const wrap = document.createElement('div');
-
-      const lbl = document.createElement('div');
-      lbl.className = 'choices-lbl';
-      lbl.textContent = `Player Choices (${node.choices.length})`;
-      wrap.appendChild(lbl);
-
-      node.choices.forEach((choice, idx) => {
-        const row = document.createElement('div');
-        row.className = 'choice-row';
-        row.innerHTML = `<span class="choice-num">${idx + 1}.</span>`;
-
-        const inp = document.createElement('input');
-        inp.type = 'text';
-        inp.className = 'choice-inp';
-        inp.value = choice.label ?? '';
-        inp.placeholder = 'Choice label…';
-        inp.addEventListener('input', () => {
-          wk.dialogues[npcId].nodes[nodeId].choices[idx].label = inp.value;
-          inp.classList.add('changed');
+      wrap.className = 'choice-result';
+      const current = choice.result ?? 'neutral';
+      [['pos','▲','positive'],['neu','●','neutral'],['neg','▼','negative']].forEach(([cls, sym, val]) => {
+        const btn = document.createElement('button');
+        btn.className = `result-btn ${cls}${current === val ? ' active' : ''}`;
+        btn.textContent = sym;
+        btn.title = val.charAt(0).toUpperCase() + val.slice(1);
+        btn.addEventListener('click', () => {
+          wk.dialogues[npcId].nodes[nodeId].choices[idx].result = val;
+          wrap.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
           markDirty('npc', dk, card);
         });
-        row.appendChild(inp);
-
-        if (choice.requires) {
-          const t = document.createElement('span');
-          t.className = 'choice-tag';
-          t.textContent = '🔒';
-          t.title = JSON.stringify(choice.requires);
-          row.appendChild(t);
-        }
-        if (choice.effects?.length) {
-          const t = document.createElement('span');
-          t.className = 'choice-tag';
-          t.textContent = `⚡${choice.effects.length}`;
-          t.title = choice.effects.map(e => e.type).join(', ');
-          row.appendChild(t);
-        }
-        wrap.appendChild(row);
+        wrap.appendChild(btn);
       });
-
-      cb.appendChild(wrap);
+      return wrap;
     }
+
+    function buildChoiceRow(choice, idx) {
+      const row = document.createElement('div');
+      row.className = 'choice-row';
+
+      const num = document.createElement('span');
+      num.className = 'choice-num';
+      num.textContent = `${idx + 1}.`;
+      row.appendChild(num);
+
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'choice-inp';
+      inp.value = choice.label ?? '';
+      inp.placeholder = 'Choice label…';
+      inp.addEventListener('input', () => {
+        wk.dialogues[npcId].nodes[nodeId].choices[idx].label = inp.value;
+        inp.classList.add('changed');
+        markDirty('npc', dk, card);
+      });
+      row.appendChild(inp);
+
+      row.appendChild(makeResultSelector(choice, idx));
+
+      if (choice.requires) {
+        const t = document.createElement('span');
+        t.className = 'choice-tag'; t.textContent = '🔒';
+        t.title = JSON.stringify(choice.requires);
+        row.appendChild(t);
+      }
+      if (choice.effects?.length) {
+        const t = document.createElement('span');
+        t.className = 'choice-tag';
+        t.textContent = `⚡${choice.effects.length}`;
+        t.title = choice.effects.map(e => e.type).join(', ');
+        row.appendChild(t);
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'choice-remove';
+      removeBtn.textContent = '×';
+      removeBtn.title = 'Remove this choice';
+      removeBtn.addEventListener('click', () => {
+        wk.dialogues[npcId].nodes[nodeId].choices.splice(idx, 1);
+        markDirty('npc', dk, card);
+        rebuildChoices();
+      });
+      row.appendChild(removeBtn);
+
+      return row;
+    }
+
+    function rebuildChoices() {
+      choicesWrap.replaceChildren(choicesHdr);
+      updateChoicesLabel();
+      (wk.dialogues[npcId].nodes[nodeId].choices ?? []).forEach((ch, i) => {
+        choicesWrap.appendChild(buildChoiceRow(ch, i));
+      });
+      const addBtn = document.createElement('button');
+      addBtn.className = 'choice-add';
+      addBtn.textContent = '＋ Add Choice';
+      addBtn.addEventListener('click', () => {
+        if (!wk.dialogues[npcId].nodes[nodeId].choices) wk.dialogues[npcId].nodes[nodeId].choices = [];
+        wk.dialogues[npcId].nodes[nodeId].choices.push({ label: '', result: 'neutral', next: null });
+        markDirty('npc', dk, card);
+        rebuildChoices();
+      });
+      choicesWrap.appendChild(addBtn);
+    }
+
+    rebuildChoices();
+    cb.appendChild(choicesWrap);
 
     body.appendChild(card);
     count++;
@@ -915,9 +1040,16 @@ function buildNpcPayload() {
     if (!out[npcId]) out[npcId] = { nodes: {} };
     const node = wk.dialogues[npcId].nodes[nodeId];
     out[npcId].nodes[nodeId] = {
-      speaker: node.speaker,
-      text:    node.text,
-      choices: (node.choices ?? []).map(c => ({ label: c.label })),
+      speaker:  node.speaker,
+      text:     node.text,
+      disabled: node.disabled,
+      choices:  (node.choices ?? []).map(c => {
+        const co = { label: c.label, result: c.result };
+        if (c.requires !== undefined) co.requires = c.requires;
+        if (c.effects  !== undefined) co.effects  = c.effects;
+        if (c.next     !== undefined) co.next     = c.next;
+        return co;
+      }),
     };
   });
   return out;
@@ -944,6 +1076,23 @@ function saveAll() {
   if (dirty.quests.size) saveRaw(KEYS.quests, buildQuestPayload());
 }
 
+function refreshNpc() {
+  // Re-clone NPC source data
+  Object.entries(DIALOGUES).forEach(([id, d]) => { wk.dialogues[id] = JSON.parse(JSON.stringify(d)); });
+  dirty.npc.clear();
+
+  // Re-apply any saved NPC overrides
+  mergeNpcOverrides(loadRaw(KEYS.npc));
+
+  buildSidebar();
+
+  // Re-render current panel if an NPC is open
+  if (activeKey) {
+    const [type, id] = activeKey.split(':');
+    if (type === 'npc') selectItem(activeKey, type, id);
+  }
+}
+
 function resetAll() {
   Object.values(KEYS).forEach(k => localStorage.removeItem(k));
   dirty.story.clear(); dirty.npc.clear(); dirty.quests.clear();
@@ -966,7 +1115,7 @@ function exportAll() {
     npc:    buildNpcPayload(),
     quests: buildQuestPayload(),
   };
-  const content = `// Spell Kingdoms — Story Overrides Export\n// ${new Date().toISOString()}\nexport const OVERRIDES = ${JSON.stringify(payload, null, 2)};\n`;
+  const content = `// Conjuring Masters — Story Overrides Export\n// ${new Date().toISOString()}\nexport const OVERRIDES = ${JSON.stringify(payload, null, 2)};\n`;
   const blob = new Blob([content], { type: 'text/javascript' });
   const url  = URL.createObjectURL(blob);
   const a    = Object.assign(document.createElement('a'), { href: url, download: 'story_overrides.js' });
@@ -995,6 +1144,11 @@ function bindTopbar() {
     if (!confirm('Reset ALL text to the original script? This cannot be undone.')) return;
     resetAll();
     showStatus('All text reset to default.', 'warn');
+  });
+
+  document.getElementById('btn-refresh').addEventListener('click', () => {
+    refreshNpc();
+    showStatus('NPC dialogue reloaded from source + saved overrides.', 'ok');
   });
 
   document.getElementById('btn-export').addEventListener('click', () => {

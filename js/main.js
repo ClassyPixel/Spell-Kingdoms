@@ -544,7 +544,10 @@ function updateHUD() {
 // ── Font helper ───────────────────────────────────────────────────────────────
 
 function applyFont(fontKey) {
-  document.body.classList.toggle('font-lutin', fontKey === 'lutin');
+  document.body.classList.remove('font-lutin', 'font-badabb', 'font-merienda', 'font-anticorona');
+  if (fontKey && fontKey !== 'default') {
+    document.body.classList.add(`font-${fontKey}`);
+  }
 }
 
 // Global event wiring
@@ -583,13 +586,11 @@ function setupGlobalEvents() {
         setTimeout(() => showQuickMatchOpponentSelect(), 200);
       }, 100);
     } else {
-      // Story mode: pop frozen dialogue screen, then start post-game dialogue
+      // Story mode: CardSystem/CardGameScreen already pops the card game screen,
+      // so just start the post-game dialogue after a brief delay for SceneScreen to settle.
       setTimeout(() => {
-        EventBus.emit('screen:pop');
-        setTimeout(() => {
-          EventBus.emit('dialogue:start', { npcId, nodeOverride: win ? 'post_win' : 'post_lose' });
-        }, 200);
-      }, 100);
+        EventBus.emit('dialogue:start', { npcId, nodeOverride: win ? 'post_win' : 'post_lose' });
+      }, 300);
     }
   });
   EventBus.on('shop:purchased',      () => updateHUD());

@@ -92,6 +92,14 @@ const DialogueSystem = {
     this._currentNode = nodeId;
     const node = this._nodes[nodeId];
 
+    // NPC switch — update active identity when a node declares a different npcId
+    if (node.npcId && node.npcId !== this._npcId) {
+      this._npcId = node.npcId;
+      const newData = loadDialogue(node.npcId);
+      this._npcPortrait = newData.portrait ?? GameState.relationships[node.npcId]?.portrait ?? '🧙';
+      EventBus.emit('dialogue:npcSwitch', { npcId: node.npcId });
+    }
+
     // Apply on-enter effects
     if (node.effects) node.effects.forEach(e => this._applyEffect(e));
 
@@ -101,7 +109,7 @@ const DialogueSystem = {
       return {
         label:           ch.label,
         locked,
-        charmLocked:     locked && ch.requires?.min_charm !== undefined,
+        charismaLocked:     locked && ch.requires?.min_charisma !== undefined,
         requirementText: locked ? this._requirementLabel(ch.requires) : null,
         _raw:            ch,
       };
@@ -115,7 +123,7 @@ const DialogueSystem = {
       ?? 'neutral';
 
     EventBus.emit('dialogue:show', {
-      speaker:     node.speaker ?? this._npcId,
+      speaker:     node.speaker !== undefined ? node.speaker : this._npcId,
       portrait:    node.portrait ?? this._npcPortrait,
       text:        node.text ?? '',
       choices,
@@ -194,8 +202,8 @@ const DialogueSystem = {
       if (!GameState.quests.completed.includes(req.quest_completed)) return false;
     }
 
-    if (req.min_charm !== undefined) {
-      if ((GameState.player.charm ?? 0) < req.min_charm) return false;
+    if (req.min_charisma !== undefined) {
+      if ((GameState.player.charisma ?? 0) < req.min_charisma) return false;
     }
 
     return true;
@@ -203,8 +211,8 @@ const DialogueSystem = {
 
   _requirementLabel(req) {
     if (!req) return null;
-    if (req.min_charm !== undefined) {
-      return `(Lv.${req.min_charm} Charm Required)`;
+    if (req.min_charisma !== undefined) {
+      return `(Lv.${req.min_charisma} Charisma Required)`;
     }
     if (req.relationship_tier !== undefined) {
       return `[${TIER_NAMES[req.relationship_tier] ?? `Tier ${req.relationship_tier}`} needed]`;
@@ -279,6 +287,11 @@ const DialogueSystem = {
       case 'unlockLocation':
         GameState.unlockLocation(effect.locationId);
         EventBus.emit('toast', { message: `New location: ${effect.locationId}`, type: 'info' });
+        break;
+
+      case 'hotelRest':
+        GameState.addCoin(-(effect.cost ?? 10));
+        EventBus.emit('hotel:rest', { hours: effect.hours ?? 12 });
         break;
 
       default:

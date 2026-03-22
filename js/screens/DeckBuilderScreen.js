@@ -66,6 +66,7 @@ const DeckBuilderScreen = {
   _activeSub:  null,   // which sub-deck picker is open
   _pending:    [],     // cards staged but not yet confirmed
   _deckName:   'Deck1',
+  _editDeck:   null,   // reference to deck being edited (null = create mode)
 
   mount(container, params = {}) {
     this._container = container;
@@ -73,6 +74,7 @@ const DeckBuilderScreen = {
     this._activeSub = null;
     this._pending   = [];
     this._deckName  = 'Deck1';
+    this._editDeck  = null;
 
     if (params.deck) {
       const d = params.deck;
@@ -83,6 +85,7 @@ const DeckBuilderScreen = {
         spells:    [...(d.spells    ?? [])],
       };
       this._deckName = d.name ?? 'Deck1';
+      this._editDeck = d;   // keep reference for Save Changes
     }
 
     this._render();
@@ -535,7 +538,7 @@ const DeckBuilderScreen = {
     container.appendChild(list);
   },
 
-  // ── Create Deck ─────────────────────────────────────────────────────────────
+  // ── Create / Save Deck ──────────────────────────────────────────────────────
 
   _isComplete() {
     const { champions, elites, summons, spells } = this._draft;
@@ -557,8 +560,13 @@ const DeckBuilderScreen = {
     if (!this._isComplete()) return;
     const btn = document.createElement('button');
     btn.className = 'db-create-btn btn-primary';
-    btn.textContent = '✦ Create Deck ✦';
-    btn.addEventListener('click', () => this._createDeck());
+    if (this._editDeck) {
+      btn.textContent = '💾 Save Changes';
+      btn.addEventListener('click', () => this._saveDeck());
+    } else {
+      btn.textContent = '✦ Create Deck ✦';
+      btn.addEventListener('click', () => this._createDeck());
+    }
     container.appendChild(btn);
   },
 
@@ -566,10 +574,25 @@ const DeckBuilderScreen = {
     if (!GameState.deck.customDecks) GameState.deck.customDecks = [];
     const name = this._deckName || `Deck${GameState.deck.customDecks.length + 1}`;
     GameState.deck.customDecks.push({ ...this._draft, name, createdAt: Date.now() });
-    this._showCreatedAnimation();
+    this._showFinishAnimation('Deck Created!', 'Your new deck has been saved.');
   },
 
-  _showCreatedAnimation() {
+  _saveDeck() {
+    const decks = GameState.deck.customDecks ?? [];
+    const idx   = decks.indexOf(this._editDeck);
+    const name  = this._deckName || this._editDeck.name || 'Deck';
+    const updated = { ...this._editDeck, ...this._draft, name };
+    if (idx !== -1) {
+      decks[idx] = updated;
+    } else {
+      // Fallback: push as new deck if reference was lost
+      if (!GameState.deck.customDecks) GameState.deck.customDecks = [];
+      GameState.deck.customDecks.push({ ...updated, createdAt: Date.now() });
+    }
+    this._showFinishAnimation('Changes Saved!', 'Your deck has been updated.');
+  },
+
+  _showFinishAnimation(headline, sub) {
     const root = document.getElementById('game-root') ?? document.body;
     const overlay = document.createElement('div');
     overlay.className = 'db-created-overlay';
@@ -577,8 +600,8 @@ const DeckBuilderScreen = {
     overlay.innerHTML = `
       <div class="db-created-burst">
         <div class="db-created-sparks">✦ ✦ ✦ ✦ ✦</div>
-        <div class="db-created-text">Deck Created!</div>
-        <div class="db-created-sub">Your deck has been saved.</div>
+        <div class="db-created-text">${headline}</div>
+        <div class="db-created-sub">${sub}</div>
         <div class="db-created-sparks">✦ ✦ ✦ ✦ ✦</div>
       </div>
     `;

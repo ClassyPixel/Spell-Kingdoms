@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 440">
+  <!-- shadow -->
+  <ellipse cx="100" cy="433" rx="52" ry="7" fill="rgba(0,0,0,0.28)"/>
+  <!-- base stand -->
+  <rect x="72"  y="396" width="56" height="18" rx="5" fill="#5a3a18"/>
+  <rect x="82"  y="376" width="36" height="22" rx="4" fill="#6a4a22"/>
+  <rect x="96"  y="326" width="8"  height="52" rx="3" fill="#7a5a2e"/>
+  <!-- torso -->
+  <rect x="58" y="198" width="84" height="130" rx="8" fill="#b07a30"/>
+  <line x1="70"  y1="210" x2="70"  y2="324" stroke="#9a6a25" stroke-width="1.5"/>
+  <line x1="82"  y1="206" x2="82"  y2="326" stroke="#9a6a25" stroke-width="1.5"/>
+  <line x1="100" y1="205" x2="100" y2="326" stroke="#9a6a25" stroke-width="1.5"/>
+  <line x1="118" y1="206" x2="118" y2="326" stroke="#9a6a25" stroke-width="1.5"/>
+  <line x1="130" y1="210" x2="130" y2="324" stroke="#9a6a25" stroke-width="1.5"/>
+  <!-- target circles -->
+  <circle cx="100" cy="265" r="36" fill="none" stroke="#c03020" stroke-width="3"/>
+  <circle cx="100" cy="265" r="22" fill="none" stroke="#c03020" stroke-width="3"/>
+  <circle cx="100" cy="265" r="9"  fill="#c03020"/>
+  <!-- rope bindings on torso -->
+  <rect x="54"  y="225" width="92" height="10" rx="4" fill="#8a5a20" fill-opacity="0.85"/>
+  <rect x="54"  y="302" width="92" height="10" rx="4" fill="#8a5a20" fill-opacity="0.85"/>
+  <!-- straw poking from sides -->
+  <path d="M58,218 L42,202 L48,216 L36,206 L44,222" stroke="#d4a830" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M58,308 L40,298 L50,310 L38,306"          stroke="#d4a830" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M142,215 L158,200 L152,214 L164,204 L156,220" stroke="#d4a830" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M142,312 L160,304 L150,316 L162,310"          stroke="#d4a830" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- arm crossbar -->
+  <rect x="16" y="206" width="168" height="22" rx="10" fill="#a06a22"/>
+  <rect x="16" y="206" width="168" height="22" rx="10" fill="none" stroke="#7a4a18" stroke-width="1.5"/>
+  <line x1="22"  y1="213" x2="58"  y2="213" stroke="#8a5a18" stroke-width="1.5"/>
+  <line x1="142" y1="213" x2="178" y2="213" stroke="#8a5a18" stroke-width="1.5"/>
+  <!-- rope at arm joints -->
+  <rect x="53"  y="202" width="14" height="30" rx="3" fill="#8a5a20"/>
+  <rect x="133" y="202" width="14" height="30" rx="3" fill="#8a5a20"/>
+  <!-- neck post -->
+  <rect x="88" y="143" width="24" height="58" rx="8" fill="#a06a22"/>
+  <line x1="96"  y1="148" x2="96"  y2="198" stroke="#8a5818" stroke-width="1.5"/>
+  <line x1="104" y1="146" x2="104" y2="198" stroke="#8a5818" stroke-width="1.5"/>
+  <!-- rope at neck -->
+  <rect x="84" y="190" width="32" height="10" rx="3" fill="#8a5a20"/>
+  <!-- head -->
+  <rect x="56" y="68" width="88" height="78" rx="18" fill="#b07a30"/>
+  <line x1="74"  y1="76" x2="74"  y2="142" stroke="#9a6a25" stroke-width="1.5"/>
+  <line x1="90"  y1="72" x2="90"  y2="144" stroke="#9a6a25" stroke-width="1.5"/>
+  <line x1="110" y1="72" x2="110" y2="144" stroke="#9a6a25" stroke-width="1.5"/>
+  <line x1="126" y1="76" x2="126" y2="142" stroke="#9a6a25" stroke-width="1.5"/>
+  <!-- X eyes -->
+  <line x1="73"  y1="90"  x2="87"  y2="106" stroke="#c03020" stroke-width="4" stroke-linecap="round"/>
+  <line x1="87"  y1="90"  x2="73"  y2="106" stroke="#c03020" stroke-width="4" stroke-linecap="round"/>
+  <line x1="113" y1="90"  x2="127" y2="106" stroke="#c03020" stroke-width="4" stroke-linecap="round"/>
+  <line x1="127" y1="90"  x2="113" y2="106" stroke="#c03020" stroke-width="4" stroke-linecap="round"/>
+  <!-- zig-zag stitched smile -->
+  <path d="M72,122 L80,114 L88,122 L96,114 L104,122 L112,114 L120,122 L128,114" stroke="#c03020" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- straw on top of head -->
+  <path d="M70,72 L60,52 L68,68 L58,58 L68,72"   stroke="#d4a830" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M86,70 L82,48 L87,66 L83,50"            stroke="#d4a830" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M100,68 L100,46 L103,64"                stroke="#d4a830" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M114,70 L118,48 L114,66 L118,50"        stroke="#d4a830" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M130,72 L140,52 L132,68 L142,58 L132,72" stroke="#d4a830" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- rope around head base -->
+  <rect x="52" y="138" width="96" height="10" rx="4" fill="#8a5a20"/>
+</svg>

@@ -86,12 +86,193 @@ export const CHAPTERS = [
 ];
 
 export const LOCATIONS = [
-  { id: 'academy_courtyard', name: 'Academy Courtyard', tag: 'Starting Area', description: 'The central hub of Conjuring Masters. Students gather here between classes.', icon: '🏛️', bgIcon: '🏛️', bgImage: 'assets/images/CardGameArt/SceneryArt/XtBwQy7.png' },
-  { id: 'library',           name: 'Grand Library',     tag: 'Study',         description: 'Ancient tomes line every shelf. Knowledge awaits those who seek it.',           icon: '📚', bgIcon: '📚' },
-  { id: 'dueling_grounds',   name: 'Dueling Grounds',   tag: 'Combat',        description: 'A ring of ancient stones where students test their spells in controlled duels.', icon: '⚔️', bgIcon: '⚔️' },
-  { id: 'market',            name: 'Academy Market',    tag: 'Shopping',      description: 'Merchants hawking spell components, potions, and rare cards.',                  icon: '🛒', bgIcon: '🛒' },
-  { id: 'dormitory',         name: 'Student Dormitory', tag: 'Rest',          description: 'A quiet place to rest and reflect. Your room is here.',                        icon: '🛏️', bgIcon: '🛏️' },
-  { id: 'headmaster_office', name: "Headmaster's Office", tag: 'Main Quest',  description: "The imposing office of the Academy's headmaster. Enter only when summoned.",   icon: '🗝️', bgIcon: '🗝️' },
+  {
+    id: 'academy_courtyard', name: 'Academy Courtyard', tag: 'Starting Area',
+    locationType: 'courtyard', mapPosition: [48, 55],
+    description: 'The central hub of Conjuring Masters. Students gather here between classes.',
+    icon: '🏛️', bgIcon: '🏛️', bgImage: 'assets/images/CardGameArt/SceneryArt/XtBwQy7.png',
+    areas: [
+      {
+        id: 'plaza', name: 'Plaza', bgIcon: '🏛️',
+        description: 'The open plaza at the heart of the Academy.',
+        doors: [
+          { id: 'plaza_to_garden',      label: 'Garden',      targetAreaId: 'garden',       position: { left: '8%',  bottom: '10%' } },
+          { id: 'plaza_to_studyhall',   label: 'Study Hall',  targetAreaId: 'study_hall',   position: { right: '8%', bottom: '10%' } },
+          { id: 'plaza_to_dormitory',   label: 'Dormitory',   targetLocationId: 'dormitory', targetAreaId: 'common_room', position: { left: '50%', bottom: '10%', transform: 'translateX(-50%)' } },
+        ],
+        treasures: [
+          { id: 'plaza_chest_1',   icon: '📦', label: 'Abandoned Crate',  position: { left: '22%',  bottom: '18%' }, loot: { type: 'coin',  amount: 40 } },
+          { id: 'plaza_pouch_1',   icon: '💰', label: 'Lost Coin Pouch',  position: { right: '25%', bottom: '22%' }, loot: { type: 'coin',  amount: 20 } },
+        ],
+        barrels: [
+          { id: 'plaza_barrel_1',  icon: '🛢️', label: 'Supply Barrel',    position: { left: '45%',  bottom: '16%' }, loot: { type: 'coin',  amount: 15 } },
+          { id: 'plaza_barrel_2',  icon: '🛢️', label: 'Old Barrel',       position: { right: '42%', bottom: '20%' }, loot: { type: 'coin',  amount: 10 } },
+        ],
+      },
+      {
+        id: 'garden', name: 'Garden', bgIcon: '🌿',
+        description: 'A peaceful garden where students rest between lessons.',
+        doors: [
+          { id: 'garden_to_plaza',     label: 'Back to Plaza',    targetAreaId: 'plaza',      position: { right: '8%', bottom: '10%' } },
+        ],
+        treasures: [
+          { id: 'garden_chest_1',  icon: '🎁', label: 'Hidden Gift',      position: { left: '35%',  bottom: '20%' }, loot: { type: 'coin',  amount: 25 } },
+          { id: 'garden_scroll_1', icon: '📜', label: 'Forgotten Scroll', position: { right: '30%', bottom: '25%' }, loot: { type: 'coin',  amount: 30 } },
+        ],
+        barrels: [
+          { id: 'garden_barrel_1', icon: '🛢️', label: 'Garden Barrel',    position: { left: '20%',  bottom: '18%' }, loot: { type: 'coin',  amount: 15 } },
+        ],
+      },
+      {
+        id: 'study_hall', name: 'Study Hall Entrance', bgIcon: '🪟',
+        description: 'The grand entrance to the Academy study halls.',
+        doors: [
+          { id: 'studyhall_to_plaza',  label: 'Back to Plaza',    targetAreaId: 'plaza',      position: { left: '8%',  bottom: '10%' } },
+        ],
+        treasures: [
+          { id: 'studyhall_chest_1', icon: '💎', label: 'Arcane Fragment', position: { right: '20%', bottom: '18%' }, loot: { type: 'coin',  amount: 25 } },
+        ],
+        barrels: [
+          { id: 'studyhall_barrel_1', icon: '🛢️', label: 'Storage Barrel', position: { left: '30%', bottom: '16%' }, loot: { type: 'coin',  amount: 20 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'library', name: 'Grand Library', tag: 'Study',
+    locationType: 'library', mapPosition: [24, 38],
+    description: 'Ancient tomes line every shelf. Knowledge awaits those who seek it.',
+    icon: '📚', bgIcon: '📚',
+    areas: [
+      {
+        id: 'reading_room', name: 'Reading Room', bgIcon: '📚',
+        description: 'Rows of candlelit reading desks fill this quiet hall.',
+        doors: [
+          { id: 'reading_to_archive',   label: 'Archive',          targetAreaId: 'archive',    position: { right: '8%', bottom: '10%' } },
+        ],
+      },
+      {
+        id: 'archive', name: 'Archive', bgIcon: '🗄️',
+        description: 'Dusty shelves packed with catalogued scrolls and records.',
+        doors: [
+          { id: 'archive_to_reading',   label: 'Reading Room',     targetAreaId: 'reading_room', position: { left: '8%',  bottom: '10%' } },
+          { id: 'archive_to_rarebooks', label: 'Rare Books Vault', targetAreaId: 'rare_books', position: { right: '8%', bottom: '10%' } },
+        ],
+      },
+      {
+        id: 'rare_books', name: 'Rare Books Vault', bgIcon: '📜',
+        description: 'A locked vault holding the Library\'s most precious volumes.',
+        doors: [
+          { id: 'rarebooks_to_archive', label: 'Back to Archive',  targetAreaId: 'archive',    position: { left: '8%',  bottom: '10%' } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'dueling_grounds', name: 'Dueling Grounds', tag: 'Combat',
+    locationType: 'grounds', mapPosition: [72, 34],
+    description: 'A ring of ancient stones where students test their spells in controlled duels.',
+    icon: '⚔️', bgIcon: '⚔️',
+    areas: [
+      {
+        id: 'practice_ring', name: 'Practice Ring', bgIcon: '⚔️',
+        description: 'The outer ring where students warm up and spar.',
+        doors: [
+          { id: 'practice_to_arena',   label: 'Arena Floor',      targetAreaId: 'arena_floor', position: { right: '8%', bottom: '10%' } },
+        ],
+      },
+      {
+        id: 'arena_floor', name: 'Arena Floor', bgIcon: '🏟️',
+        description: 'The main arena stage, ringed by ancient standing stones.',
+        doors: [
+          { id: 'arena_to_practice',   label: 'Practice Ring',    targetAreaId: 'practice_ring', position: { left: '8%', bottom: '10%' } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'market', name: 'Academy Market', tag: 'Shopping',
+    locationType: 'market', mapPosition: [29, 70],
+    description: 'Merchants hawking spell components, potions, and rare cards.',
+    icon: '🛒', bgIcon: '🛒',
+    areas: [
+      {
+        id: 'main_stalls', name: 'Main Stalls', bgIcon: '🛒',
+        description: 'Busy market stalls offering components and card packs.',
+        doors: [
+          { id: 'stalls_to_potions',   label: 'Potion Row',       targetAreaId: 'potion_row', position: { right: '8%', bottom: '10%' } },
+        ],
+      },
+      {
+        id: 'potion_row', name: 'Potion Row', bgIcon: '🧪',
+        description: 'A narrow alley lined with bubbling cauldrons and potion bottles.',
+        doors: [
+          { id: 'potions_to_stalls',   label: 'Main Stalls',      targetAreaId: 'main_stalls', position: { left: '8%', bottom: '10%' } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'dormitory', name: 'Student Dormitory', tag: 'Rest',
+    locationType: 'dormitory', mapPosition: [68, 72],
+    description: 'A quiet place to rest and reflect. Your room is here.',
+    icon: '🛏️', bgIcon: '🛏️',
+    areas: [
+      {
+        id: 'common_room', name: 'Common Room', bgIcon: '🛋️',
+        description: 'Students relax here between classes, playing cards and chatting.',
+        doors: [
+          { id: 'common_to_yourroom',    label: 'Your Room',        targetAreaId: 'your_room',   position: { right: '8%', bottom: '10%' } },
+          { id: 'common_to_courtyard',   label: 'Starting Grounds', targetLocationId: 'academy_courtyard', targetAreaId: 'plaza', position: { left: '8%', bottom: '10%' } },
+        ],
+      },
+      {
+        id: 'your_room', name: 'Your Room', bgIcon: '🛏️',
+        description: 'Your small but cosy dormitory room. A safe place to think.',
+        doors: [
+          { id: 'yourroom_to_common',  label: 'Common Room',      targetAreaId: 'common_room', position: { left: '8%', bottom: '10%' } },
+        ],
+        objects: [
+          { id: 'your_room_bed', icon: '🛏️', label: 'Bed', position: { left: '38%', bottom: '22%' }, action: 'rest' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'headmaster_office', name: "Headmaster's Office", tag: 'Main Quest',
+    locationType: 'office', mapPosition: [49, 16],
+    description: "The imposing office of the Academy's headmaster. Enter only when summoned.",
+    icon: '🗝️', bgIcon: '🗝️',
+    areas: [
+      {
+        id: 'antechamber', name: 'Antechamber', bgIcon: '🚪',
+        description: 'A formal waiting room outside the Headmaster\'s inner office.',
+        doors: [
+          { id: 'ante_to_office',      label: 'Inner Office',     targetAreaId: 'inner_office', position: { right: '8%', bottom: '10%' } },
+        ],
+      },
+      {
+        id: 'inner_office', name: 'Inner Office', bgIcon: '🗝️',
+        description: "The Headmaster's private study, lined with trophies and arcane artefacts.",
+        doors: [
+          { id: 'office_to_ante',      label: 'Back to Antechamber', targetAreaId: 'antechamber', position: { left: '8%', bottom: '10%' } },
+        ],
+      },
+    ],
+  },
+];
+
+export const WORLD_LOCATIONS = [
+  {
+    id: 'spellcaster_academy',
+    name: 'Spellcaster Academy',
+    locationType: 'academy',
+    tag: 'Academy',
+    icon: '🏫',
+    description: 'A prestigious academy dedicated to the art of conjuring and card dueling.',
+    mapPosition: [48, 50],
+    areaIds: ['academy_courtyard', 'library', 'dueling_grounds', 'market', 'dormitory', 'headmaster_office'],
+  },
 ];
 
 export const NPCS = [
@@ -111,7 +292,6 @@ export const NPCS = [
     matchRewards: [
       { type: 'exp', value: 100 },
       { type: 'lootBox', boxTypeId: 'medium', label: '💥 Arcane Booster Pack', icon: '💥' },
-      { type: 'item', itemId: 'mana_crystal', count: 1 },
     ],
   },
   {
@@ -121,7 +301,6 @@ export const NPCS = [
     matchRewards: [
       { type: 'exp', value: 80 },
       { type: 'lootBox', boxTypeId: 'small', label: '🌑 Void Booster Pack', icon: '🌑' },
-      { type: 'item', itemId: 'spell_scroll_arcane', count: 1 },
     ],
   },
   {
@@ -142,8 +321,23 @@ export const NPCS = [
     deck: ['ember_bolt','ember_bolt','shield_wall','frost_shard','healing_light','ember_bolt','frost_shard','shield_wall','ember_bolt','frost_shard'],
     matchRewards: [
       { type: 'exp', value: 30 },
-      { type: 'item', itemId: 'health_potion', count: 1 },
     ],
+  },
+  {
+    id: 'innkeeper', name: 'Innkeeper', portrait: '🛎️', location: 'dormitory',
+    description: 'The dormitory attendant. Can arrange a room for weary students.',
+    deck: [],
+    matchRewards: [],
+  },
+  {
+    id: 'narrator',
+    name: '',
+    portrait: null,
+    portraitImg: null,
+    location: null,
+    description: 'The unseen voice of the story.',
+    deck: [],
+    matchRewards: [],
   },
 ];
 
@@ -163,12 +357,7 @@ export const CARDS = [
 ];
 
 export const ITEMS = [
-  { itemId: 'health_potion',        name: 'Health Potion',        icon: '🧪', type: 'consumable', usable: true,  description: 'Restores 5 HP.',                       effect: { type: 'heal',    value: 5 } },
-  { itemId: 'greater_health_potion',name: 'Greater Health Potion',icon: '💊', type: 'consumable', usable: true,  description: 'Restores 10 HP.',                      effect: { type: 'heal',    value: 10 } },
-  { itemId: 'mana_crystal',         name: 'Mana Crystal',         icon: '💎', type: 'consumable', usable: true,  description: 'Restores 3 mana during battle.',        effect: { type: 'mana',    value: 3 } },
-  { itemId: 'spell_scroll_arcane',  name: 'Arcane Scroll',        icon: '📜', type: 'consumable', usable: true,  description: 'Adds Arcane Blast to your collection.', effect: { type: 'addCard', cardId: 'arcane_blast' } },
-  { itemId: 'tome_of_ice',          name: 'Tome of Ice',          icon: '📘', type: 'consumable', usable: true,  description: 'Adds Ice Barrier to your collection.',  effect: { type: 'addCard', cardId: 'ice_barrier' } },
-  { itemId: 'academy_badge',        name: 'Academy Badge',        icon: '🎖️', type: 'key_item',   usable: false, description: 'Your official student identification badge.' },
+  { itemId: 'academy_badge', name: 'Academy Badge', icon: '🎖️', type: 'key_item', usable: false, description: 'Your official student identification badge.' },
 ];
 
 export const QUESTS = [
@@ -197,20 +386,14 @@ export const QUESTS = [
       { id: 's02_obj_01', type: 'dialogue', description: "Ask Zephyr if they've seen the tome",  target: { npcId: 'zephyr',        flag: 'asked_zephyr_tome' } },
       { id: 's02_obj_02', type: 'dialogue', description: 'Return the tome to Master Aldric',      target: { npcId: 'master_aldric', flag: 'returned_tome' } },
     ],
-    rewards: { exp: 80, coin: 40, cards: ['arcane_mastery'], items: ['greater_health_potion'] },
+    rewards: { exp: 80, coin: 40, cards: ['arcane_mastery'] },
   },
 ];
 
 export const SHOP_STOCK = [
   {
     shopId: 'general_shop', name: "Zephyr's Wares",
-    stock: [
-      { itemId: 'health_potion',        price: 20, stock: -1 },
-      { itemId: 'greater_health_potion',price: 40, stock: -1 },
-      { itemId: 'mana_crystal',         price: 30, stock: -1 },
-      { itemId: 'spell_scroll_arcane',  price: 75, stock: 3 },
-      { itemId: 'tome_of_ice',          price: 80, stock: 2 },
-    ],
+    stock: [],
   },
   {
     shopId: 'merchant_shop', name: "The Merchant's Wares",
@@ -265,10 +448,10 @@ export const DIALOGUES = {
         choices: [
           { label: 'Tell me about the Academy.',                                                                effects: [{ type: 'relationship', value: 1 }],  next: 'aria_about_academy' },
           { label: 'I want to challenge you to a duel.',                                                       effects: [{ type: 'setFlag', flag: 'aria_challenged' }, { type: 'triggerQuest', questId: 'side_01' }], next: 'aria_challenge_accept' },
-          { label: 'You seem really driven. What pushes you to keep going?',       requires: { min_charm: 20 }, effects: [{ type: 'relationship', value: 2 }],  next: 'aria_charm_20' },
-          { label: "Do you ever let your guard down around anyone?",               requires: { min_charm: 40 }, effects: [{ type: 'relationship', value: 3 }],  next: 'aria_charm_40' },
-          { label: "I think about you more than I probably should.",               requires: { min_charm: 60 }, effects: [{ type: 'relationship', value: 4 }],  next: 'aria_charm_60' },
-          { label: "Whatever happens at this Academy — I want to face it with you.", requires: { min_charm: 80 }, effects: [{ type: 'relationship', value: 5 }], next: 'aria_charm_80' },
+          { label: 'You seem really driven. What pushes you to keep going?',       requires: { min_charisma: 20 }, effects: [{ type: 'relationship', value: 2 }],  next: 'aria_charisma_20' },
+          { label: "Do you ever let your guard down around anyone?",               requires: { min_charisma: 40 }, effects: [{ type: 'relationship', value: 3 }],  next: 'aria_charisma_40' },
+          { label: "I think about you more than I probably should.",               requires: { min_charisma: 60 }, effects: [{ type: 'relationship', value: 4 }],  next: 'aria_charisma_60' },
+          { label: "Whatever happens at this Academy — I want to face it with you.", requires: { min_charisma: 80 }, effects: [{ type: 'relationship', value: 5 }], next: 'aria_charisma_80' },
           { label: 'Just checking in.',                                                                         next: null },
           { label: "I don't really have time for this.",                                                        effects: [{ type: 'relationship', value: -2 }], next: 'aria_rebuff' },
         ],
@@ -278,7 +461,7 @@ export const DIALOGUES = {
         text: "...*short pause* Okay. Sure. I'll leave you to it then.",
         choices: [],
       },
-      aria_charm_20: {
+      aria_charisma_20: {
         speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*pauses, surprised anyone asked* ...Honestly? I have something to prove. Everyone here knows my sister's name before they know mine. I refuse to let that define me.",
         choices: [
@@ -286,33 +469,33 @@ export const DIALOGUES = {
           { label: 'That must be exhausting.', effects: [{ type: 'relationship', value: 1 }], next: null },
         ],
       },
-      aria_charm_40: {
+      aria_charisma_40: {
         speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*quiet for a moment* Not easily. I learned early that showing weakness here gets used against you. But... there are maybe one or two people I don't feel like I have to perform for. *glances at you briefly*",
         choices: [
-          { label: "I hope I'm one of them.", effects: [{ type: 'relationship', value: 3 }], next: 'aria_charm_40_response' },
+          { label: "I hope I'm one of them.", effects: [{ type: 'relationship', value: 3 }], next: 'aria_charisma_40_response' },
           { label: "That sounds lonely.", effects: [{ type: 'relationship', value: 2 }], next: null },
         ],
       },
-      aria_charm_40_response: {
+      aria_charisma_40_response: {
         speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*small smile, looks away* ...Yeah. You are.",
         choices: [],
       },
-      aria_charm_60: {
+      aria_charisma_60: {
         speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*blinks, then laughs quietly* Is that so. I'm not going to pretend I haven't noticed. But I'm not the kind of person who does things halfway — if you mean that, you'd better mean it.",
         choices: [
-          { label: 'I mean it.', effects: [{ type: 'relationship', value: 4 }, { type: 'setFlag', flag: 'aria_romance_hint' }], next: 'aria_charm_60_response' },
+          { label: 'I mean it.', effects: [{ type: 'relationship', value: 4 }, { type: 'setFlag', flag: 'aria_romance_hint' }], next: 'aria_charisma_60_response' },
           { label: "I just meant as a friend.", effects: [{ type: 'relationship', value: 1 }], next: null },
         ],
       },
-      aria_charm_60_response: {
+      aria_charisma_60_response: {
         speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "...Good. *she holds your gaze a moment longer than usual* Don't make me regret trusting you with that.",
         choices: [],
       },
-      aria_charm_80: {
+      aria_charisma_80: {
         speaker: 'Sofi', portrait: '🧙‍♀️',
         text: "*long breath* You know... when I first saw you, I thought: just another student who'd be gone before midterms. *turns to face you fully* I was very wrong about you. Whatever comes next — I'm not facing it without you either.",
         choices: [{ label: 'Then we face it together.', effects: [{ type: 'relationship', value: 5 }, { type: 'setFlag', flag: 'aria_bonded' }], next: null }],
@@ -441,10 +624,10 @@ export const DIALOGUES = {
         choices: [
           { label: 'I wanted to ask about the lost tome.',                                     requires: { flag_unset: 'asked_zephyr_tome' }, effects: [{ type: 'triggerQuest', questId: 'side_02' }], next: 'aldric_lost_tome' },
           { label: 'Just looking for some guidance.',                                           effects: [{ type: 'relationship', value: 1 }],  next: 'aldric_guidance' },
-          { label: 'What made you become a teacher?',                                          requires: { min_charm: 20 }, effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charm_20' },
-          { label: 'Do you ever regret staying at the Academy all these years?',               requires: { min_charm: 40 }, effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charm_40' },
-          { label: 'What really happened to the students who were expelled before Sofi\'s sister?', requires: { min_charm: 60 }, effects: [{ type: 'relationship', value: 3 }], next: 'aldric_charm_60' },
-          { label: "Master Aldric — you're the only person here I genuinely trust.",           requires: { min_charm: 80 }, effects: [{ type: 'relationship', value: 4 }], next: 'aldric_charm_80' },
+          { label: 'What made you become a teacher?',                                          requires: { min_charisma: 20 }, effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charisma_20' },
+          { label: 'Do you ever regret staying at the Academy all these years?',               requires: { min_charisma: 40 }, effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charisma_40' },
+          { label: 'What really happened to the students who were expelled before Sofi\'s sister?', requires: { min_charisma: 60 }, effects: [{ type: 'relationship', value: 3 }], next: 'aldric_charisma_60' },
+          { label: "Master Aldric — you're the only person here I genuinely trust.",           requires: { min_charisma: 80 }, effects: [{ type: 'relationship', value: 4 }], next: 'aldric_charisma_80' },
           { label: 'Nothing in particular.',                                                    next: null },
           { label: "Your lectures are a waste of time, frankly.",                               effects: [{ type: 'relationship', value: -3 }], next: 'aldric_rebuff' },
         ],
@@ -454,40 +637,40 @@ export const DIALOGUES = {
         text: "*long silence* I see. Then I suggest you find somewhere else to waste it. Good day.",
         choices: [],
       },
-      aldric_charm_20: {
+      aldric_charisma_20: {
         speaker: 'Master Aldric', portrait: '🧓',
         text: "*sets down his quill* An unusual question. Most students only want to know what's on the exam. *brief pause* I stayed because I believed knowledge could be protected here. I am... less certain of that than I once was.",
         choices: [
-          { label: 'What changed your mind?', effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charm_20_response' },
+          { label: 'What changed your mind?', effects: [{ type: 'relationship', value: 2 }], next: 'aldric_charisma_20_response' },
           { label: 'I think the right people still care.', effects: [{ type: 'relationship', value: 1 }], next: null },
         ],
       },
-      aldric_charm_20_response: {
+      aldric_charisma_20_response: {
         speaker: 'Master Aldric', portrait: '🧓',
         text: "Years of watching the institution protect itself rather than its students. But we will speak no more of that today. *returns to his work*",
         choices: [],
       },
-      aldric_charm_40: {
+      aldric_charisma_40: {
         speaker: 'Master Aldric', portrait: '🧓',
         text: "*long silence* There were other paths. A research post in the eastern provinces. A small school of my own, perhaps. I chose this place because I thought I could change it from the inside. *dry exhale* That's the sort of optimism that only survives in young men.",
         choices: [
-          { label: "It's not too late to change things.", effects: [{ type: 'relationship', value: 3 }], next: 'aldric_charm_40_response' },
+          { label: "It's not too late to change things.", effects: [{ type: 'relationship', value: 3 }], next: 'aldric_charisma_40_response' },
           { label: 'I understand the regret.', effects: [{ type: 'relationship', value: 2 }], next: null },
         ],
       },
-      aldric_charm_40_response: {
+      aldric_charisma_40_response: {
         speaker: 'Master Aldric', portrait: '🧓',
         text: "*looks at you for a long moment* ...Perhaps not. *quietly* Perhaps not.",
         choices: [],
       },
-      aldric_charm_60: {
+      aldric_charisma_60: {
         speaker: 'Master Aldric', portrait: '🧓',
         text: "*closes the door, voice lower* There were seven. All asking questions the headmaster considered dangerous. All gone within the same academic year. The official records cite 'conduct violations.' *he doesn't say more. He doesn't need to.*",
         choices: [
           { label: "This goes higher than we thought.", effects: [{ type: 'relationship', value: 3 }, { type: 'setFlag', flag: 'aldric_expulsion_lore' }], next: null },
         ],
       },
-      aldric_charm_80: {
+      aldric_charisma_80: {
         speaker: 'Master Aldric', portrait: '🧓',
         text: "*pauses mid-sentence, visibly moved* ...That is not a statement I take lightly. Nor one I've heard often in this building. *sets his work aside* You have my trust in return. Completely.",
         choices: [{ label: 'Then let\'s use it to set things right.', effects: [{ type: 'relationship', value: 4 }, { type: 'setFlag', flag: 'aldric_final_arc' }], next: null }],
@@ -515,7 +698,7 @@ export const DIALOGUES = {
       aldric_lessons_greeting: {
         speaker: 'Master Aldric', portrait: '🧓',
         text: "I've been reviewing your progress. I think you're ready for some advanced theory. *hands you a scroll*",
-        choices: [{ label: "Let's do it.", effects: [{ type: 'relationship', value: 3 }, { type: 'addItem', itemId: 'spell_scroll_arcane' }], next: null }],
+        choices: [{ label: "Let's do it.", effects: [{ type: 'relationship', value: 3 }], next: null }],
       },
       aldric_secret_greeting: {
         speaker: 'Master Aldric', portrait: '🧓',
@@ -591,10 +774,10 @@ export const DIALOGUES = {
         choices: [
           { label: 'Have you seen a lost tome? Master Aldric is looking for it.',          requires: { flag: 'side_02_active' }, effects: [{ type: 'setFlag', flag: 'asked_zephyr_tome' }, { type: 'completeObjective', objectiveId: 's02_obj_01' }, { type: 'relationship', value: 2 }], next: 'zephyr_tome_info' },
           { label: "I'd like to browse your shop.",                                         effects: [{ type: 'openShop', shopId: 'general_shop', shopName: "Zephyr's Wares" }, { type: 'relationship', value: 1 }], next: null },
-          { label: "You're not like any merchant I've met. Where are you actually from?",  requires: { min_charm: 20 }, effects: [{ type: 'relationship', value: 2 }], next: 'zephyr_charm_20' },
-          { label: "What do you actually want from staying near this place?",              requires: { min_charm: 40 }, effects: [{ type: 'relationship', value: 3 }], next: 'zephyr_charm_40' },
-          { label: "Do you miss what it felt like to be a student here?",                 requires: { min_charm: 60 }, effects: [{ type: 'relationship', value: 3 }], next: 'zephyr_charm_60' },
-          { label: "You've been watching this place for years. I think part of you never left.", requires: { min_charm: 80 }, effects: [{ type: 'relationship', value: 4 }], next: 'zephyr_charm_80' },
+          { label: "You're not like any merchant I've met. Where are you actually from?",  requires: { min_charisma: 20 }, effects: [{ type: 'relationship', value: 2 }], next: 'zephyr_charisma_20' },
+          { label: "What do you actually want from staying near this place?",              requires: { min_charisma: 40 }, effects: [{ type: 'relationship', value: 3 }], next: 'zephyr_charisma_40' },
+          { label: "Do you miss what it felt like to be a student here?",                 requires: { min_charisma: 60 }, effects: [{ type: 'relationship', value: 3 }], next: 'zephyr_charisma_60' },
+          { label: "You've been watching this place for years. I think part of you never left.", requires: { min_charisma: 80 }, effects: [{ type: 'relationship', value: 4 }], next: 'zephyr_charisma_80' },
           { label: 'Just passing by.',                                                      next: null },
           { label: "Stop acting like you know me.",                                         effects: [{ type: 'relationship', value: -2 }], next: 'zephyr_rebuff' },
         ],
@@ -609,46 +792,46 @@ export const DIALOGUES = {
         text: "*expression flattens* I don't. *goes back to arranging stock, doesn't look up again*",
         choices: [],
       },
-      zephyr_charm_20: {
+      zephyr_charisma_20: {
         speaker: 'Zephyr', portrait: '🧝',
         text: "*long pause* Far enough that 'home' stopped meaning anything specific. I've been in a lot of places. *taps the counter* Most of them weren't worth staying in. This one... has its complications.",
         choices: [
-          { label: 'What kind of complications?', effects: [{ type: 'relationship', value: 2 }], next: 'zephyr_charm_20_response' },
+          { label: 'What kind of complications?', effects: [{ type: 'relationship', value: 2 }], next: 'zephyr_charisma_20_response' },
           { label: 'I understand that feeling.', effects: [{ type: 'relationship', value: 1 }], next: null },
         ],
       },
-      zephyr_charm_20_response: {
+      zephyr_charisma_20_response: {
         speaker: 'Zephyr', portrait: '🧝',
         text: "The kind with history. *waves a hand* Come back with more coin and fewer questions.",
         choices: [],
       },
-      zephyr_charm_40: {
+      zephyr_charisma_40: {
         speaker: 'Zephyr', portrait: '🧝',
         text: "*still for a moment* That's a better question than most people ask. *quiet* I want to know why. Why I was expelled. Why the vault exists. Why the headmaster is so afraid of what's in it. I've been waiting a long time for someone to help me find out.",
         choices: [
-          { label: "Maybe that someone is me.", effects: [{ type: 'relationship', value: 3 }, { type: 'setFlag', flag: 'zephyr_shared_goal' }], next: 'zephyr_charm_40_response' },
+          { label: "Maybe that someone is me.", effects: [{ type: 'relationship', value: 3 }, { type: 'setFlag', flag: 'zephyr_shared_goal' }], next: 'zephyr_charisma_40_response' },
           { label: "That sounds dangerous.", effects: [{ type: 'relationship', value: 1 }], next: null },
         ],
       },
-      zephyr_charm_40_response: {
+      zephyr_charisma_40_response: {
         speaker: 'Zephyr', portrait: '🧝',
         text: "*studies you carefully* ...Don't say things you don't mean. *then, softer* But if you do mean it — I've been waiting a while for someone I could actually work with.",
         choices: [],
       },
-      zephyr_charm_60: {
+      zephyr_charisma_60: {
         speaker: 'Zephyr', portrait: '🧝',
         text: "*stops what they're doing* Miss it. *exhales slowly* I miss who I was before I knew what I know. I miss thinking this place was something worth believing in. *beat* That probably sounds pathetic.",
         choices: [
-          { label: "It sounds honest. That's rarer.", effects: [{ type: 'relationship', value: 4 }], next: 'zephyr_charm_60_response' },
+          { label: "It sounds honest. That's rarer.", effects: [{ type: 'relationship', value: 4 }], next: 'zephyr_charisma_60_response' },
           { label: "The Academy still could be worth it — with the right people.", effects: [{ type: 'relationship', value: 2 }], next: null },
         ],
       },
-      zephyr_charm_60_response: {
+      zephyr_charisma_60_response: {
         speaker: 'Zephyr', portrait: '🧝',
         text: "*quiet laugh* ...Yeah. It is rarer. *meets your eyes briefly* You're not what I expected when you first walked up to this stall.",
         choices: [],
       },
-      zephyr_charm_80: {
+      zephyr_charisma_80: {
         speaker: 'Zephyr', portrait: '🧝',
         text: "*doesn't answer for a long moment* ...You're not wrong. I told myself I was just watching. Staying on the edge. But you — *quiet* you pulled me back in. I'm not sure if that's your fault or mine. *looks up* Either way. I'm not leaving.",
         choices: [{ label: "Good. I need you here.", effects: [{ type: 'relationship', value: 5 }, { type: 'setFlag', flag: 'zephyr_final_arc' }], next: null }],
@@ -683,7 +866,7 @@ export const DIALOGUES = {
         speaker: 'Zephyr', portrait: '🧝',
         text: "*leans back, impressed* Hm. You actually won. I had... well, let's say I didn't bet against you. *slides something across the counter* A small bonus for the entertainment.",
         choices: [
-          { label: 'Thanks, Zephyr.', effects: [{ type: 'relationship', value: 3 }, { type: 'addItem', itemId: 'mana_crystal', quantity: 2 }], next: null },
+          { label: 'Thanks, Zephyr.', effects: [{ type: 'relationship', value: 3 }], next: null },
         ],
       },
       post_lose: {
@@ -787,6 +970,29 @@ export const DIALOGUES = {
       },
     },
   },
+
+  innkeeper: {
+    npcId: 'innkeeper', portrait: '🛎️',
+    nodes: {
+      start: {
+        speaker: 'Innkeeper',
+        text: 'Welcome, student. Tired from your studies? I can arrange a room — a full night\'s rest will do you good.',
+        choices: [
+          {
+            label: 'Rest here  ·  10 🪙  (12 hrs)',
+            requires: { min_gold: 10 },
+            effects: [{ type: 'hotelRest', cost: 10, hours: 12 }],
+          },
+          { label: 'Maybe later.', next: 'farewell' },
+        ],
+      },
+      farewell: {
+        speaker: 'Innkeeper',
+        text: 'Rest well whenever you\'re ready. The rooms are always available.',
+        choices: [],
+      },
+    },
+  },
 };
 
 // ── Grid Card Game Data ───────────────────────────────────────────────────────
@@ -816,9 +1022,9 @@ export const SUMMON_CARD_DECK = [
   { cardId: 'sum_wisp',      type: 'summon', name: 'Arcane Wisp',    hp: 4, power: 4, summonCost: 2,  art: '✨', role: 'support',   ability: { type: 'heal_parent',       desc: 'Heals parent elite +1 HP each turn.' },                   cardType: 'Beast',  rarity: 'C', terrain: 'spell', cardUid: '037A', artFile: '037A_img.JPG' },
   // Cost 3 — hard roll (2/36) — both have special abilities
   { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 5, power: 2, summonCost: 3,  art: '🧊', role: 'defensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' },                        cardType: 'Fae',    rarity: 'C', terrain: 'ice',   cardUid: '032A', artFile: '032A_img.JPG' },
-  { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 2, power: 4, summonCost: 3,  art: '🦇', role: 'offensive', ability: { type: 'teleport_to_elite', desc: 'Can be placed on any player elite without matching dice.' }, cardType: 'Human',  rarity: 'C', terrain: 'spell', cardUid: '014A', artFile: '014A_img.jpg'  },
+  { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 2, power: 4, summonCost: 3,  art: '🦇', role: 'offensive', ability: { type: 'void_on_death', desc: 'When destroyed, tears open The Void on a random cell.' }, cardType: 'Human',  rarity: 'C', terrain: 'spell', cardUid: '014A', artFile: '014A_img.jpg'  },
   { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 5, power: 2, summonCost: 3,  art: '🧊', role: 'defensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' },                        cardType: 'Fae',    rarity: 'C', terrain: 'ice',   cardUid: '032A', artFile: '032A_img.JPG' },
-  { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 2, power: 4, summonCost: 3,  art: '🦇', role: 'offensive', ability: { type: 'teleport_to_elite', desc: 'Can be placed on any player elite without matching dice.' }, cardType: 'Human',  rarity: 'C', terrain: 'spell', cardUid: '014A', artFile: '014A_img.jpg'  },
+  { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 2, power: 4, summonCost: 3,  art: '🦇', role: 'offensive', ability: { type: 'void_on_death', desc: 'When destroyed, tears open The Void on a random cell.' }, cardType: 'Human',  rarity: 'C', terrain: 'spell', cardUid: '014A', artFile: '014A_img.jpg'  },
   // Cost 4 (×5)
   { cardId: 'sum_shaman',    type: 'summon', name: 'Earth Shaman',   hp: 5, power: 2, summonCost: 4,  art: '🌿', role: 'defensive', cardType: 'Human',  rarity: 'C', terrain: 'earth', cardUid: '007A', artFile: '007A_img.jpg'  },
   { cardId: 'sum_hawk',      type: 'summon', name: 'Storm Hawk',     hp: 2, power: 4, summonCost: 4,  art: '🦅', role: 'offensive', cardType: 'Beast',  rarity: 'C', terrain: 'wind',  cardUid: '021A', artFile: '021A_img.jpg'  },
@@ -878,6 +1084,10 @@ export const SPELL_CARD_DECK = [
   { cardId: 'spell_teleport_champ', type: 'spell', name: 'Teleportation', art: '✈️', description: 'Relocate a champion to any open space in your champion row.',           effect: { type: 'teleport_champion' }, needsTarget: 'teleport_champion' },
   { cardId: 'spell_shield',      type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                   effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
   { cardId: 'spell_weaken',      type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',       effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
+  // ── Terrain spells ──────────────────────────────────────────────────────────
+  { cardId: 'spell_forbidden',   type: 'spell', name: 'Forbidden Spell',   art: '⬛', description: 'Place The Void on any play zone cell. Any elite standing on it is immediately destroyed and banished.',    effect: { type: 'set_terrain', terrain: 'the_void' }, needsTarget: 'any_terrain_cell' },
+  { cardId: 'spell_eruption',    type: 'spell', name: 'Volcanic Eruption', art: '🌋', description: 'Randomly place Lava Floor terrain on 3 play zone cells for 3 turns. Fire-type units on these cells gain +1 power.', effect: { type: 'random_terrain', terrain: 'lava_floor', count: 3, duration: 3 } },
+  { cardId: 'spell_encampment',  type: 'spell', name: 'Encampment',        art: '⛺', description: 'Place a Camp terrain on any play zone cell. Stacked summons on the elite in that cell restore +1 HP each draw phase.', effect: { type: 'set_terrain', terrain: 'camp' }, needsTarget: 'any_terrain_cell' },
 ];
 
 // ── Loot box types ────────────────────────────────────────────────────────────
@@ -945,6 +1155,77 @@ export function openLootBox(boxTypeId) {
   return packs; // array of arrays
 }
 
+// ── Narrator ──────────────────────────────────────────────────────────────────
+// The narrator has no portrait or name. Each node is keyed 'area_<areaId>' and
+// fires once per playthrough on the first visit to that area.
+DIALOGUES.narrator = {
+  npcId: 'narrator',
+  nodes: {
+    // ── Academy Courtyard ──────────────────────────────────────────────────
+    area_plaza: {
+      speaker: '',
+      text: 'The Academy Courtyard stretches before you — cobblestones worn smooth by generations of students who walked these same paths, spell-books tucked under their arms, futures unwritten. Your story begins here.',
+    },
+    area_garden: {
+      speaker: '',
+      text: 'The Academy Garden is a rare quiet corner amid the bustle of student life. Enchanted flora sway without wind, and the air carries a faint trace of elemental magic — as if the plants themselves have absorbed decades of spell-casting practice.',
+    },
+    area_study_hall: {
+      speaker: '',
+      text: 'The Study Hall Entrance marks the boundary between the open courtyard and the academic heart of the Academy. Notice boards line the walls, pinned thick with class schedules, duel challenges, and rumours that no professor has thought to remove.',
+    },
+    // ── Grand Library ─────────────────────────────────────────────────────
+    area_reading_room: {
+      speaker: '',
+      text: 'The Reading Room breathes with the quiet industry of scholars. Card tomes lie open on every table — treatises on conjuring theory, match histories, annotated deck blueprints. Knowledge, it seems, is the oldest card in any mage\'s hand.',
+    },
+    area_archive: {
+      speaker: '',
+      text: 'The Archive stretches deeper than the building should logically allow. Scrolls cataloguing every official duel fought at this Academy line the shelves — victories, defeats, and a handful of matches whose outcomes were never formally recorded.',
+    },
+    area_rare_books: {
+      speaker: '',
+      text: 'The Rare Books Vault. Only a few students ever earn access here. The tomes behind the glass contain conjuring techniques so advanced — or so dangerous — that the Headmaster keeps them locked away from the general curriculum.',
+    },
+    // ── Dueling Grounds ───────────────────────────────────────────────────
+    area_practice_ring: {
+      speaker: '',
+      text: 'The Practice Ring smells of ozone and ambition. Every great duelist at this Academy started here — running the same drills, making the same rookie mistakes, learning through loss. The sand remembers all of them.',
+    },
+    area_arena_floor: {
+      speaker: '',
+      text: 'The Arena Floor falls silent as you step onto it. This is where reputations are made. The stands are empty now, but on match days the roar of the crowd fills this space entirely — and every card played carries the weight of an audience.',
+    },
+    // ── Academy Market ────────────────────────────────────────────────────
+    area_main_stalls: {
+      speaker: '',
+      text: 'The Academy Market is louder and stranger than it first appears. Merchants from outside the Academy have set up alongside student-run stalls, trading card packs, enchanted trinkets, and information — always information.',
+    },
+    area_potion_row: {
+      speaker: '',
+      text: 'Potion Row. The scent of a hundred different brews hangs in the air — some pleasant, some deeply questionable. The vendors here occupy a grey area of Academy regulations that the faculty has chosen, wisely, not to examine too closely.',
+    },
+    // ── Student Dormitory ─────────────────────────────────────────────────
+    area_common_room: {
+      speaker: '',
+      text: 'The Common Room is where the real Academy education happens — late-night strategy debates, informal duels on the floor between the couches, and the quiet solidarity of students who are all, in their own way, figuring things out.',
+    },
+    area_your_room: {
+      speaker: '',
+      text: 'Your room. Small, sparsely furnished, but entirely yours. A place to think, to plan, to rest between the demands of Academy life. The window overlooks the courtyard — the same view, perhaps, that every student before you has stared at in the small hours.',
+    },
+    // ── Headmaster's Office ───────────────────────────────────────────────
+    area_antechamber: {
+      speaker: '',
+      text: 'The Antechamber outside the Headmaster\'s Office carries a particular stillness. Students do not end up here by accident. Whatever reason brought you to this threshold, it is almost certainly significant.',
+    },
+    area_inner_office: {
+      speaker: '',
+      text: 'The Inner Office of the Headmaster. Few students ever see this room. The walls are lined with the portraits of every head of this institution — each one watching, each one waiting to see what the current generation will make of itself.',
+    },
+  },
+};
+
 // ── Dialogue reactions ────────────────────────────────────────────────────────
 // Maps "npcId.nodeId" → reaction name.
 // Reactions: neutral | happy | sad | scared | mad | shy | aroused
@@ -972,12 +1253,12 @@ export const DIALOGUE_REACTIONS = {
   'aria.aria_post_win_follow':     'happy',
   'aria.post_lose':                'neutral',
   'aria.aria_post_lose_response':  'happy',
-  'aria.aria_charm_20':            'sad',
-  'aria.aria_charm_40':            'shy',
-  'aria.aria_charm_40_response':   'shy',
-  'aria.aria_charm_60':            'shy',
-  'aria.aria_charm_60_response':   'aroused',
-  'aria.aria_charm_80':            'happy',
+  'aria.aria_charisma_20':            'sad',
+  'aria.aria_charisma_40':            'shy',
+  'aria.aria_charisma_40_response':   'shy',
+  'aria.aria_charisma_60':            'shy',
+  'aria.aria_charisma_60_response':   'aroused',
+  'aria.aria_charisma_80':            'happy',
 
   // ── Master Aldric ─────────────────────────────────────────────────────────
   'master_aldric.start':                   'neutral',
@@ -999,12 +1280,12 @@ export const DIALOGUE_REACTIONS = {
   'master_aldric.post_win':               'happy',
   'master_aldric.aldric_post_win_response': 'happy',
   'master_aldric.post_lose':              'neutral',
-  'master_aldric.aldric_charm_20':        'sad',
-  'master_aldric.aldric_charm_20_response': 'sad',
-  'master_aldric.aldric_charm_40':        'sad',
-  'master_aldric.aldric_charm_40_response': 'sad',
-  'master_aldric.aldric_charm_60':        'scared',
-  'master_aldric.aldric_charm_80':        'happy',
+  'master_aldric.aldric_charisma_20':        'sad',
+  'master_aldric.aldric_charisma_20_response': 'sad',
+  'master_aldric.aldric_charisma_40':        'sad',
+  'master_aldric.aldric_charisma_40_response': 'sad',
+  'master_aldric.aldric_charisma_60':        'scared',
+  'master_aldric.aldric_charisma_80':        'happy',
 
   // ── Zephyr ────────────────────────────────────────────────────────────────
   'zephyr.start':                  'neutral',
@@ -1020,13 +1301,13 @@ export const DIALOGUE_REACTIONS = {
   'zephyr.zephyr_final':           'happy',
   'zephyr.post_win':               'happy',
   'zephyr.post_lose':              'neutral',
-  'zephyr.zephyr_charm_20':        'neutral',
-  'zephyr.zephyr_charm_20_response': 'neutral',
-  'zephyr.zephyr_charm_40':        'sad',
-  'zephyr.zephyr_charm_40_response': 'shy',
-  'zephyr.zephyr_charm_60':        'sad',
-  'zephyr.zephyr_charm_60_response': 'shy',
-  'zephyr.zephyr_charm_80':        'happy',
+  'zephyr.zephyr_charisma_20':        'neutral',
+  'zephyr.zephyr_charisma_20_response': 'neutral',
+  'zephyr.zephyr_charisma_40':        'sad',
+  'zephyr.zephyr_charisma_40_response': 'shy',
+  'zephyr.zephyr_charisma_60':        'sad',
+  'zephyr.zephyr_charisma_60_response': 'shy',
+  'zephyr.zephyr_charisma_80':        'happy',
 
   // ── Merchant ──────────────────────────────────────────────────────────────
   'merchant.start':               'happy',
@@ -1169,8 +1450,8 @@ export const STORY_STARTER_DECKS = [
       { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
       { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
       { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
-      { cardId: 'spell_teleport',       type: 'spell', name: 'Arcane Gate',   art: '🌀', description: 'Teleport target player elite to the front of its nearest champion.',           effect: { type: 'teleport_elite' }, needsTarget: 'player_elite' },
-      { cardId: 'spell_teleport',       type: 'spell', name: 'Arcane Gate',   art: '🌀', description: 'Teleport target player elite to the front of its nearest champion.',           effect: { type: 'teleport_elite' }, needsTarget: 'player_elite' },
+      { cardId: 'spell_eruption',       type: 'spell', name: 'Volcanic Eruption', art: '🌋', description: 'Randomly place Lava Floor terrain on 3 play zone cells for 3 turns. Fire-type units on these cells gain +1 power.', effect: { type: 'random_terrain', terrain: 'lava_floor', count: 3, duration: 3 } },
+      { cardId: 'spell_encampment',     type: 'spell', name: 'Encampment',    art: '⛺', description: 'Place a Camp terrain on any play zone cell. Stacked summons on the elite in that cell restore +1 HP each draw phase.', effect: { type: 'set_terrain', terrain: 'camp' }, needsTarget: 'any_terrain_cell' },
       { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                              effect: { type: 'revive' } },
       { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                       effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
     ],
@@ -1196,9 +1477,9 @@ export const STORY_STARTER_DECKS = [
       { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
       { cardId: 'spell_shield',         type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                    effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
       { cardId: 'spell_shield',         type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                    effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
-      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                   effect: { type: 'extra_roll' } },
+      { cardId: 'spell_encampment',     type: 'spell', name: 'Encampment',    art: '⛺', description: 'Place a Camp terrain on any play zone cell. Stacked summons on the elite in that cell restore +1 HP each draw phase.', effect: { type: 'set_terrain', terrain: 'camp' }, needsTarget: 'any_terrain_cell' },
       { cardId: 'spell_teleport_champ', type: 'spell', name: 'Teleportation', art: '✈️', description: 'Relocate a champion to any open space in your champion row.',            effect: { type: 'teleport_champion' }, needsTarget: 'teleport_champion' },
-      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',               effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_forbidden',      type: 'spell', name: 'Forbidden Spell', art: '⬛', description: 'Place The Void on any play zone cell. Any elite standing on it is immediately destroyed and banished.', effect: { type: 'set_terrain', terrain: 'the_void' }, needsTarget: 'any_terrain_cell' },
       { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',       effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
     ],
   },

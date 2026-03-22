@@ -52,9 +52,127 @@ function findEliteOnGrid(s, owner) {
   return out;
 }
 function totalPower(elite) {
-  const ep = (elite.power ?? 0) + (elite.tempPowerBonus ?? 0) + (elite.killBonus ?? 0);
-  return Math.max(0, ep) + (elite.summons ?? []).reduce((s, c) => s + (c.power ?? 0), 0);
+  const ep = (elite.power ?? 0) + (elite.tempPowerBonus ?? 0) + (elite.killBonus ?? 0) + (elite.terrainPowerBonus ?? 0);
+  return Math.max(0, ep) + (elite.summons ?? []).reduce((s, c) => s + (c.power ?? 0) + (c.terrainPowerBonus ?? 0), 0);
 }
+
+// Banish a card — removed from all zones permanently
+function banish(s, card) {
+  s.banishedCards.push(card);
+}
+
+// Display names for terrain types
+const TERRAIN_NAMES = {
+  camp:       'Camp',
+  lava_floor: 'Lava Floor',
+  the_void:   'The Void',
+};
+
+// Apply active terrain passive effects each draw phase
+function applyTerrainEffects(s) {
+  // Reset terrain power bonuses from last turn
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++) {
+      const el = s.grid[r]?.[c];
+      if (!el) continue;
+      delete el.terrainPowerBonus;
+      for (const sm of (el.summons ?? [])) delete sm.terrainPowerBonus;
+    }
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cellTerrain = s.terrainGrid[r][c];
+      if (!cellTerrain) continue;
+      const el = s.grid[r]?.[c];
+
+      // Camp: restore +1 HP to all stacked summons on this elite
+      if (cellTerrain === 'camp' && el?.type === 'elite') {
+        for (const sm of (el.summons ?? [])) {
+          if (sm.maxHp !== undefined) {
+            const prev = sm.hp;
+            sm.hp = Math.min(sm.maxHp, sm.hp + 1);
+            if (sm.hp > prev) log(s, `⛺ Camp: ${sm.name} restored 1 HP (${sm.hp}/${sm.maxHp}).`);
+          }
+        }
+      }
+
+      // Lava Floor: +1 power to fire-type elite and its fire-type stacked summons
+      if (cellTerrain === 'lava_floor' && el?.type === 'elite') {
+        if (el.terrain === 'fire') {
+          el.terrainPowerBonus = (el.terrainPowerBonus ?? 0) + 1;
+          log(s, `🌋 Lava Floor: ${el.name} gains +1 power.`);
+        }
+        for (const sm of (el.summons ?? [])) {
+          if (sm.terrain === 'fire') {
+            sm.terrainPowerBonus = (sm.terrainPowerBonus ?? 0) + 1;
+          }
+        }
+      }
+
+      // The Void: destroy any elite (and all its summons) on this terrain, then banish The Void
+      if (cellTerrain === 'the_void' && el?.type === 'elite') {
+        log(s, `⬛ The Void consumes ${el.name}!`);
+        for (const sm of (el.summons ?? [])) {
+          banish(s, sm);
+          log(s, `${sm.name} is banished into The Void.`);
+        }
+        banish(s, el);
+        log(s, `${el.name} is banished into The Void.`);
+        if (el.owner === 'player') s.playerNeedsElite = true;
+        else s.opponentNeedsElite = true;
+        s.grid[r][c] = null;
+        s.terrainGrid[r][c] = null;  // The Void banishes itself after destroying a card
+        log(s, '⬛ The Void has been banished.');
+      }
+    }
+  }
+}
+// Apply terrain effects to a single cell the moment a card lands on it
+function applyTerrainToCell(s, row, col) {
+  const cellTerrain = s.terrainGrid[row][col];
+  if (!cellTerrain) return;
+  const el = s.grid[row][col];
+  if (!el || el.type !== 'elite') return;
+
+  if (cellTerrain === 'camp') {
+    for (const sm of (el.summons ?? [])) {
+      if (sm.maxHp !== undefined) {
+        const prev = sm.hp;
+        sm.hp = Math.min(sm.maxHp, sm.hp + 1);
+        if (sm.hp > prev) log(s, `⛺ Camp: ${sm.name} restored 1 HP (${sm.hp}/${sm.maxHp}).`);
+      }
+    }
+  }
+
+  if (cellTerrain === 'lava_floor') {
+    if (el.terrain === 'fire') {
+      el.terrainPowerBonus = 1;
+      log(s, `🌋 Lava Floor: ${el.name} gains +1 power.`);
+    }
+    for (const sm of (el.summons ?? [])) {
+      if (sm.terrain === 'fire') sm.terrainPowerBonus = 1;
+    }
+  }
+
+  if (cellTerrain === 'the_void') {
+    log(s, `⬛ The Void consumes ${el.name}!`);
+    EventBus.emit('cardgame:cardDestroyed', { row, col, art: el.art ?? '💀' });
+    for (const sm of (el.summons ?? [])) { banish(s, sm); }
+    banish(s, el);
+    if (el.owner === 'player') s.playerNeedsElite = true;
+    else s.opponentNeedsElite = true;
+    s.grid[row][col] = null;
+    s.terrainGrid[row][col] = null;
+    log(s, '⬛ The Void has been banished.');
+  }
+}
+
+// Strip stale terrain power bonuses from an elite before it changes cells
+function clearTerrainBonus(elite) {
+  delete elite.terrainPowerBonus;
+  for (const sm of (elite.summons ?? [])) delete sm.terrainPowerBonus;
+}
+
 function allElitesActed(s) {
   const elites = findEliteOnGrid(s, 'player');
   return elites.length > 0 && elites.every(({ elite }) => s.strategy.actedIids.has(elite.iid));
@@ -120,6 +238,11 @@ function makeState(npcId, deckOverride, isQuickPlay = false) {
 
     playerNeedsElite:   false,   // draw replacement elite at next draw phase
     opponentNeedsElite: false,   // spawn replacement elite at opponent's next turn
+
+    terrainGrid:         Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
+    terrainDurationGrid: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),  // null = permanent, n = turns left
+    banishedCards: [],
+    frozenEliteIids: new Set(),  // elite iids that cannot be conjured this turn (returned from field)
 
     diceResult:      null,
     diceRolled:      false,
@@ -242,11 +365,16 @@ const CardSystem = {
     if (!card || card.type !== 'elite') { log(s, 'Select an elite card.'); this._emit(); return; }
     if (!s.playerChampions.find(c => c.col === col)) { log(s, 'No champion in that column.'); this._emit(); return; }
     if (s.grid[P_ELITE_ROW][col]) { log(s, 'Elite already placed here.'); this._emit(); return; }
+    if (s.frozenEliteIids?.has(card.iid)) {
+      log(s, `${card.name} just returned from the field — cannot be conjured until next turn.`);
+      this._emit(); return;
+    }
 
     const el = s.playerHand.splice(handIdx, 1)[0];
     el.row = P_ELITE_ROW; el.col = col;
     s.grid[P_ELITE_ROW][col] = el;
     log(s, `${el.name} placed in column ${col + 1}.`);
+    applyTerrainToCell(s, P_ELITE_ROW, col);
 
     if (s.phase === 'initialize') {
       const allPlaced = s.playerChampions.every(ch => s.grid[P_ELITE_ROW][ch.col]);
@@ -296,8 +424,9 @@ const CardSystem = {
     }
     this._emit();
 
-    const hasSpells = s.playerHand.some(c => c.type === 'spell');
-    if (total !== 7 && s.matchingHand.length === 0 && !hasSpells) {
+    const hasSpells      = s.playerHand.some(c => c.type === 'spell');
+    const hasChampStacks = s.playerChampions.some(ch => (ch.summons?.length ?? 0) > 0);
+    if (total !== 7 && s.matchingHand.length === 0 && !hasSpells && !hasChampStacks) {
       const ts = this.state;
       setTimeout(() => { if (this.state === ts) this._nextPhase(); }, 1200);
     }
@@ -388,6 +517,8 @@ const CardSystem = {
     } else if (needsTarget === 'opponent_elite') {
       const e = gridElite(s, row, col);
       if (!e || e.owner !== 'opponent') { log(s, 'Invalid target — click an opponent elite.'); this._emit(); return; }
+    } else if (needsTarget === 'any_terrain_cell') {
+      if (row === PLAYER_ROW || row === OPP_ROW) { log(s, 'Cannot place terrain on a Headquarters row.'); this._emit(); return; }
     } else if (needsTarget === 'teleport_champion') {
       if (row !== PLAYER_ROW) { log(s, 'Invalid target — click a player champion.'); this._emit(); return; }
       const champ = s.playerChampions.find(c => c.col === col);
@@ -452,8 +583,17 @@ const CardSystem = {
         if (!s.playerCrypt.length) { log(s, 'Crypt is empty.'); break; }
         const rev = s.playerCrypt.pop();
         if (rev.maxHp !== undefined) rev.hp = rev.maxHp;
-        s.playerHand.push(rev);
-        log(s, `${rev.name} revived!`);
+        // Insert next to summon cards (right before first summon, after spells/elites)
+        const insertAt = s.playerHand.findIndex(c => c.type === 'summon');
+        if (insertAt === -1) s.playerHand.push(rev);
+        else s.playerHand.splice(insertAt, 0, rev);
+        // Elite returned from crypt cannot be conjured this turn
+        if (rev.type === 'elite') {
+          s.frozenEliteIids.add(rev.iid);
+          log(s, `${rev.name} revived! (Cannot be conjured until next turn.)`);
+        } else {
+          log(s, `${rev.name} revived!`);
+        }
         break;
       case 'draw_cards':
         let drew = 0;
@@ -481,10 +621,12 @@ const CardSystem = {
         if (sc && !s.grid[P_ELITE_ROW][sc.col]) tCol = sc.col;
         else for (const ch of s.playerChampions) { if (!s.grid[P_ELITE_ROW][ch.col]) { tCol = ch.col; break; } }
         if (tCol === null) { log(s, 'No open front row.'); break; }
+        clearTerrainBonus(e);
         s.grid[e.row][e.col] = null;
         e.row = P_ELITE_ROW; e.col = tCol;
         s.grid[P_ELITE_ROW][tCol] = e;
         log(s, `${e.name} teleported to col ${tCol + 1}!`);
+        applyTerrainToCell(s, P_ELITE_ROW, tCol);
         break;
       }
       case 'shield_elite': {
@@ -498,6 +640,50 @@ const CardSystem = {
         break;
       }
       case 'teleport_champion': break;  // handled via two-step targeting in _spellTarget/_teleportTarget
+      case 'set_terrain': {
+        if (row === null || col === null) { log(s, 'No target selected.'); break; }
+        if (row === PLAYER_ROW || row === OPP_ROW) { log(s, 'Cannot place terrain on a Headquarters row.'); break; }
+        const terrainType = effect.terrain;
+        s.terrainGrid[row][col] = terrainType;
+        s.terrainDurationGrid[row][col] = effect.duration ?? null;
+        log(s, `${TERRAIN_NAMES[terrainType] ?? terrainType} placed at column ${col + 1}!`);
+        // Apply terrain effect immediately — a card may already occupy this cell
+        applyTerrainToCell(s, row, col);
+        break;
+      }
+      case 'random_terrain': {
+        // Collect all non-HQ cells (rows 1–4) that have no terrain already
+        const eligible = [];
+        for (let r = 1; r < ROWS - 1; r++)
+          for (let c = 0; c < COLS; c++)
+            if (!s.terrainGrid[r][c]) eligible.push([r, c]);
+        // Shuffle and pick up to `count` cells
+        for (let i = eligible.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [eligible[i], eligible[j]] = [eligible[j], eligible[i]];
+        }
+        const picks = eligible.slice(0, effect.count ?? 3);
+        if (!picks.length) { log(s, 'No open cells for terrain!'); break; }
+        const dur = effect.duration ?? null;
+        for (const [r, c] of picks) {
+          s.terrainGrid[r][c] = effect.terrain;
+          s.terrainDurationGrid[r][c] = dur;
+          log(s, `🌋 Lava Floor erupts at column ${c + 1}!${dur ? ` (${dur} turns)` : ''}`);
+          applyTerrainToCell(s, r, c);
+        }
+        break;
+      }
+      case 'banish_elite': {
+        const e = gridElite(s, row, col);
+        if (!e) { log(s, 'No elite at target.'); break; }
+        log(s, `${e.name} is banished!`);
+        for (const sm of (e.summons ?? [])) banish(s, sm);
+        banish(s, e);
+        if (e.owner === 'player') s.playerNeedsElite = true;
+        else s.opponentNeedsElite = true;
+        s.grid[row][col] = null;
+        break;
+      }
       default: log(s, `Unknown spell: ${effect.type}`);
     }
   },
@@ -550,6 +736,7 @@ const CardSystem = {
     if (actualSteps === 0) { log(s, 'Cell is occupied.'); this._emit(); return; }
 
     const nr = row + dr * actualSteps, nc = col + dc * actualSteps;
+    clearTerrainBonus(elite);
     s.grid[row][col] = null;
     elite.row = nr; elite.col = nc;
     s.grid[nr][nc] = elite;
@@ -557,6 +744,13 @@ const CardSystem = {
     s.strategy.selectedRow = nr;
     s.strategy.selectedCol = nc;
     log(s, `${elite.name} rallied ${direction}${actualSteps > 1 ? ' (2 cells!)' : ''}.`);
+    applyTerrainToCell(s, nr, nc);
+    if (!s.grid[nr][nc]) {
+      // Elite was destroyed by terrain (e.g. The Void)
+      s.strategy.selectedRow = null;
+      s.strategy.selectedCol = null;
+      if (this._checkWin()) return;
+    }
     this._emit();
   },
 
@@ -575,6 +769,7 @@ const CardSystem = {
     const nr = Math.min(row + 2, PLAYER_ROW - 1);
     if (s.grid[nr][col] !== null) { log(s, 'Retreat path blocked.'); this._emit(); return; }
 
+    clearTerrainBonus(elite);
     s.grid[row][col] = null;
     elite.row = nr; elite.col = col;
     s.grid[nr][col] = elite;
@@ -582,6 +777,8 @@ const CardSystem = {
     s.strategy.selectedRow = null;
     s.strategy.selectedCol = null;
     log(s, `${elite.name} retreated.`);
+    applyTerrainToCell(s, nr, col);
+    if (!s.grid[nr][col] && this._checkWin()) return;
 
     const thisState = this.state;
     if (allElitesActed(s)) {
@@ -643,7 +840,7 @@ const CardSystem = {
         log(s, 'Must be adjacent (above/below or left/right) to attack an elite.'); this._emit(); return;
       }
       log(s, `${attacker.name} (${atkPow}) attacks ${target.name}!`);
-      EventBus.emit('cardgame:attackPerformed', { attackerRow: aRow, attackerCol: aCol, targetRow: row, targetCol: col, art: attacker.art ?? '⚔️' });
+      EventBus.emit('cardgame:attackPerformed', { attackerRow: aRow, attackerCol: aCol, targetRow: row, targetCol: col, art: attacker.art ?? '⚔️', artFile: attacker.artFile ?? null });
       let dmg = atkPow;
       while (dmg > 0 && target.summons.length > 0) {
         const sm = target.summons[target.summons.length - 1];
@@ -654,7 +851,20 @@ const CardSystem = {
             s.opponentHand.push(sm);
             log(s, `${sm.name} rises from destruction — returned to opponent hand!`);
           } else {
+            EventBus.emit('cardgame:cardDestroyed', { row, col, art: sm.art ?? '💀' });
             s.opponentCrypt.push(sm);
+          }
+          if (sm.ability?.type === 'void_on_death') {
+            const eligible = [];
+            for (let r = 1; r < ROWS - 1; r++)
+              for (let c = 0; c < COLS; c++)
+                if (!s.terrainGrid[r][c]) eligible.push([r, c]);
+            if (eligible.length) {
+              const [r, c] = eligible[Math.floor(Math.random() * eligible.length)];
+              s.terrainGrid[r][c] = 'the_void';
+              s.terrainDurationGrid[r][c] = null;
+              log(s, `${sm.name}'s dying curse tears open The Void!`);
+            }
           }
           log(s, `${sm.name} destroyed!`);
           if (attacker.ability?.type === 'kill_bonus') {
@@ -667,7 +877,7 @@ const CardSystem = {
         target.hp -= dmg;
         log(s, `${target.name} takes ${dmg}! (${Math.max(0, target.hp)}/${target.maxHp} HP)`);
         if (target.hp <= 0) {
-          log(s, `${target.name} destroyed!`); s.opponentCrypt.push(target); s.grid[row][col] = null;
+          log(s, `${target.name} destroyed!`); EventBus.emit('cardgame:cardDestroyed', { row, col, art: target.art ?? '💀' }); s.opponentCrypt.push(target); s.grid[row][col] = null;
           if (attacker.ability?.type === 'kill_bonus') {
             attacker.killBonus = (attacker.killBonus ?? 0) + 1;
             log(s, `${attacker.name} kill bonus: now +${attacker.killBonus} attack!`);
@@ -685,14 +895,15 @@ const CardSystem = {
       if (aRow !== OPP_ROW + 1 || aCol !== col) {
         log(s, 'Must be in front of the champion to attack.'); this._emit(); return;
       }
-      EventBus.emit('cardgame:attackPerformed', { attackerRow: aRow, attackerCol: aCol, targetRow: row, targetCol: col, art: attacker.art ?? '⚔️' });
+      EventBus.emit('cardgame:attackPerformed', { attackerRow: aRow, attackerCol: aCol, targetRow: row, targetCol: col, art: attacker.art ?? '⚔️', artFile: attacker.artFile ?? null });
       champ.hp -= atkPow;
       log(s, `${attacker.name} attacks ${champ.name} for ${atkPow}! (${Math.max(0,champ.hp)}/${champ.maxHp} HP)`);
       if (champ.hp <= 0) {
         log(s, `${champ.name} destroyed!`);
+        EventBus.emit('cardgame:cardDestroyed', { row: OPP_ROW, col, art: champ.art ?? '💀' });
         s.opponentChampions = s.opponentChampions.filter(c => c !== champ);
         const ef = gridElite(s, O_ELITE_ROW, col);
-        if (ef?.owner === 'opponent') { s.opponentCrypt.push(ef); s.grid[O_ELITE_ROW][col] = null; }
+        if (ef?.owner === 'opponent') { EventBus.emit('cardgame:cardDestroyed', { row: O_ELITE_ROW, col, art: ef.art ?? '💀' }); s.opponentCrypt.push(ef); s.grid[O_ELITE_ROW][col] = null; }
       }
       _markActed(); return;
     }
@@ -716,6 +927,7 @@ const CardSystem = {
         el.owner = 'opponent'; el.row = O_ELITE_ROW; el.col = ch.col;
         s.grid[O_ELITE_ROW][ch.col] = el;
         log(s, `Opponent draws ${el.name}!`);
+        applyTerrainToCell(s, O_ELITE_ROW, ch.col);
         return;
       }
     }
@@ -759,6 +971,9 @@ const CardSystem = {
 
   _drawPhase() {
     const s = this.state;
+    // Clear frozen elite restriction from previous turn
+    s.frozenEliteIids = new Set();
+
     // Clear temp bonuses at start of each player turn
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++)
@@ -766,6 +981,22 @@ const CardSystem = {
 
     // Apply start-of-turn passive abilities for player elites
     applyElitePassives(s, 'player');
+
+    // Apply terrain passive effects then decrement timed terrain durations
+    applyTerrainEffects(s);
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++) {
+        const dur = s.terrainDurationGrid[r][c];
+        if (dur === null || dur === undefined) continue;
+        if (dur <= 1) {
+          const name = TERRAIN_NAMES[s.terrainGrid[r][c]] ?? 'Terrain';
+          s.terrainGrid[r][c] = null;
+          s.terrainDurationGrid[r][c] = null;
+          log(s, `${name} at column ${c + 1} fades away.`);
+        } else {
+          s.terrainDurationGrid[r][c] = dur - 1;
+        }
+      }
 
     // Draw replacement elite first if one is pending
     if (s.playerNeedsElite && s.playerEliteDeck.length) {
@@ -840,6 +1071,9 @@ const CardSystem = {
 
     // Apply start-of-turn passive abilities for opponent elites
     applyElitePassives(s, 'opponent');
+
+    // Apply terrain passive effects
+    applyTerrainEffects(s);
 
     const card = s.opponentSummonDeck.shift();
     if (card) s.opponentHand.push(card);
@@ -919,7 +1153,7 @@ const CardSystem = {
         const pChamp = s.playerChampions.find(ch => ch.col === c);
         if (pChamp) {
           const atkPow = totalPower(elite);
-          EventBus.emit('cardgame:attackPerformed', { attackerRow: r, attackerCol: c, targetRow: PLAYER_ROW, targetCol: c, art: elite.art ?? '⚔️' });
+          EventBus.emit('cardgame:attackPerformed', { attackerRow: r, attackerCol: c, targetRow: PLAYER_ROW, targetCol: c, art: elite.art ?? '⚔️', artFile: elite.artFile ?? null });
           pChamp.hp -= atkPow;
           log(s, `${elite.name} attacks your ${pChamp.name} for ${atkPow}! (${Math.max(0, pChamp.hp)}/${pChamp.maxHp} HP)`);
           if (pChamp.hp <= 0) {
@@ -946,6 +1180,7 @@ const CardSystem = {
       } else {
         this._oppMoveDefensive(s, elite, r, c);
       }
+      if (this._checkWin()) return true;
     }
     return false;
   },
@@ -984,7 +1219,7 @@ const CardSystem = {
     const target = gridElite(s, tRow, tCol);
     if (!target || target.owner !== 'player') return false;
     const atkPow = totalPower(attacker);
-    EventBus.emit('cardgame:attackPerformed', { attackerRow: aRow, attackerCol: aCol, targetRow: tRow, targetCol: tCol, art: attacker.art ?? '⚔️' });
+    EventBus.emit('cardgame:attackPerformed', { attackerRow: aRow, attackerCol: aCol, targetRow: tRow, targetCol: tCol, art: attacker.art ?? '⚔️', artFile: attacker.artFile ?? null });
     let dmg = atkPow;
     while (dmg > 0 && target.summons.length > 0) {
       const sm = target.summons[target.summons.length - 1];
@@ -995,7 +1230,20 @@ const CardSystem = {
           s.playerHand.push(sm);
           log(s, `${sm.name} rises from destruction — returned to your hand!`);
         } else {
+          EventBus.emit('cardgame:cardDestroyed', { row: tRow, col: tCol, art: sm.art ?? '💀' });
           s.playerCrypt.push(sm);
+        }
+        if (sm.ability?.type === 'void_on_death') {
+          const eligible = [];
+          for (let r = 1; r < ROWS - 1; r++)
+            for (let c = 0; c < COLS; c++)
+              if (!s.terrainGrid[r][c]) eligible.push([r, c]);
+          if (eligible.length) {
+            const [r, c] = eligible[Math.floor(Math.random() * eligible.length)];
+            s.terrainGrid[r][c] = 'the_void';
+            s.terrainDurationGrid[r][c] = null;
+            log(s, `${sm.name}'s dying curse tears open The Void!`);
+          }
         }
         log(s, `Your ${sm.name} destroyed!`);
         if (attacker.ability?.type === 'kill_bonus') {
@@ -1009,6 +1257,7 @@ const CardSystem = {
       log(s, `${attacker.name} attacks your ${target.name} for ${dmg}! (${Math.max(0, target.hp)}/${target.maxHp} HP)`);
       if (target.hp <= 0) {
         log(s, `Your ${target.name} destroyed!`);
+        EventBus.emit('cardgame:cardDestroyed', { row: tRow, col: tCol, art: target.art ?? '💀' });
         s.playerCrypt.push(target);
         s.grid[tRow][tCol] = null;
         if (attacker.ability?.type === 'kill_bonus') {
@@ -1028,10 +1277,12 @@ const CardSystem = {
 
     // Advance if clear
     if (s.grid[nextRow][col] === null) {
+      clearTerrainBonus(elite);
       s.grid[row][col] = null;
       elite.row = nextRow; elite.col = col;
       s.grid[nextRow][col] = elite;
       log(s, `${elite.name} advances.`);
+      applyTerrainToCell(s, nextRow, col);
       return;
     }
 
@@ -1044,10 +1295,12 @@ const CardSystem = {
     for (const dc of dirs) {
       const nc = col + dc;
       if (nc < 0 || nc >= COLS || s.grid[row][nc] !== null) continue;
+      clearTerrainBonus(elite);
       s.grid[row][col] = null;
       elite.row = row; elite.col = nc;
       s.grid[row][nc] = elite;
       log(s, `${elite.name} flanks to column ${nc + 1}.`);
+      applyTerrainToCell(s, row, nc);
       return;
     }
   },
@@ -1061,10 +1314,12 @@ const CardSystem = {
       const dc = nearestCol > col ? 1 : -1;
       const nc = col + dc;
       if (nc >= 0 && nc < COLS && s.grid[row][nc] === null) {
+        clearTerrainBonus(elite);
         s.grid[row][col] = null;
         elite.row = row; elite.col = nc;
         s.grid[row][nc] = elite;
         log(s, `${elite.name} guards column ${nc + 1}.`);
+        applyTerrainToCell(s, row, nc);
         return;
       }
     }
@@ -1073,10 +1328,12 @@ const CardSystem = {
     if (row <= O_ELITE_ROW + 1) {
       const nextRow = row + 1;
       if (nextRow < PLAYER_ROW && s.grid[nextRow][col] === null) {
+        clearTerrainBonus(elite);
         s.grid[row][col] = null;
         elite.row = nextRow; elite.col = col;
         s.grid[nextRow][col] = elite;
         log(s, `${elite.name} holds ground.`);
+        applyTerrainToCell(s, nextRow, col);
       }
     }
   },
@@ -1101,10 +1358,30 @@ const CardSystem = {
     const s = this.state;
     if (s.opponentChampions.length === 0) { this._endGame(true);  return true; }
     if (s.playerChampions.length   === 0) { this._endGame(false); return true; }
+
     const hasOppElites = findEliteOnGrid(s, 'opponent').length > 0;
-    if (!hasOppElites && !s.opponentEliteDeck.length) { this._endGame(true);  return true; }
     const hasPlrElites = findEliteOnGrid(s, 'player').length > 0;
-    if (!hasPlrElites && !s.playerEliteDeck.length)   { this._endGame(false); return true; }
+
+    // Headquarters Captured: ALL opponent champions must be blocked by a player elite
+    // at O_ELITE_ROW in the same column, AND no opponent elites remain on the grid
+    if (!hasOppElites) {
+      const playerElitesAtHQ = findEliteOnGrid(s, 'player').filter(e => e.row === O_ELITE_ROW);
+      const allChampionsBlocked = s.opponentChampions.length > 0 &&
+        s.opponentChampions.every(ch => playerElitesAtHQ.some(e => e.col === ch.col));
+      if (allChampionsBlocked) {
+        s.gameOver = true; s.winner = 'player'; s.phase = 'gameover';
+        log(s, '🏴 Headquarters Captured!');
+        EventBus.emit('cardgame:hqCaptured', { npcId: s.npcId, isQuickPlay: s.isQuickPlay ?? false });
+        this._emit();
+        const thisState = this.state;
+        setTimeout(() => { if (this.state === thisState) this._endGame(true); }, 3500);
+        return true;
+      }
+      // No elites and no deck left — standard wipe win
+      if (!s.opponentEliteDeck.length) { this._endGame(true); return true; }
+    }
+
+    if (!hasPlrElites && !s.playerEliteDeck.length) { this._endGame(false); return true; }
     return false;
   },
 

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 440">
+  <!-- shadow -->
+  <ellipse cx="100" cy="433" rx="48" ry="7" fill="rgba(0,0,0,0.28)"/>
+  <!-- dark boots -->
+  <rect x="62"  y="350" width="32" height="84" rx="8" fill="#1a1030"/>
+  <rect x="106" y="350" width="32" height="84" rx="8" fill="#1a1030"/>
+  <ellipse cx="78"  cy="430" rx="22" ry="9" fill="#12082a"/>
+  <ellipse cx="122" cy="430" rx="22" ry="9" fill="#12082a"/>
+  <!-- cloak main -->
+  <path d="M24,152 L176,152 L186,358 L14,358 Z" fill="#1e0f3a"/>
+  <path d="M24,152  L58,152  L50,358  L14,358  Z" fill="#120830"/>
+  <path d="M142,152 L176,152 L186,358 L150,358 Z" fill="#120830"/>
+  <!-- cloak inner lining (teal) -->
+  <path d="M78,152 L84,152 L88,358 L72,358 L62,276 L72,218 Z" fill="#1a3a3a"/>
+  <path d="M116,152 L122,152 L128,218 L138,276 L128,358 L112,358 Z" fill="#1a3a3a"/>
+  <!-- cloak center panel -->
+  <path d="M84,152 L116,152 L128,358 L72,358 Z" fill="#2a1852"/>
+  <!-- belt + pouches -->
+  <rect x="44" y="236" width="112" height="14" rx="5" fill="#0a0620"/>
+  <rect x="54"  y="233" width="22" height="26" rx="4" fill="#1e0f3a"/>
+  <rect x="124" y="233" width="22" height="26" rx="4" fill="#1e0f3a"/>
+  <line x1="65"  y1="233" x2="65"  y2="259" stroke="#2a1852" stroke-width="1.5"/>
+  <line x1="135" y1="233" x2="135" y2="259" stroke="#2a1852" stroke-width="1.5"/>
+  <!-- left arm -->
+  <path d="M24,156 L8,272 C8,284 20,288 26,280 L40,162 Z" fill="#1e0f3a"/>
+  <!-- right arm -->
+  <path d="M176,156 L192,272 C192,284 180,288 174,280 L160,162 Z" fill="#1e0f3a"/>
+  <!-- hands (pale) -->
+  <circle cx="17"  cy="282" r="13" fill="#e0c8c0"/>
+  <circle cx="183" cy="282" r="13" fill="#e0c8c0"/>
+  <!-- glowing vial right hand -->
+  <rect x="178" y="260" width="10" height="24" rx="5" fill="#1a3030"/>
+  <rect x="178" y="260" width="10" height="24" rx="5" fill="none" stroke="#40b898" stroke-width="1.5"/>
+  <ellipse cx="183" cy="268" rx="4" ry="5" fill="#30c8a8" fill-opacity="0.7"/>
+  <!-- hood shape -->
+  <path d="M28,88 Q28,38 100,28 Q172,38 172,88 L164,152 L36,152 Z" fill="#1e0f3a"/>
+  <path d="M54,104 Q54,54 100,44 Q146,54 146,104 L140,152 L60,152 Z" fill="#120830"/>
+  <!-- purple hair emerging from hood -->
+  <ellipse cx="100" cy="50" rx="46" ry="30" fill="#5a28b0"/>
+  <ellipse cx="56"  cy="76" rx="12" ry="26" fill="#5a28b0"/>
+  <ellipse cx="144" cy="76" rx="12" ry="26" fill="#5a28b0"/>
+  <path d="M64,38 Q100,24 136,38" stroke="#7a48d0" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <!-- hood shadow fade on upper face -->
+  <path d="M54,72 Q54,50 100,42 Q146,50 146,72 L142,90 Q118,74 100,72 Q82,74 58,90 Z" fill="#120830" fill-opacity="0.8"/>
+  <!-- pointed ears -->
+  <path d="M44,80 L36,65 L52,74 Z" fill="#e0c8c0"/>
+  <path d="M156,80 L164,65 L148,74 Z" fill="#e0c8c0"/>
+  <!-- neck visible at collar -->
+  <rect x="87" y="132" width="26" height="24" rx="8" fill="#e0c8c0"/>
+  <!-- collar detail -->
+  <path d="M82,152 L100,180 L118,152 Z" fill="#2a1852"/>
+  <!-- head -->
+  <ellipse cx="100" cy="84" rx="48" ry="52" fill="#e0c8c0"/>
+  <!-- eyebrows (one arched - mysterious) -->
+  <path d="M74,76 Q83,69 92,73"  stroke="#5a28b0" stroke-width="3"   fill="none" stroke-linecap="round"/>
+  <path d="M108,72 Q118,67 126,74" stroke="#5a28b0" stroke-width="3"   fill="none" stroke-linecap="round"/>
+  <!-- eyes (teal) -->
+  <ellipse cx="83"  cy="86" rx="9" ry="10" fill="white"/>
+  <ellipse cx="117" cy="86" rx="9" ry="10" fill="white"/>
+  <ellipse cx="83"  cy="87" rx="6.5" ry="7.5" fill="#208a70"/>
+  <ellipse cx="117" cy="87" rx="6.5" ry="7.5" fill="#208a70"/>
+  <ellipse cx="83"  cy="88" rx="3"  ry="3.5" fill="#0a1a14"/>
+  <ellipse cx="117" cy="88" rx="3"  ry="3.5" fill="#0a1a14"/>
+  <circle cx="86"  cy="84" r="2" fill="white"/>
+  <circle cx="120" cy="84" r="2" fill="white"/>
+  <!-- nose -->
+  <circle cx="100" cy="101" r="2" fill="#c8a898"/>
+  <!-- slight smirk -->
+  <path d="M89,113 Q100,121 112,116" stroke="#b07a7a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+</svg>

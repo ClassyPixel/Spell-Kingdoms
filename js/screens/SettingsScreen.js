@@ -154,23 +154,24 @@ const SettingsScreen = {
     btnGroup.style.cssText = 'display:flex;gap:6px';
 
     const FONTS = [
-      { key: 'default', label: 'Default' },
-      { key: 'lutin',   label: 'Lutin Paniquangoisse' },
+      { key: 'default',    label: 'Default',             family: 'inherit' },
+      { key: 'lutin',      label: 'Lutin Paniquangoisse', family: "'Lutin Paniquangoisse', sans-serif" },
+      { key: 'badabb',     label: 'Bad Boom BB',          family: "'Bad Boom BB', sans-serif" },
+      { key: 'merienda',   label: 'Merienda One',         family: "'Merienda One', serif" },
+      { key: 'anticorona', label: 'Anti Corona',          family: "'Anti Corona', sans-serif" },
     ];
 
-    const buttons = FONTS.map(({ key, label }) => {
+    btnGroup.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
+
+    const buttons = FONTS.map(({ key, label, family }) => {
       const btn = document.createElement('button');
       btn.textContent = label;
-      btn.style.cssText = 'padding:4px 12px;border-radius:4px;cursor:pointer;border:1px solid var(--color-border);background:var(--color-panel);color:var(--color-text);font-family:inherit;transition:all 0.15s';
-      if (GameState.settings.font === key) {
-        btn.style.background    = 'var(--color-accent)';
-        btn.style.borderColor   = 'var(--color-accent2)';
-      }
+      const isActive = GameState.settings.font === key;
+      btn.style.cssText = `padding:5px 12px;border-radius:4px;cursor:pointer;border:1px solid ${isActive ? 'var(--color-accent2)' : 'var(--color-border)'};background:${isActive ? 'var(--color-accent)' : 'var(--color-panel)'};color:var(--color-text);font-family:${family};transition:all 0.15s`;
       btn.addEventListener('click', () => {
         GameState.settings.font = key;
         EventBus.emit('settings:changed', { key: 'font', value: key });
         SaveSystem.saveSettings();
-        // Update button active states
         buttons.forEach((b, i) => {
           const active = FONTS[i].key === key;
           b.style.background  = active ? 'var(--color-accent)' : 'var(--color-panel)';

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 440">
+  <!-- shadow -->
+  <ellipse cx="100" cy="433" rx="48" ry="7" fill="rgba(0,0,0,0.28)"/>
+  <!-- boots -->
+  <rect x="63"  y="352" width="30" height="80" rx="8" fill="#5a1010"/>
+  <rect x="107" y="352" width="30" height="80" rx="8" fill="#5a1010"/>
+  <ellipse cx="78"  cy="428" rx="22" ry="9" fill="#3a0808"/>
+  <ellipse cx="122" cy="428" rx="22" ry="9" fill="#3a0808"/>
+  <rect x="61"  y="352" width="34" height="9" rx="4" fill="#7a2020"/>
+  <rect x="105" y="352" width="34" height="9" rx="4" fill="#7a2020"/>
+  <!-- skirt/lower coat -->
+  <path d="M40,222 L160,222 L170,357 L30,357 Z" fill="#c02818"/>
+  <path d="M40,222  L70,222  L66,357  L30,357  Z" fill="#8a1a0a"/>
+  <path d="M130,222 L160,222 L170,357 L134,357 Z" fill="#8a1a0a"/>
+  <path d="M87,222 L113,222 L116,357 L84,357 Z" fill="#d84020"/>
+  <!-- upper coat -->
+  <path d="M36,148 L164,148 L156,228 L44,228 Z" fill="#d03020"/>
+  <!-- lapels -->
+  <path d="M86,148 L100,186 L114,148 Z" fill="#8a1818"/>
+  <path d="M68,148 L86,148 L100,186 L78,202 Z" fill="#a82018"/>
+  <path d="M114,148 L132,148 L122,202 L100,186 Z" fill="#a82018"/>
+  <!-- flame badge -->
+  <path d="M96,196 Q100,180 104,196 Q108,187 105,199 Q102,193 100,202 Q98,193 95,199 Q92,187 96,196Z" fill="#f08020"/>
+  <!-- belt/sash -->
+  <rect x="46" y="216" width="108" height="14" rx="5" fill="#6a0f0f"/>
+  <rect x="93" y="212" width="14" height="22" rx="4" fill="#f04020"/>
+  <!-- left arm -->
+  <path d="M36,152 L14,274 C14,286 26,290 32,283 L46,158 Z" fill="#c03020"/>
+  <!-- right arm -->
+  <path d="M164,152 L186,274 C186,286 174,290 168,283 L154,158 Z" fill="#c03020"/>
+  <!-- hands -->
+  <circle cx="23"  cy="284" r="13" fill="#f0b888"/>
+  <circle cx="177" cy="284" r="13" fill="#f0b888"/>
+  <!-- fire in right hand -->
+  <path d="M173,270 Q177,257 181,270 Q184,262 182,273 Q179,267 177,276 Q175,267 173,273 Q171,262 173,270Z" fill="#f06010"/>
+  <!-- neck -->
+  <rect x="87" y="130" width="26" height="22" rx="8" fill="#f0b888"/>
+  <!-- head -->
+  <ellipse cx="100" cy="82" rx="50" ry="54" fill="#f0b888"/>
+  <!-- hair back -->
+  <ellipse cx="100" cy="48" rx="54" ry="36" fill="#6a1a08"/>
+  <ellipse cx="54"  cy="78" rx="14" ry="30" fill="#6a1a08"/>
+  <ellipse cx="146" cy="78" rx="14" ry="30" fill="#6a1a08"/>
+  <!-- ponytail -->
+  <path d="M136,68 C162,58 172,88 156,128 C149,150 142,162 148,184" stroke="#6a1a08" stroke-width="16" fill="none" stroke-linecap="round"/>
+  <path d="M136,68 C162,58 172,88 156,128 C149,150 142,162 148,184" stroke="#8a2a18" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M62,36 Q100,22 136,38" stroke="#9a3a18" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <!-- ears -->
+  <ellipse cx="50"  cy="85" rx="10" ry="13" fill="#f0b888"/>
+  <ellipse cx="150" cy="85" rx="10" ry="13" fill="#f0b888"/>
+  <!-- eyebrows (sharp/confident) -->
+  <path d="M74,66 Q82,59 90,64" stroke="#5a1208" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M110,64 Q118,59 126,66" stroke="#5a1208" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <!-- eyes -->
+  <ellipse cx="83"  cy="82" rx="9" ry="10" fill="white"/>
+  <ellipse cx="117" cy="82" rx="9" ry="10" fill="white"/>
+  <ellipse cx="83"  cy="83" rx="6.5" ry="7.5" fill="#c86020"/>
+  <ellipse cx="117" cy="83" rx="6.5" ry="7.5" fill="#c86020"/>
+  <ellipse cx="83"  cy="84" rx="3"  ry="3.5" fill="#2a0808"/>
+  <ellipse cx="117" cy="84" rx="3"  ry="3.5" fill="#2a0808"/>
+  <circle cx="86"  cy="80" r="2" fill="white"/>
+  <circle cx="120" cy="80" r="2" fill="white"/>
+  <!-- nose -->
+  <circle cx="100" cy="99" r="2.5" fill="#d89868"/>
+  <!-- smirk -->
+  <path d="M90,112 Q102,122 112,115" stroke="#c07060" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+</svg>

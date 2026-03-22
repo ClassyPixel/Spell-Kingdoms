@@ -49,6 +49,18 @@ const TERRAIN_ICON = {
   earth: 'assets/images/CardGameArt/TypeArt/earth_img.png',
   spell: 'assets/images/CardGameArt/TypeArt/spell_img.png',
 };
+
+// Play zone terrain cell types
+const CELL_TERRAIN_ICON = {
+  camp:       '⛺',
+  lava_floor: '🌋',
+  the_void:   '⬛',
+};
+const CELL_TERRAIN_NAME = {
+  camp:       'Camp — Stacked summons restore +1 HP each draw phase',
+  lava_floor: 'Lava Floor — Fire-type elite & summons gain +1 power',
+  the_void:   'The Void — Destroys any elite & summons on this terrain. Banished after.',
+};
 const RARITY_COLOR = { C: '#aaa', B: '#4ab87c', A: '#9b30d0', S: '#c07820' };
 const ART_BASE = 'assets/images/CardGameArt/CardArt/';
 
@@ -236,13 +248,27 @@ const CardGameScreen = {
       EventBus.on('cardgame:cardDrawn', () => {
         SoundSystem.cardSlide();
       }),
-      EventBus.on('cardgame:attackPerformed', ({ attackerRow, attackerCol, targetRow, targetCol, art }) => {
+      EventBus.on('cardgame:attackPerformed', ({ attackerRow, attackerCol, targetRow, targetCol, art, artFile }) => {
         SoundSystem.attack();
-        this._showAttackAnimation(attackerRow, attackerCol, targetRow, targetCol, art);
+        this._showAttackAnimation(attackerRow, attackerCol, targetRow, targetCol, art, artFile);
+      }),
+      EventBus.on('cardgame:cardDestroyed', ({ row, col, art }) => {
+        const grid   = document.getElementById('cg-grid');
+        const screen = this._container?.querySelector('.cg-screen');
+        const cell   = grid?.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+        if (!cell || !screen) return;
+        const rect  = cell.getBoundingClientRect();
+        const sRect = screen.getBoundingClientRect();
+        const cx = rect.left - sRect.left + rect.width  / 2;
+        const cy = rect.top  - sRect.top  + rect.height / 2;
+        setTimeout(() => this._showCardExplosion(screen, cx, cy, art), 230);
       }),
       EventBus.on('cardgame:gameOver', ({ win, isQuickPlay, npcId }) => {
         if (win) SoundSystem.victory(); else SoundSystem.defeat();
         this._showGameOverPopup(win, isQuickPlay ?? false, npcId ?? null);
+      }),
+      EventBus.on('cardgame:hqCaptured', () => {
+        this._showHQCapturedAnimation();
       }),
     );
   },
@@ -586,6 +612,7 @@ const CardGameScreen = {
       const previewMatch = this._movePreview.cells.find(c => c.row === row && c.col === col);
       if (previewMatch) {
         cell.classList.add('cg-cell-move-preview');
+        if (previewMatch.extended) cell.classList.add('cg-cell-move-preview--extended');
         cell.addEventListener('click', () => {
           const mode = this._movePreview?.mode;
           const dir  = previewMatch.direction;
@@ -716,6 +743,30 @@ const CardGameScreen = {
       cell.classList.add('cg-cell-empty');
     }
 
+    // Terrain spell targeting — highlight all valid non-HQ cells
+    if (s.pendingSpell?.card.needsTarget === 'any_terrain_cell' && row !== PLAYER_ROW && row !== OPP_ROW) {
+      cell.classList.add('cg-cell-spell-target', 'cg-cell-terrain-target');
+      cell.addEventListener('click', () => {
+        if (!s.pendingSpell) return;
+        SoundSystem.drop();
+        EventBus.emit('cardgame:spellTarget', { row, col });
+      });
+    }
+
+    // Terrain badge — shown on non-HQ battle/elite cells
+    if (row !== PLAYER_ROW && row !== OPP_ROW) {
+      const cellTerrain = s.terrainGrid?.[row]?.[col];
+      if (cellTerrain) {
+        const dur = s.terrainDurationGrid?.[row]?.[col];
+        const durText = (dur !== null && dur !== undefined) ? ` · ${dur} turn${dur !== 1 ? 's' : ''} left` : '';
+        const badge = document.createElement('div');
+        badge.className = `cg-terrain-badge cg-terrain-badge-${cellTerrain.replace(/_/g, '-')}`;
+        badge.title = (CELL_TERRAIN_NAME[cellTerrain] ?? cellTerrain) + durText;
+        badge.textContent = CELL_TERRAIN_ICON[cellTerrain] ?? '🌍';
+        cell.appendChild(badge);
+      }
+    }
+
     return cell;
   },
 
@@ -726,15 +777,13 @@ const CardGameScreen = {
     const stack  = champ.summons?.length ?? 0;
     return `
       <div class="cg-champion-card">
-        ${stack > 0 ? `<div class="cg-champ-stack-badge">${stack}</div>` : ''}
+        <div class="cg-champ-hp-circle" style="border-color:${hpCol};color:${hpCol}">${Math.max(0, champ.hp)}</div>
         <div class="cg-card-top">
           <span class="cg-card-name">${champ.name ?? 'Champion'}</span>
         </div>
         <div class="cg-card-art-wrap">${_cardArtImg(champ)}</div>
         <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:${hpCol}"></div></div>
-        <div class="cg-card-stats">
-          <span class="cg-stat-hp">HP ${Math.max(0, champ.hp)}/${champ.maxHp}</span>
-        </div>
+        <div class="cg-champ-stack-footer">⚔ ${stack}</div>
       </div>
     `;
   },
@@ -759,7 +808,7 @@ const CardGameScreen = {
         <div class="cg-card-stats">
           <span class="cg-stat-hp">HP ${Math.max(0, elite.hp)}</span>
           <span class="cg-stat-pow">POW ${totPow}${bonus}</span>
-          <span class="cg-stat-mov">MOV ${elite.ability?.type === 'extended_rally' ? 2 : 1}</span>
+          ${(() => { const mov = elite.ability?.type === 'extended_rally' ? (elite.hp / elite.maxHp <= 0.5 ? 2 : 1) : 1; return `<span class="cg-stat-mov${mov > 1 ? ' cg-stat-mov--boosted' : ''}">MOV ${mov}</span>`; })()}
           ${sums.length > 0 ? `<span class="cg-stat-summons">+${sums.length}</span>` : ''}
         </div>
         ${elite.ability?.desc ? `<div class="cg-ability-panel">${elite.ability.desc}</div>` : ''}
@@ -818,8 +867,8 @@ const CardGameScreen = {
       label    = s.initSubStep === 'place_champions' ? 'Place Champions…' : 'Place Elites…';
       disabled = true;
     }
-    // Block phase advance while a mid-game elite awaits placement
-    if (s.phase !== 'initialize' && s.playerHand.some(c => c.type === 'elite')) {
+    // Block phase advance only during draw phase when an elite still needs placing
+    if (s.phase === 'draw' && s.playerHand.some(c => c.type === 'elite')) {
       disabled = true;
     }
     return `<button class="btn-cg btn-cg-next cg-hand-next-btn" id="cg-next-btn" ${disabled ? 'disabled' : ''}>${label}</button>`;
@@ -829,7 +878,7 @@ const CardGameScreen = {
     const el = document.getElementById('cg-hand-area');
     if (!el) return;
 
-    const hasEliteWaiting = s.playerHand.some(c => c.type === 'elite');
+    const hasEliteWaiting = s.phase === 'draw' && s.playerHand.some(c => c.type === 'elite');
     const eliteNotice = hasEliteWaiting
       ? `<span class="cg-elite-notice">⚔ Place your Elite card first!</span>` : '';
     const header = `<div class="cg-hand-header">${eliteNotice || '<span class="cg-hand-label">Hand</span>'}</div>`;
@@ -895,7 +944,7 @@ const CardGameScreen = {
           <div class="cg-card-stats">
             <span class="cg-stat-hp">HP ${card.hp}</span>
             <span class="cg-stat-pow">POW ${card.power}</span>
-            <span class="cg-stat-mov">MOV ${card.ability?.type === 'extended_rally' ? 2 : 1}</span>
+            ${(() => { const mov = card.ability?.type === 'extended_rally' ? (card.hp / card.maxHp <= 0.5 ? 2 : 1) : 1; return `<span class="cg-stat-mov${mov > 1 ? ' cg-stat-mov--boosted' : ''}">MOV ${mov}</span>`; })()}
           </div>
         `;
         div.addEventListener('dragstart', e => {
@@ -930,8 +979,8 @@ const CardGameScreen = {
     el.innerHTML = `${header}<div class="cg-hand" id="cg-hand"></div>`;
     const hand = document.getElementById('cg-hand');
 
-    // If an elite card is in hand, only show elite cards until placed
-    const hasEliteInHand = s.playerHand.some(c => c.type === 'elite');
+    // During draw phase, if an elite needs placing, only show elite cards until placed
+    const hasEliteInHand = s.phase === 'draw' && s.playerHand.some(c => c.type === 'elite');
 
     // Build visible card list first so arch indices are contiguous
     const visibleCards = s.playerHand.map((card, i) => ({ card, i }))
@@ -960,7 +1009,7 @@ const CardGameScreen = {
           <div class="cg-card-stats">
             <span class="cg-stat-hp">HP ${card.hp}</span>
             <span class="cg-stat-pow">POW ${card.power}</span>
-            <span class="cg-stat-mov">MOV ${card.ability?.type === 'extended_rally' ? 2 : 1}</span>
+            ${(() => { const mov = card.ability?.type === 'extended_rally' ? (card.hp / card.maxHp <= 0.5 ? 2 : 1) : 1; return `<span class="cg-stat-mov${mov > 1 ? ' cg-stat-mov--boosted' : ''}">MOV ${mov}</span>`; })()}
           </div>
         `;
         div.addEventListener('dragstart', e => {
@@ -1153,21 +1202,30 @@ const CardGameScreen = {
         <div class="cg-crypt-count-badge">${count}</div>
         <div class="cg-crypt-art-emoji">${topCard?.art ?? '💀'}</div>
         <div class="cg-crypt-card-name">${topCard?.name ?? 'Empty'}</div>
-        <div class="cg-crypt-footer">Crypt · ${count} card${count !== 1 ? 's' : ''}</div>
+        <div class="cg-crypt-footer">Crypt · ${count} card${count !== 1 ? 's' : ''} ${count > 0 ? '· 👁 View' : ''}</div>
       </div>
     `;
+    if (count > 0) {
+      el.querySelector('.cg-crypt-card-display')
+        ?.addEventListener('click', () => this._showCryptModal(s.playerCrypt.slice(), 'Your Crypt'));
+    }
   },
 
   // ── Opponent crypt (top-right) ────────────────────────────────────────────────
   _renderOppCryptZone(s) {
     const el = document.getElementById('cg-opp-crypt-zone');
     if (!el) return;
+    const count = s.opponentCrypt.length;
     el.innerHTML = `
       <div class="cg-crypt-zone-inner">
-        <div class="cg-crypt-title">Crypt</div>
+        <div class="cg-crypt-title">Crypt${count > 0 ? ' · 👁' : ''}</div>
         <div class="cg-crypt-stacks">${this._cryptStackHTML(s.opponentCrypt, 'Opp')}</div>
       </div>
     `;
+    if (count > 0) {
+      el.querySelector('.cg-crypt-zone-inner')
+        ?.addEventListener('click', () => this._showCryptModal(s.opponentCrypt.slice(), 'Opponent Crypt'));
+    }
   },
 
   // ── Opponent hand (face-down, top-center) ─────────────────────────────────────
@@ -1226,7 +1284,14 @@ const CardGameScreen = {
 
   // ── Move preview helpers ──────────────────────────────────────────────────────
   _startRallyPreview(fromRow, fromCol) {
-    const s = this._state;
+    const s     = this._state;
+    const elite = s.grid[fromRow]?.[fromCol];
+
+    // Mirror the exact same condition used in CardSystem._rally()
+    const hasExtended = elite?.ability?.type === 'extended_rally'
+      && elite.hp / elite.maxHp <= 0.5;
+    const maxSteps = hasExtended ? 2 : 1;
+
     const dirs = [
       { dr: -1, dc:  0, direction: 'up'    },
       { dr:  1, dc:  0, direction: 'down'  },
@@ -1235,11 +1300,14 @@ const CardGameScreen = {
     ];
     const cells = [];
     for (const { dr, dc, direction } of dirs) {
-      const nr = fromRow + dr, nc = fromCol + dc;
-      if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
-      if (nr === PLAYER_ROW || nr === OPP_ROW) continue;
-      if (s.grid[nr]?.[nc] !== null) continue;
-      cells.push({ row: nr, col: nc, direction });
+      for (let step = 1; step <= maxSteps; step++) {
+        const nr = fromRow + dr * step, nc = fromCol + dc * step;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) break;
+        if (nr === PLAYER_ROW || nr === OPP_ROW) break;
+        if (s.grid[nr]?.[nc] !== null) break;
+        // Mark step-2 cells so they render with the extended-range style
+        cells.push({ row: nr, col: nc, direction, extended: step === 2 });
+      }
     }
     this._movePreview = { mode: 'rally', fromRow, fromCol, cells };
     this._update();
@@ -1367,7 +1435,7 @@ const CardGameScreen = {
         <div class="cg-card-stats">
           <span class="cg-stat-hp">HP ${Math.max(0, card.hp)}</span>
           <span class="cg-stat-pow">POW ${totPow}${bonus}</span>
-          <span class="cg-stat-mov">MOV ${card.ability?.type === 'extended_rally' ? 2 : 1}</span>
+          ${(() => { const mov = card.ability?.type === 'extended_rally' ? (card.hp / card.maxHp <= 0.5 ? 2 : 1) : 1; return `<span class="cg-stat-mov${mov > 1 ? ' cg-stat-mov--boosted' : ''}">MOV ${mov}</span>`; })()}
           ${sums.length > 0 ? `<span class="cg-stat-summons">+${sums.length}</span>` : ''}
         </div>
         ${card.ability?.desc ? `<div class="cg-ability-panel">${card.ability.desc}</div>` : ''}
@@ -1399,9 +1467,9 @@ const CardGameScreen = {
     el.classList.add('hidden');
   },
 
-  // ── Attack animation ──────────────────────────────────────────────────────────
-  _showAttackAnimation(aRow, aCol, tRow, tCol, art) {
-    const grid = document.getElementById('cg-grid');
+  // ── Attack animation — card nudge/push ────────────────────────────────────────
+  _showAttackAnimation(aRow, aCol, tRow, tCol, art, artFile) {
+    const grid   = document.getElementById('cg-grid');
     const screen = this._container?.querySelector('.cg-screen');
     if (!grid || !screen) return;
 
@@ -1409,41 +1477,218 @@ const CardGameScreen = {
     const tCell = grid.querySelector(`[data-row="${tRow}"][data-col="${tCol}"]`);
     if (!aCell || !tCell) return;
 
-    const screenRect = screen.getBoundingClientRect();
+    const sRect = screen.getBoundingClientRect();
     const aRect = aCell.getBoundingClientRect();
     const tRect = tCell.getBoundingClientRect();
 
-    const startX = aRect.left - screenRect.left + aRect.width  / 2;
-    const startY = aRect.top  - screenRect.top  + aRect.height / 2;
-    const endX   = tRect.left - screenRect.left + tRect.width  / 2;
-    const endY   = tRect.top  - screenRect.top  + tRect.height / 2;
+    // Direction unit vector from attacker → target
+    const dx   = tRect.left - aRect.left;
+    const dy   = tRect.top  - aRect.top;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const nx   = dx / dist;
+    const ny   = dy / dist;
 
-    const proj = document.createElement('div');
-    proj.className = 'cg-attack-projectile';
-    proj.textContent = art;
-    proj.style.left = startX + 'px';
-    proj.style.top  = startY + 'px';
-    proj.style.opacity = '1';
-    screen.appendChild(proj);
+    // Ghost overlay covering the attacker cell (shows card art, performs the lunge)
+    const aGhost = document.createElement('div');
+    aGhost.className = 'cg-attack-ghost cg-attack-ghost-a';
+    aGhost.innerHTML = artFile
+      ? `<img class="cg-attack-ghost-img" src="${ART_BASE}${artFile}" alt="${art}" draggable="false">`
+      : `<span class="cg-attack-ghost-art">${art}</span>`;
+    Object.assign(aGhost.style, {
+      left: (aRect.left - sRect.left) + 'px', top:  (aRect.top - sRect.top) + 'px',
+      width: aRect.width + 'px',              height: aRect.height + 'px',
+    });
+    screen.appendChild(aGhost);
 
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      proj.style.left    = endX + 'px';
-      proj.style.top     = endY + 'px';
-      proj.style.opacity = '0';
-    }));
+    // Ghost overlay covering the target cell (shows reaction/push)
+    const tGhost = document.createElement('div');
+    tGhost.className = 'cg-attack-ghost cg-attack-ghost-t';
+    Object.assign(tGhost.style, {
+      left: (tRect.left - sRect.left) + 'px', top:  (tRect.top - sRect.top) + 'px',
+      width: tRect.width + 'px',              height: tRect.height + 'px',
+    });
+    screen.appendChild(tGhost);
 
+    // Phase 1 — wind-up: attacker moves slightly opposite to target (80ms)
+    requestAnimationFrame(() => {
+      aGhost.style.transition = 'transform 80ms ease-in';
+      aGhost.style.transform  = `translate(${-nx * 12}px, ${-ny * 12}px)`;
+    });
+
+    // Phase 2 — lunge: attacker charges forward, target is pushed back (130ms)
     setTimeout(() => {
-      proj.remove();
-      // Hit flash on target cell
+      aGhost.style.transition = 'transform 130ms cubic-bezier(0.1, 0, 0.6, 1)';
+      aGhost.style.transform  = `translate(${nx * 26}px, ${ny * 26}px)`;
+      tGhost.style.transition = 'transform 130ms ease-out';
+      tGhost.style.transform  = `translate(${nx * 14}px, ${ny * 14}px)`;
+    }, 80);
+
+    // Phase 3 — return: both snap back, hit flash fires (210ms)
+    setTimeout(() => {
+      aGhost.style.transition = 'transform 200ms ease-in-out';
+      aGhost.style.transform  = '';
+      tGhost.style.transition = 'transform 200ms ease-in-out';
+      tGhost.style.transform  = '';
+
       const hit = document.createElement('div');
       hit.className = 'cg-attack-hit';
-      hit.style.left   = (tRect.left - screenRect.left) + 'px';
-      hit.style.top    = (tRect.top  - screenRect.top)  + 'px';
-      hit.style.width  = tRect.width  + 'px';
-      hit.style.height = tRect.height + 'px';
+      Object.assign(hit.style, {
+        left: (tRect.left - sRect.left) + 'px', top:  (tRect.top - sRect.top) + 'px',
+        width: tRect.width + 'px',              height: tRect.height + 'px',
+      });
       screen.appendChild(hit);
       setTimeout(() => hit.remove(), 420);
-    }, 310);
+    }, 210);
+
+    // Cleanup ghosts after full animation
+    setTimeout(() => { aGhost.remove(); tGhost.remove(); }, 500);
+  },
+
+  // ── Card explosion ────────────────────────────────────────────────────────────
+  _showCardExplosion(screen, cx, cy, art) {
+    const container = document.createElement('div');
+    container.className = 'cg-card-explosion';
+    container.style.left = cx + 'px';
+    container.style.top  = cy + 'px';
+    screen.appendChild(container);
+
+    const COLORS = ['#ff6030', '#ffb030', '#ff3060', '#ff8020', '#ffdd40', '#ff4090'];
+    const COUNT  = 14;
+    for (let i = 0; i < COUNT; i++) {
+      const p     = document.createElement('div');
+      p.className = 'cg-explosion-particle';
+      const angle = (i / COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+      const speed = 30 + Math.random() * 40;
+      p.style.setProperty('--ex', Math.cos(angle) * speed + 'px');
+      p.style.setProperty('--ey', Math.sin(angle) * speed + 'px');
+      p.style.background     = COLORS[i % COLORS.length];
+      p.style.animationDelay = Math.round(Math.random() * 60) + 'ms';
+      p.style.width          = (4 + Math.random() * 5) + 'px';
+      p.style.height         = p.style.width;
+      container.appendChild(p);
+    }
+
+    // Central flash burst
+    const flash = document.createElement('div');
+    flash.className = 'cg-explosion-flash';
+    container.appendChild(flash);
+
+    setTimeout(() => container.remove(), 700);
+  },
+
+  // ── Crypt viewer modal ────────────────────────────────────────────────────────
+  _showCryptModal(cards, title) {
+    const screen = this._container?.querySelector('.cg-screen');
+    if (!screen) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'cg-crypt-modal-overlay';
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+    const panel = document.createElement('div');
+    panel.className = 'cg-crypt-modal';
+
+    const header = document.createElement('div');
+    header.className = 'cg-crypt-modal-header';
+    header.innerHTML = `<span class="cg-crypt-modal-title">💀 ${title}</span>`;
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'cg-crypt-modal-close';
+    closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', () => overlay.remove());
+    header.appendChild(closeBtn);
+
+    const countEl = document.createElement('div');
+    countEl.className = 'cg-crypt-modal-count';
+    countEl.textContent = `${cards.length} card${cards.length !== 1 ? 's' : ''}`;
+
+    const grid = document.createElement('div');
+    grid.className = 'cg-crypt-modal-grid';
+
+    if (cards.length === 0) {
+      grid.innerHTML = '<div class="cg-crypt-modal-empty">The crypt is empty</div>';
+    } else {
+      [...cards].reverse().forEach(card => {
+        const cardEl = document.createElement('div');
+        const isSpell    = card.type === 'spell';
+        const isElite    = card.type === 'elite';
+        const isChampion = card.type === 'champion';
+        cardEl.className = 'cg-hand-card cg-crypt-modal-card' + (isSpell ? ' cg-hand-spell' : '');
+
+        if (isSpell) {
+          cardEl.innerHTML = `
+            <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Spell'}</span></div>
+            <div class="cg-type-label">Spell Card</div>
+            <div class="cg-card-art-wrap"><div class="cg-art-emoji">${card.art ?? '✨'}</div></div>
+          `;
+        } else if (isChampion) {
+          const hpPct = card.maxHp > 0 ? Math.max(0, card.hp / card.maxHp * 100) : 100;
+          cardEl.innerHTML = `
+            <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Champion'}</span></div>
+            <div class="cg-type-label">Champion</div>
+            <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+            <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#c07820"></div></div>
+            <div class="cg-card-stats"><span class="cg-stat-hp">HP ${card.hp ?? '?'}/${card.maxHp ?? '?'}</span></div>
+          `;
+        } else if (isElite) {
+          const hpPct = card.maxHp > 0 ? Math.max(0, card.hp / card.maxHp * 100) : 100;
+          cardEl.innerHTML = `
+            <div class="cg-card-top"><span class="cg-card-name">${card.name ?? 'Elite'}</span></div>
+            <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+            <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#c07820"></div></div>
+            <div class="cg-card-stats">
+              <span class="cg-stat-hp">HP ${card.maxHp ?? '?'}</span>
+              <span class="cg-stat-pow">POW ${card.power ?? '?'}</span>
+            </div>
+          `;
+        } else {
+          // summon
+          const hpPct = card.maxHp > 0 ? Math.max(0, card.hp / card.maxHp * 100) : 100;
+          cardEl.innerHTML = `
+            <div class="cg-card-top">
+              <span class="cg-card-name">${card.name ?? 'Summon'}</span>
+              <span class="cg-hcard-cost">${card.summonCost ?? ''}</span>
+            </div>
+            <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+            <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#4ab87c"></div></div>
+            <div class="cg-card-stats">
+              <span class="cg-stat-hp">HP ${card.maxHp ?? '?'}</span>
+              <span class="cg-stat-pow">POW ${card.power ?? '?'}</span>
+            </div>
+          `;
+        }
+
+        grid.appendChild(cardEl);
+      });
+    }
+
+    panel.appendChild(header);
+    panel.appendChild(countEl);
+    panel.appendChild(grid);
+    overlay.appendChild(panel);
+    screen.appendChild(overlay);
+  },
+
+  // ── Headquarters Captured animation ──────────────────────────────────────────
+  _showHQCapturedAnimation() {
+    const screen = this._container?.querySelector('.cg-screen');
+    if (!screen) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'cg-hq-captured-overlay';
+    overlay.innerHTML = `
+      <div class="cg-hq-captured-banner">
+        <div class="cg-hq-captured-flag">🏴</div>
+        <div class="cg-hq-captured-text">Headquarters Captured</div>
+        <div class="cg-hq-captured-sub">The enemy command has fallen!</div>
+      </div>
+    `;
+    screen.appendChild(overlay);
+
+    // Fade out and remove before the victory popup appears
+    setTimeout(() => {
+      overlay.classList.add('cg-hq-captured-fadeout');
+      setTimeout(() => overlay.remove(), 600);
+    }, 2800);
   },
 
   // ── Game over popup ───────────────────────────────────────────────────────────

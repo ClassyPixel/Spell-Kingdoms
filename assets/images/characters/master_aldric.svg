@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 440">
+  <!-- shadow -->
+  <ellipse cx="100" cy="433" rx="48" ry="7" fill="rgba(0,0,0,0.28)"/>
+  <!-- shoes -->
+  <ellipse cx="78"  cy="426" rx="22" ry="9" fill="#303040"/>
+  <ellipse cx="122" cy="426" rx="22" ry="9" fill="#303040"/>
+  <!-- robe lower -->
+  <path d="M38,162 L162,162 L154,358 L46,358 Z" fill="#585870"/>
+  <path d="M38,162  L65,162  L58,358  L46,358  Z" fill="#3a3a4a"/>
+  <path d="M135,162 L162,162 L154,358 L142,358 Z" fill="#3a3a4a"/>
+  <path d="M84,162 L116,162 L112,358 L88,358 Z" fill="#686880"/>
+  <!-- inner robe visible at front opening -->
+  <path d="M80,162 L84,162 L88,358 L70,358 L62,278 L74,222 Z" fill="#4a4a62"/>
+  <path d="M116,162 L120,162 L126,222 L138,278 L130,358 L112,358 Z" fill="#4a4a62"/>
+  <!-- rope belt -->
+  <path d="M46,240 Q100,250 154,240" stroke="#3a3030" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <path d="M46,240 Q100,248 154,240" stroke="#5a4a40" stroke-width="5"  fill="none" stroke-linecap="round"/>
+  <!-- left arm (holding book) -->
+  <path d="M38,166 L16,268 C16,280 28,284 34,276 L48,172 Z" fill="#585870"/>
+  <!-- right arm -->
+  <path d="M162,166 L176,252 C177,264 165,268 161,260 L154,172 Z" fill="#585870"/>
+  <!-- book in left hand -->
+  <rect x="4"  y="264" width="36" height="52" rx="4" fill="#5a4020"/>
+  <path d="M22,265 L40,267 L40,315 L22,317 Z" fill="#e8dcc8"/>
+  <line x1="27" y1="276" x2="38" y2="276" stroke="#c8b888" stroke-width="1"/>
+  <line x1="27" y1="284" x2="38" y2="284" stroke="#c8b888" stroke-width="1"/>
+  <line x1="27" y1="292" x2="38" y2="292" stroke="#c8b888" stroke-width="1"/>
+  <line x1="27" y1="300" x2="38" y2="300" stroke="#c8b888" stroke-width="1"/>
+  <!-- right hand -->
+  <circle cx="173" cy="261" r="13" fill="#d8a870"/>
+  <!-- collar -->
+  <path d="M82,162 L100,192 L118,162 Z" fill="#404050"/>
+  <!-- neck -->
+  <rect x="87" y="134" width="26" height="32" rx="9" fill="#d8a870"/>
+  <!-- head -->
+  <ellipse cx="100" cy="84" rx="50" ry="54" fill="#d8a870"/>
+  <!-- white hair -->
+  <ellipse cx="100" cy="46" rx="54" ry="36" fill="#d0d0d8"/>
+  <ellipse cx="52"  cy="80" rx="15" ry="30" fill="#d0d0d8"/>
+  <ellipse cx="148" cy="80" rx="15" ry="30" fill="#d0d0d8"/>
+  <path d="M58,34 Q100,20 142,34" stroke="#e8e8f0" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <!-- ears -->
+  <ellipse cx="50"  cy="88" rx="10" ry="13" fill="#d8a870"/>
+  <ellipse cx="150" cy="88" rx="10" ry="13" fill="#d8a870"/>
+  <!-- wrinkles -->
+  <path d="M73,74 Q82,68 90,73"  stroke="#c09060" stroke-width="1" fill="none"/>
+  <path d="M110,73 Q118,68 127,74" stroke="#c09060" stroke-width="1" fill="none"/>
+  <path d="M76,63 Q100,56 124,63" stroke="#c09060" stroke-width="1" fill="none"/>
+  <!-- glasses -->
+  <circle cx="83"  cy="84" r="12" fill="rgba(180,210,230,0.15)" stroke="#8a7a60" stroke-width="2"/>
+  <circle cx="117" cy="84" r="12" fill="rgba(180,210,230,0.15)" stroke="#8a7a60" stroke-width="2"/>
+  <line x1="95" y1="84" x2="105" y2="84" stroke="#8a7a60" stroke-width="2"/>
+  <line x1="71" y1="84" x2="64" y2="81" stroke="#8a7a60" stroke-width="2"/>
+  <line x1="129" y1="84" x2="136" y2="81" stroke="#8a7a60" stroke-width="2"/>
+  <!-- eyes -->
+  <ellipse cx="83"  cy="84" rx="7" ry="7.5" fill="white"/>
+  <ellipse cx="117" cy="84" rx="7" ry="7.5" fill="white"/>
+  <ellipse cx="83"  cy="85" rx="4.5" ry="5" fill="#4a6888"/>
+  <ellipse cx="117" cy="85" rx="4.5" ry="5" fill="#4a6888"/>
+  <ellipse cx="83"  cy="86" rx="2" ry="2.5" fill="#202838"/>
+  <ellipse cx="117" cy="86" rx="2" ry="2.5" fill="#202838"/>
+  <circle cx="86"  cy="82" r="1.5" fill="white"/>
+  <circle cx="120" cy="82" r="1.5" fill="white"/>
+  <!-- bushy white eyebrows -->
+  <path d="M72,69 Q83,62 94,68" stroke="#c8c8d0" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M106,68 Q117,62 128,69" stroke="#c8c8d0" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- nose -->
+  <path d="M96,100 L100,112 L104,100" stroke="#c09060" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- beard -->
+  <path d="M65,115 Q100,144 135,115 Q128,150 120,170 Q110,188 100,192 Q90,188 80,170 Q72,150 65,115 Z" fill="#c8c8d0"/>
+  <path d="M80,119 Q100,138 120,119 Q115,146 107,164 Q103,174 100,177 Q97,174 93,164 Q85,146 80,119 Z" fill="#d8d8e0"/>
+  <!-- mustache -->
+  <path d="M83,112 Q91,120 100,115 Q109,120 117,112 Q109,106 100,110 Q91,106 83,112 Z" fill="#c8c8d0"/>
+</svg>

@@ -134,10 +134,18 @@ const DialogueScreen = {
     const npcImg = document.createElement('img');
     npcImg.className = 'dlg-char-img';
     npcImg.id  = 'dlg-char-npc';
-    npcImg.src = CHAR_BASE[this._npcId] ?? CHAR_BASE.training_dummy;
     npcImg.alt = this._npcId ?? 'NPC';
-    npcWrap.appendChild(npcImg);
+    const charSrc = CHAR_BASE[this._npcId];
+    if (charSrc) {
+      npcImg.src = charSrc;
+      npcWrap.appendChild(npcImg);
+    } else {
+      npcWrap.style.visibility = 'hidden'; // narrator / no portrait
+    }
     panel.appendChild(npcWrap);
+
+    // narrator mode — italic text styling
+    overlay.classList.toggle('dlg-narrator', !charSrc);
 
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
@@ -163,6 +171,7 @@ const DialogueScreen = {
       EventBus.on('dialogue:end',         ()     => this._handleEnd()),
       EventBus.on('relationship:changed', (data) => this._showRelFeedback(data)),
       EventBus.on('shop:open',            ()     => this._hideOverlay()),
+      EventBus.on('dialogue:npcSwitch',   ({ npcId }) => this._switchNpc(npcId)),
     );
   },
 
@@ -172,6 +181,16 @@ const DialogueScreen = {
 
   _showOverlayEl() {
     if (this._overlayEl) this._overlayEl.style.display = '';
+  },
+
+  _switchNpc(npcId) {
+    this._npcId = npcId;
+    const npcWrap = this._overlayEl?.querySelector('.dlg-char-wrap-npc');
+    const npcEl   = document.getElementById('dlg-char-npc');
+    const src     = CHAR_BASE[npcId];
+    if (npcWrap) npcWrap.style.visibility = src ? '' : 'hidden';
+    if (npcEl && src) { npcEl.src = src; npcEl.alt = npcId; }
+    if (this._overlayEl) this._overlayEl.classList.toggle('dlg-narrator', !src);
   },
 
   _showNode({ speaker, portrait, text, choices = [], canContinue = false, reaction = 'neutral' }) {
@@ -188,7 +207,10 @@ const DialogueScreen = {
     const contEl     = document.getElementById('dlg-continue');
     const choicesEl  = document.getElementById('dlg-choices');
 
-    if (speakerEl) speakerEl.textContent = speaker ?? '';
+    if (speakerEl) {
+      speakerEl.textContent = speaker ?? '';
+      speakerEl.classList.toggle('hidden', !speaker);
+    }
     if (textEl)    textEl.textContent    = '';
     if (contEl)    contEl.classList.add('hidden');
     if (choicesEl) { choicesEl.innerHTML = ''; choicesEl.classList.add('hidden'); }
@@ -265,7 +287,7 @@ const DialogueScreen = {
 
     this._choices.forEach((choice, i) => {
       const btn = document.createElement('button');
-      btn.className = 'choice-btn' + (choice.locked ? ' locked' : '') + (choice.charmLocked ? ' charm-locked' : '');
+      btn.className = 'choice-btn' + (choice.locked ? ' locked' : '') + (choice.charismaLocked ? ' charisma-locked' : '');
 
       const label = document.createElement('span');
       label.textContent = choice.label;
@@ -299,6 +321,7 @@ const DialogueScreen = {
   },
 
   _setReaction(reaction) {
+    if (!CHAR_BASE[this._npcId]) return; // narrator / no portrait NPC
     const npcEl = document.getElementById('dlg-char-npc');
     if (!npcEl) return;
 

@@ -13,12 +13,12 @@ const GameState = {
     gemstones: 0,
     xp: 0,
     xpToNext: 100,
-    charm: 0,      // 0–100; increases with level; unlocks charm-gated dialogue
+    charisma: 0,   // 0–100; increases with level; unlocks charisma-gated dialogue
   },
 
   progression: {
     currentLocation: 'academy_courtyard',
-    unlockedLocations: ['academy_courtyard'],
+    unlockedLocations: ['academy_courtyard', 'dormitory'],
     gameFlags: {},   // boolean/string key-value: backbone of all branching logic
   },
 
@@ -93,7 +93,7 @@ const GameState = {
     sfxVolume:   1.0,
     textSpeed:   'normal',   // 'slow' | 'normal' | 'fast' | 'instant'
     fullscreen:  false,
-    font:        'default',  // 'default' | 'lutin'
+    font:        'merienda',
   },
 
   // ──────────────────────────────────────────
@@ -116,8 +116,8 @@ const GameState = {
     this.player.gemstones = Math.max(0, (this.player.gemstones ?? 0) + amount);
   },
 
-  addCharm(amount) {
-    this.player.charm = Math.min(100, Math.max(0, (this.player.charm ?? 0) + amount));
+  addCharisma(amount) {
+    this.player.charisma = Math.min(100, Math.max(0, (this.player.charisma ?? 0) + amount));
   },
 
   addXp(amount) {
@@ -127,7 +127,7 @@ const GameState = {
       this.player.xp      -= this.player.xpToNext;
       this.player.level   += 1;
       this.player.xpToNext = Math.floor(this.player.xpToNext * 1.4);
-      this.addCharm(10);
+      this.addCharisma(10);
     }
     if (this.player.level >= 100) this.player.xp = 0;
   },
@@ -230,7 +230,7 @@ const GameState = {
   deserialize(data) {
     this.version      = data.version      ?? 1;
     const _pd = data.player ?? {};
-    this.player       = { coin: 100000, gemstones: 0, charm: 0, ...this.player, ..._pd };
+    this.player       = { coin: 100000, gemstones: 0, charisma: 0, ...this.player, ..._pd };
     // Backfill coin from old saves that used 'gold'
     if (_pd.gold !== undefined && _pd.coin === undefined) this.player.coin = _pd.gold;
     this.progression  = data.progression  ?? this.progression;

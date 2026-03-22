@@ -5307,3 +5307,116 @@ button, [role="button"],
   .dlg-char-img     { width: 52px; }
   .cg-hand-card     { width: 64px; height: 88px; }
 }
+
+/* ── Dynamic viewport height fix (mobile Chrome URL bar) ── */
+@supports (height: 100dvh) {
+  body      { height: 100dvh; }
+  #game-root { height: 100dvh; }
+}
+
+/* ── Safe area insets (notched phones) ──────────────────── */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top:    env(safe-area-inset-top);
+    padding-right:  env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left:   env(safe-area-inset-left);
+  }
+}
+
+/* ── Portrait-mode rotate overlay ──────────────────────── */
+#rotate-overlay {
+  display: none; /* hidden by default; shown below on portrait touch devices */
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0d0d1a;
+  align-items: center;
+  justify-content: center;
+}
+
+.rotate-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #c8dfc8;
+  text-align: center;
+  padding: 24px;
+}
+
+.rotate-icon {
+  font-size: 3.5em;
+  animation: rotate-hint 1.6s ease-in-out infinite;
+}
+
+@keyframes rotate-hint {
+  0%, 100% { transform: rotate(0deg); }
+  40%       { transform: rotate(90deg); }
+  60%       { transform: rotate(90deg); }
+}
+
+.rotate-title {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: #e8f0e8;
+}
+
+.rotate-sub {
+  font-size: 0.9em;
+  color: rgba(200, 223, 200, 0.65);
+}
+
+/* Show rotate overlay on touch devices in portrait orientation */
+@media (pointer: coarse) and (orientation: portrait) {
+  #rotate-overlay { display: flex; }
+}
+
+/* ── Compact landscape layout for phones (height ≤ 500px) ── */
+/* Targets landscape-mode phones where vertical space is tight */
+@media (orientation: landscape) and (max-height: 500px) {
+
+  /* Phase bar — thinner */
+  .cg-phase-bar        { min-height: 28px; }
+  .cg-phase-bar-row    { padding: 2px 6px; gap: 2px; }
+  .cg-phase-pill       { font-size: 0.55em; padding: 2px 4px; }
+  .cg-turn-label       { font-size: 0.62em; }
+
+  /* Opponent strip — thinner */
+  .cg-opp-row          { min-height: 28px; padding: 2px 4px; }
+  .cg-opp-hand-card    { width: 20px; height: 28px; }
+  .cg-opp-deck-zone    { width: 52px; min-height: 28px; }
+  .cg-opp-crypt-zone   { width: 52px; min-height: 28px; }
+
+  /* Grid cells — fit more rows in limited height */
+  .cg-cell             { min-height: 36px; }
+
+  /* Hand area — shorter cards */
+  .cg-hand             { min-height: 48px; }
+  .cg-hand-card        { width: 60px; height: 84px; }
+
+  /* Right panel narrower */
+  .cg-right-panel      { width: 80px; }
+  .cg-sidebar          { width: 80px; }
+  .cg-sidebar-phase    { font-size: 0.6em; padding: 4px 4px; }
+  .cg-log-entry        { font-size: 0.6em; }
+
+  /* Left panel — hide on small landscape phones */
+  .cg-left-panel       { display: none; }
+
+  /* Crypt row — thinner */
+  .cg-crypt-row        { min-height: 28px; padding: 2px 4px; }
+
+  /* Dialogue box — less vertical padding */
+  .dialogue-box        { padding: 8px 14px 8px; }
+  .dlg-char-wrap       { width: 64px; }
+  .dlg-char-img        { width: 64px; }
+
+  /* Scene NPCs — shorter */
+  .scene-npc--img .npc-sprite { height: 180px; }
+
+  /* Title screen */
+  .title-screen h1     { font-size: 1.6em; margin-bottom: 8px; }
+  .title-screen .subtitle { font-size: 0.8em; margin-bottom: 12px; }
+  .title-btn           { padding: 9px 0; }
+}

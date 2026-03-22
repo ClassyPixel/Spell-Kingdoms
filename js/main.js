@@ -29,7 +29,41 @@ import CardArtPreloader from './systems/CardArtPreloader.js';
 import { setSceneScreenRef } from './screens/MapScreen.js';
 
 // Quick match data
-import { QUICK_MATCH_OPPONENTS, STARTER_DECKS, validateDeck } from './Data.js';
+import { QUICK_MATCH_OPPONENTS, STARTER_DECKS, validateDeck, LOCATIONS, NPCS } from './Data.js';
+
+// Apply map editor overrides (from localStorage sca_map_overrides) to live arrays.
+// ES module arrays are shared references — mutating them here affects all importers.
+(function applyMapOverrides() {
+  try {
+    const raw = localStorage.getItem('sca_map_overrides');
+    if (!raw) return;
+    const ov = JSON.parse(raw);
+
+    // Location / area overrides
+    (ov.locations ?? []).forEach(locOv => {
+      const loc = LOCATIONS.find(l => l.id === locOv.id);
+      if (!loc) return;
+      (locOv.areas ?? []).forEach(aOv => {
+        const area = loc.areas?.find(a => a.id === aOv.id);
+        if (!area) return;
+        ['doors', 'treasures', 'barrels', 'objects'].forEach(k => {
+          if (aOv[k] !== undefined) area[k] = aOv[k];
+        });
+      });
+    });
+
+    // NPC property overrides (name, description, location)
+    (ov.npcs ?? []).forEach(nOv => {
+      const npc = NPCS.find(n => n.id === nOv.id);
+      if (!npc) return;
+      if (nOv.name        !== undefined) npc.name        = nOv.name;
+      if (nOv.description !== undefined) npc.description = nOv.description;
+      if (nOv.location    !== undefined) npc.location    = nOv.location;
+    });
+  } catch (e) {
+    console.warn('applyMapOverrides failed:', e);
+  }
+})();
 
 // Quick match state
 let _quickMatchActive = false;

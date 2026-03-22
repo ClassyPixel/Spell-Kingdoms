@@ -446,8 +446,9 @@
     .map-token.selected .map-token-icon { border-color: var(--accent2) !important; box-shadow: 0 0 8px rgba(160,125,224,0.5); }
     .map-token-icon {
       font-size: 1.4em; line-height: 1;
-      background: rgba(26,26,53,0.82); border: 2px solid rgba(124,92,191,0.3);
+      background: rgba(13,13,26,0.88); border: 2px solid rgba(124,92,191,0.5);
       border-radius: 6px; padding: 4px 6px; transition: border-color 0.15s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
     }
     .map-token-lbl {
       font-size: 0.55em; color: var(--text); background: rgba(13,13,26,0.88);
@@ -1820,11 +1821,20 @@ function renderMapPreview(loc, area) {
 
   preview.innerHTML = '';
 
-  // Background
-  const bg = document.createElement('div');
-  bg.className = 'preview-bg-icon';
-  bg.textContent = area.bgIcon ?? '🏛️';
-  preview.appendChild(bg);
+  // Background — mirror SceneScreen logic: area.bgImage ?? location.bgImage → else bgIcon
+  const bgImage = area.bgImage ?? loc.bgImage;
+  const bgIcon  = area.bgIcon  ?? loc.bgIcon ?? loc.icon ?? '🏛️';
+  if (bgImage) {
+    preview.style.backgroundImage    = `url('${bgImage}')`;
+    preview.style.backgroundSize     = 'cover';
+    preview.style.backgroundPosition = 'center';
+  } else {
+    preview.style.backgroundImage = '';
+    const bg = document.createElement('div');
+    bg.className = 'preview-bg-icon';
+    bg.textContent = bgIcon;
+    preview.appendChild(bg);
+  }
 
   // Tokens
   const grouped = getGroupedObjects(loc, area);

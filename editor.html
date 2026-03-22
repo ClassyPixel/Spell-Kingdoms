@@ -418,6 +418,16 @@
       font-size: 0.83em; padding: 5px 8px; outline: none; transition: border-color 0.15s;
     }
     .mf-inp:focus { border-color: var(--accent); }
+    .mf-arrows { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+    .mf-arrow {
+      width: 20px; height: 16px; border-radius: 3px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--dim); cursor: pointer; font-size: 0.6em; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      user-select: none; transition: all 0.1s; padding: 0;
+    }
+    .mf-arrow:hover { border-color: var(--accent); color: var(--accent2); background: rgba(124,92,191,0.12); }
+    .mf-arrow:active { background: rgba(124,92,191,0.25); }
 
     /* ── Preview panel ───────────────────────────────────── */
     #map-preview-panel {
@@ -1767,15 +1777,63 @@ function buildMapObjCard(obj, type, idx, area, loc) {
     addField('Action', obj.action ?? '', v => { obj.action = v; });
   }
 
-  // Position fields
+  // Position fields with arrow spinners
   const curPos = isNpc ? getNpcPos(loc.id, mapSel.areaId, obj.id) : posToXY(obj.position);
-  const leftInp   = addField('Left %',   Number(curPos.left).toFixed(1), v => {
+
+  const addPosField = (lbl, initVal, onCommit) => {
+    const row = document.createElement('div');
+    row.className = 'mf-row';
+    const l = document.createElement('span');
+    l.className = 'mf-lbl'; l.textContent = lbl;
+
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'mf-inp'; inp.value = initVal;
+    inp.addEventListener('input', () => { onCommit(inp.value); mapIsDirty = true; });
+
+    const arrowsWrap = document.createElement('div');
+    arrowsWrap.className = 'mf-arrows';
+
+    const makeArrow = (delta) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mf-arrow';
+      btn.textContent = delta > 0 ? '▲' : '▼';
+      let _timer, _interval;
+      const act = () => {
+        const cur = parseFloat(inp.value) || 0;
+        const next = Math.max(0, Math.min(100, +(cur + delta).toFixed(1)));
+        inp.value = next.toFixed(1);
+        onCommit(inp.value);
+        mapIsDirty = true;
+      };
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        act();
+        _timer = setTimeout(() => { _interval = setInterval(act, 50); }, 320);
+      });
+      const stop = () => { clearTimeout(_timer); clearInterval(_interval); };
+      btn.addEventListener('mouseup',    stop);
+      btn.addEventListener('mouseleave', stop);
+      return btn;
+    };
+
+    arrowsWrap.appendChild(makeArrow(0.5));
+    arrowsWrap.appendChild(makeArrow(-0.5));
+
+    row.appendChild(l);
+    row.appendChild(inp);
+    row.appendChild(arrowsWrap);
+    body.appendChild(row);
+    return inp;
+  };
+
+  const leftInp   = addPosField('Left %',   Number(curPos.left).toFixed(1), v => {
     const n = parseFloat(v); if (isNaN(n)) return;
     updateMapObjPos(type, obj, loc.id, mapSel.areaId, n, null);
     posSpan.textContent = `${n.toFixed(1)}%, ${Number(curPos.bottom).toFixed(1)}%`;
     renderMapPreview(loc, area);
   });
-  const bottomInp = addField('Bottom %', Number(curPos.bottom).toFixed(1), v => {
+  const bottomInp = addPosField('Bottom %', Number(curPos.bottom).toFixed(1), v => {
     const n = parseFloat(v); if (isNaN(n)) return;
     updateMapObjPos(type, obj, loc.id, mapSel.areaId, null, n);
     posSpan.textContent = `${Number(curPos.left).toFixed(1)}%, ${n.toFixed(1)}%`;

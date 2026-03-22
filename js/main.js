@@ -156,11 +156,6 @@ function showTitleScreen() {
       h1.textContent = 'Conjuring Masters';
       screen.appendChild(h1);
 
-      const sub = document.createElement('p');
-      sub.className = 'subtitle';
-      sub.textContent = 'Build your deck. Command your forces. Conquer the kingdom.';
-      screen.appendChild(sub);
-
       // New Game
       const newGameBtn = document.createElement('button');
       newGameBtn.className = 'title-btn';

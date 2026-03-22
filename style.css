@@ -178,7 +178,7 @@ body {
 }
 
 .title-screen h1 {
-  font-size: 3.5em;
+  font-size: 10.5em;
   font-family: 'Lutin Paniquangoisse', sans-serif;
   color: var(--color-accent2);
   text-shadow: 0 0 40px var(--color-accent);
@@ -196,8 +196,8 @@ body {
 .title-btn {
   width: 200px;
   padding: 14px 0;
-  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent2) 100%);
-  border: none;
+  background: rgba(124,92,191,0.30);
+  border: 1px solid rgba(160,125,224,0.45);
   border-radius: var(--radius);
   color: white;
   font-size: 1.1em;
@@ -205,21 +205,24 @@ body {
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--shadow);
+  backdrop-filter: blur(4px);
 }
 
 .title-btn:hover {
+  background: rgba(124,92,191,0.50);
   transform: translateY(-2px);
-  box-shadow: 0 6px 28px rgba(124,92,191,0.5);
+  box-shadow: 0 6px 28px rgba(124,92,191,0.4);
 }
 
 .title-btn.secondary {
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.12);
   color: var(--color-text);
+  backdrop-filter: blur(4px);
 }
 
 .title-btn.secondary:hover {
-  background: var(--color-border);
+  background: rgba(255,255,255,0.10);
   transform: translateY(-2px);
 }
 
@@ -5142,7 +5145,7 @@ button, [role="button"],
 
 /* ── Tablet (≤ 768px) ─────────────────────────────────── */
 @media (max-width: 768px) {
-  .title-screen h1           { font-size: 2.4em; }
+  .title-screen h1           { font-size: 7.2em; }
   .qm-opponent-grid          { grid-template-columns: repeat(2, 1fr); }
   .qm-deck-grid              { grid-template-columns: repeat(2, 1fr); }
   .db-subdeck-row            { grid-template-columns: repeat(2, 1fr); }
@@ -5162,7 +5165,7 @@ button, [role="button"],
   .loading-bar    { width: min(260px, 80vw); }
 
   /* Title */
-  .title-screen h1         { font-size: 1.8em; }
+  .title-screen h1         { font-size: 5.4em; }
   .title-screen .subtitle  { font-size: 0.9em; margin-bottom: 20px; }
   .title-btn               { width: 160px; padding: 12px 0; font-size: 1em; }
 
@@ -5300,7 +5303,7 @@ button, [role="button"],
 
 /* ── Very small screens (≤ 360px) ────────────────────── */
 @media (max-width: 360px) {
-  .title-screen h1  { font-size: 1.4em; }
+  .title-screen h1  { font-size: 4.2em; }
   .cg-right-panel   { display: none; }  /* hide right panel too, grid fills all */
   .dialogue-box     { padding: 10px 14px 10px; }
   .dlg-char-wrap    { width: 52px; }
@@ -5416,7 +5419,7 @@ button, [role="button"],
   .scene-npc--img .npc-sprite { height: 180px; }
 
   /* Title screen */
-  .title-screen h1     { font-size: 1.6em; margin-bottom: 8px; }
+  .title-screen h1     { font-size: 4.8em; margin-bottom: 8px; }
   .title-screen .subtitle { font-size: 0.8em; margin-bottom: 12px; }
   .title-btn           { padding: 9px 0; }
 }

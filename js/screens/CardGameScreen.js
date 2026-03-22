@@ -137,14 +137,18 @@ const CardGameScreen = {
   _state:          null,
   _champPanelCol:  null,   // column whose champ panel is open (null = closed)
   _escHandler:     null,
-  _movePreview:    null,   // { mode:'rally'|'retreat', fromRow, fromCol, cells:[{row,col,direction}] }
+  _movePreview:       null,   // { mode:'rally'|'retreat', fromRow, fromCol, cells:[{row,col,direction}] }
+  _touchSel:          null,   // { source:'hand'|'panel', handIdx?, champCol?, summonIdx? }
+  _touchPreviewTimer: null,
 
   mount(container, params = {}) {
-    this._container     = container;
-    this._champPanelCol = null;
-    this._knownHandKeys = new Set();
-    this._idleTimer     = null;
-    this._idleHandler   = null;
+    this._container          = container;
+    this._champPanelCol      = null;
+    this._knownHandKeys      = new Set();
+    this._idleTimer          = null;
+    this._idleHandler        = null;
+    this._touchSel           = null;
+    this._touchPreviewTimer  = null;
     this._render();
     this._bindEvents();
     this._bindMenuButton();
@@ -159,9 +163,13 @@ const CardGameScreen = {
     this._unsub         = [];
     this._container     = null;
     this._state         = null;
-    this._champPanelCol  = null;
-    this._movePreview    = null;
-    this._knownHandKeys  = new Set();
+    this._champPanelCol      = null;
+    this._movePreview        = null;
+    this._knownHandKeys      = new Set();
+    this._clearTouchSel();
+    clearTimeout(this._touchPreviewTimer);
+    this._touchSel          = null;
+    this._touchPreviewTimer = null;
     this._clearIdleWatch();
     if (this._escHandler) {
       document.removeEventListener('keydown', this._escHandler);
@@ -359,8 +367,9 @@ const CardGameScreen = {
     };
     const reset = () => { clearTimeout(this._idleTimer); this._idleTimer = setTimeout(show, 3000); };
     this._idleHandler = reset;
-    document.addEventListener('mousemove', this._idleHandler);
-    document.addEventListener('keydown',   this._idleHandler);
+    document.addEventListener('mousemove',  this._idleHandler);
+    document.addEventListener('keydown',    this._idleHandler);
+    document.addEventListener('touchstart', this._idleHandler, { passive: true });
     reset();
   },
 
@@ -368,8 +377,9 @@ const CardGameScreen = {
     clearTimeout(this._idleTimer);
     this._idleTimer = null;
     if (this._idleHandler) {
-      document.removeEventListener('mousemove', this._idleHandler);
-      document.removeEventListener('keydown',   this._idleHandler);
+      document.removeEventListener('mousemove',  this._idleHandler);
+      document.removeEventListener('keydown',    this._idleHandler);
+      document.removeEventListener('touchstart', this._idleHandler);
       this._idleHandler = null;
     }
     const msgEl = document.getElementById('cg-phase-msg');
@@ -490,8 +500,7 @@ const CardGameScreen = {
       if (champ) {
         cell.classList.add('cg-cell-champion', 'cg-cell-opp');
         cell.innerHTML = this._champHTML(champ);
-        cell.addEventListener('mouseenter', () => this._showCardPreview(champ));
-        cell.addEventListener('mouseleave', () => this._hideCardPreview());
+        this._bindPreview(cell, champ);
         if (s.strategy.attackMode) {
           cell.classList.add('cg-cell-attackable');
           cell.addEventListener('click', () => EventBus.emit('cardgame:attackTarget', { row, col }));
@@ -517,8 +526,7 @@ const CardGameScreen = {
         if (champ) {
           cell.classList.add('cg-cell-champion', 'cg-cell-plr');
           cell.innerHTML = this._champHTML(champ);
-          cell.addEventListener('mouseenter', () => this._showCardPreview(champ));
-          cell.addEventListener('mouseleave', () => this._hideCardPreview());
+          this._bindPreview(cell, champ);
           if (col === s.pendingTeleport.sourceCol) {
             cell.classList.add('cg-cell-teleport-source');
             cell.title = 'Click to cancel Teleportation';
@@ -535,8 +543,7 @@ const CardGameScreen = {
       if (champ) {
         cell.classList.add('cg-cell-champion', 'cg-cell-plr');
         cell.innerHTML = this._champHTML(champ);
-        cell.addEventListener('mouseenter', () => this._showCardPreview(champ));
-        cell.addEventListener('mouseleave', () => this._hideCardPreview());
+        this._bindPreview(cell, champ);
 
         // Spell target: heal_champion or Teleportation source selection
         if (s.pendingSpell?.card.needsTarget === 'player_champion' ||
@@ -567,6 +574,13 @@ const CardGameScreen = {
               EventBus.emit('cardgame:stackOnChampion', { handIdx, col });
             }
           });
+          cell.addEventListener('touchstart', e => {
+            if (!this._touchSel || this._touchSel.source !== 'hand') return;
+            e.preventDefault();
+            SoundSystem.drop();
+            EventBus.emit('cardgame:stackOnChampion', { handIdx: this._touchSel.handIdx, col });
+            this._clearTouchSel();
+          }, { passive: false });
           cell.addEventListener('click', () => {
             if (_justDropped) { _justDropped = false; return; }
             if (canOpenPanel) { this._champPanelCol = col; this._update(); }
@@ -589,6 +603,13 @@ const CardGameScreen = {
             const handIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
             if (!isNaN(handIdx)) { SoundSystem.drop(); EventBus.emit('cardgame:placeChampion', { col, handIdx }); }
           });
+          cell.addEventListener('touchstart', e => {
+            if (!this._touchSel || this._touchSel.source !== 'hand') return;
+            e.preventDefault();
+            SoundSystem.drop();
+            EventBus.emit('cardgame:placeChampion', { col, handIdx: this._touchSel.handIdx });
+            this._clearTouchSel();
+          }, { passive: false });
         } else {
           // After init: hide empty champion slots
           cell.classList.add('cg-cell-invisible');
@@ -642,6 +663,13 @@ const CardGameScreen = {
           const handIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
           if (!isNaN(handIdx)) { SoundSystem.drop(); EventBus.emit('cardgame:placeElite', { handIdx, col }); }
         });
+        cell.addEventListener('touchstart', e => {
+          if (!this._touchSel || this._touchSel.source !== 'hand') return;
+          e.preventDefault();
+          SoundSystem.drop();
+          EventBus.emit('cardgame:placeElite', { handIdx: this._touchSel.handIdx, col });
+          this._clearTouchSel();
+        }, { passive: false });
         return cell;
       }
     }
@@ -666,8 +694,7 @@ const CardGameScreen = {
       }
 
       cell.innerHTML = this._eliteHTML(gridCard, isSel, hasActed);
-      cell.addEventListener('mouseenter', () => this._showCardPreview(gridCard));
-      cell.addEventListener('mouseleave', () => this._hideCardPreview());
+      this._bindPreview(cell, gridCard);
 
       // Inline action menu when this elite is selected and ready to act
       if (isSel && !hasActed && isPlayer && s.phase === 'strategy' && !this._movePreview) {
@@ -726,6 +753,14 @@ const CardGameScreen = {
             }
           }
         });
+        cell.addEventListener('touchstart', e => {
+          if (!this._touchSel || this._touchSel.source !== 'panel') return;
+          e.preventDefault();
+          const { champCol, summonIdx } = this._touchSel;
+          SoundSystem.drop();
+          EventBus.emit('cardgame:playFromChampion', { champCol, summonIdx, eliteRow: row, eliteCol: col });
+          this._clearTouchSel();
+        }, { passive: false });
         return cell;
       }
 
@@ -912,8 +947,8 @@ const CardGameScreen = {
           div.classList.add('cg-dragging');
         });
         div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
-        div.addEventListener('mouseenter', () => this._showCardPreview(card));
-        div.addEventListener('mouseleave', () => this._hideCardPreview());
+        div.addEventListener('touchstart', () => this._setTouchSel({ source: 'hand', handIdx: i }, div), { passive: true });
+        this._bindPreview(div, card);
         hand.appendChild(div);
         this._applyArch(div, i, total);
       });
@@ -954,8 +989,8 @@ const CardGameScreen = {
           div.classList.add('cg-dragging');
         });
         div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
-        div.addEventListener('mouseenter', () => this._showCardPreview(card));
-        div.addEventListener('mouseleave', () => this._hideCardPreview());
+        div.addEventListener('touchstart', () => this._setTouchSel({ source: 'hand', handIdx: i }, div), { passive: true });
+        this._bindPreview(div, card);
         hand.appendChild(div);
         this._applyArch(div, archIdx++, total);
       });
@@ -1019,8 +1054,8 @@ const CardGameScreen = {
           div.classList.add('cg-dragging');
         });
         div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
-        div.addEventListener('mouseenter', () => this._showCardPreview(card));
-        div.addEventListener('mouseleave', () => this._hideCardPreview());
+        div.addEventListener('touchstart', () => this._setTouchSel({ source: 'hand', handIdx: i }, div), { passive: true });
+        this._bindPreview(div, card);
         hand.appendChild(div);
         this._applyArch(div, archIdx, total);
         return;
@@ -1047,8 +1082,7 @@ const CardGameScreen = {
           if (s.phase !== 'conjure' && s.phase !== 'regroup') return;
           EventBus.emit('cardgame:playSpell', { handIdx: i });
         });
-        div.addEventListener('mouseenter', () => this._showCardPreview(card));
-        div.addEventListener('mouseleave', () => this._hideCardPreview());
+        this._bindPreview(div, card);
       } else {
         const hpPct = card.maxHp > 0 ? Math.max(0, card.hp / card.maxHp * 100) : 0;
         const hasTeleportAbility = card.ability?.type === 'teleport_to_elite';
@@ -1075,9 +1109,9 @@ const CardGameScreen = {
             div.classList.add('cg-dragging');
           });
           div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
+          div.addEventListener('touchstart', () => this._setTouchSel({ source: 'hand', handIdx: i }, div), { passive: true });
         }
-        div.addEventListener('mouseenter', () => this._showCardPreview(card));
-        div.addEventListener('mouseleave', () => this._hideCardPreview());
+        this._bindPreview(div, card);
       }
 
       const cardKey = card.uid ?? `${card.type}:${card.name}:${archIdx}`;
@@ -1159,8 +1193,8 @@ const CardGameScreen = {
         div.classList.add('cg-dragging');
       });
       div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
-      div.addEventListener('mouseenter', () => this._showCardPreview(card));
-      div.addEventListener('mouseleave', () => this._hideCardPreview());
+      div.addEventListener('touchstart', () => this._setTouchSel({ source: 'panel', champCol: col, summonIdx: idx }, div), { passive: true });
+      this._bindPreview(div, card);
       cardsEl.appendChild(div);
     });
   },
@@ -1280,6 +1314,8 @@ const CardGameScreen = {
     div.addEventListener('mouseleave', () => { div.style.transform = '';                               div.style.zIndex = String(i + 1); });
     div.addEventListener('dragstart',  () => { div.style.transform = ''; });
     div.addEventListener('dragend',    () => { div.style.transform = ''; });
+    div.addEventListener('touchstart', () => { div.style.transform = 'translateY(-32px) scale(1.08)'; div.style.zIndex = '80'; }, { passive: true });
+    div.addEventListener('touchend',   () => { div.style.transform = '';                               div.style.zIndex = String(i + 1); }, { passive: true });
   },
 
   // ── Move preview helpers ──────────────────────────────────────────────────────
@@ -1465,6 +1501,32 @@ const CardGameScreen = {
     const el = this._container?.querySelector('#cg-card-preview');
     if (!el) return;
     el.classList.add('hidden');
+  },
+
+  // ── Bind card preview for mouse + touch ──────────────────────────────────────
+  _bindPreview(el, card) {
+    el.addEventListener('mouseenter', () => this._showCardPreview(card));
+    el.addEventListener('mouseleave', () => this._hideCardPreview());
+    el.addEventListener('touchstart', () => {
+      clearTimeout(this._touchPreviewTimer);
+      this._showCardPreview(card);
+    }, { passive: true });
+    el.addEventListener('touchend', () => {
+      this._touchPreviewTimer = setTimeout(() => this._hideCardPreview(), 1400);
+    }, { passive: true });
+  },
+
+  // ── Touch card selection (mobile drag-and-drop replacement) ──────────────────
+  _setTouchSel(sel, el) {
+    this._clearTouchSel();
+    this._touchSel = sel;
+    if (el) el.classList.add('cg-touch-selected');
+  },
+
+  _clearTouchSel() {
+    this._container?.querySelectorAll('.cg-touch-selected')
+      .forEach(e => e.classList.remove('cg-touch-selected'));
+    this._touchSel = null;
   },
 
   // ── Attack animation — card nudge/push ────────────────────────────────────────

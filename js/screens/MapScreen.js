@@ -47,7 +47,7 @@ const MapScreen = {
     this._container = container;
     this._mode = 'world';
     this._currentWorldLoc = null;
-    MusicPlayer.play('assets/audio/matchost/Detuned.mp3');
+    MusicPlayer.play('assets/audio/WorldMapOST/01.mp3');
     this._render();
   },
 

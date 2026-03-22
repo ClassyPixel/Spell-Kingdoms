@@ -188,7 +188,7 @@ function showTitleScreen() {
 
       container.appendChild(screen);
     },
-    unmount() { MusicPlayer.stop(); },
+    unmount() {},
     update() {},
   };
 
@@ -546,13 +546,18 @@ function startNewGame() {
   // Start main quest
   EventBus.emit('quest:trigger', { questId: 'main_01' });
 
+  // Drop player directly into Starting Grounds (Academy Courtyard — Plaza)
+  GameState.progression.currentLocation = 'academy_courtyard';
+  if (!GameState.progression.currentAreaByLocation) GameState.progression.currentAreaByLocation = {};
+  GameState.progression.currentAreaByLocation['academy_courtyard'] = 'plaza';
+
   enterGame();
 }
 
 function enterGame() {
   showHUD();
   updateHUD();
-  ScreenManager.clear(MapScreen);
+  ScreenManager.clear(SceneScreen, { locationId: 'academy_courtyard', areaId: 'plaza' });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

@@ -135,11 +135,10 @@ const SceneScreen = {
 
     // Menu buttons
     const NAV_BUTTONS = [
-      { label: '🗺 Area Map',     action: () => this._showAreaMap() },
-      { label: '📦 Objects',      action: () => this._showObjectsList() },
       { label: '🎒 Inventory',    action: () => EventBus.emit('screen:push', { screen: InventoryScreen,    params: {} }) },
       { label: '🃏 Deck Builder', action: () => EventBus.emit('screen:push', { screen: DeckBuilderScreen,  params: {} }) },
       { label: '📜 Quest Journal',action: () => EventBus.emit('screen:push', { screen: QuestJournalScreen, params: {} }) },
+      { label: '🗺 Area Map',     action: () => this._showAreaMap() },
       { label: '💾 Save / Load',  action: () => EventBus.emit('menu:open') },
       { label: '⚙️ Settings',    action: () => EventBus.emit('screen:push', { screen: SettingsScreen,     params: {} }) },
       { label: '🚪 Exit Game',   action: () => EventBus.emit('game:returnToTitle') },

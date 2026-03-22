@@ -435,15 +435,27 @@
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       font-size: 8em; opacity: 0.06; pointer-events: none; user-select: none;
     }
+    /* Token: icon+label stack above the anchor dot.
+       bottom: Y% places the DOT (last flex child) at Y% from container bottom.
+       translateX(-50%) centers horizontally at left: X%.
+       The dot = exact coordinate = lower-center of the in-game sprite. */
     .map-token {
       position: absolute; display: flex; flex-direction: column; align-items: center;
-      transform: translateX(-50%); cursor: grab; z-index: 10; gap: 2px;
+      transform: translateX(-50%); cursor: grab; z-index: 10; gap: 1px;
     }
     .map-token:hover { z-index: 20; }
     .map-token:hover .map-token-icon { border-color: var(--accent); }
+    /* Dragging: hide icon + label, show only the dot */
     .map-token.dragging { cursor: grabbing !important; z-index: 100; }
-    .map-token.dragging .map-token-icon { border-color: var(--accent2) !important; opacity: 0.85; }
+    .map-token.dragging .map-token-icon { display: none; }
+    .map-token.dragging .map-token-lbl  { display: none; }
+    .map-token.dragging .map-token-dot  {
+      width: 10px; height: 10px;
+      background: var(--accent2);
+      box-shadow: 0 0 0 4px rgba(160,125,224,0.3), 0 0 14px rgba(160,125,224,0.6);
+    }
     .map-token.selected .map-token-icon { border-color: var(--accent2) !important; box-shadow: 0 0 8px rgba(160,125,224,0.5); }
+    .map-token.selected .map-token-dot  { background: var(--accent2); opacity: 1; }
     .map-token-icon {
       font-size: 1.4em; line-height: 1;
       background: rgba(13,13,26,0.88); border: 2px solid rgba(124,92,191,0.5);
@@ -454,6 +466,12 @@
       font-size: 0.55em; color: var(--text); background: rgba(13,13,26,0.88);
       padding: 1px 5px; border-radius: 3px; white-space: nowrap;
       max-width: 90px; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+    }
+    /* Anchor dot — sits at the exact coordinate (lower-center of the in-game sprite) */
+    .map-token-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--accent); opacity: 0.7; flex-shrink: 0;
+      transition: width 0.1s, height 0.1s, box-shadow 0.1s;
     }
     .map-preview-hint { font-size: 0.73em; color: var(--dim); text-align: center; padding: 6px 0 0; flex-shrink: 0; }
   </style>
@@ -1870,8 +1888,13 @@ function renderMapPreview(loc, area) {
       lblDiv.className = 'map-token-lbl';
       lblDiv.textContent = typeLabelFn[type](obj);
 
+      // Anchor dot — lowest element in the token, sits exactly at (left%, bottom%)
+      const dotDiv = document.createElement('div');
+      dotDiv.className = 'map-token-dot';
+
       token.appendChild(iconDiv);
       token.appendChild(lblDiv);
+      token.appendChild(dotDiv);
 
       token.addEventListener('mousedown', e => {
         e.preventDefault();

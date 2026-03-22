@@ -183,7 +183,7 @@ const CardGameScreen = {
 
   // ── Match music ───────────────────────────────────────────────────────────────
   _playMatchMusic() {
-    MusicPlayer.play('assets/audio/matchost/All Comes Together.mp3');
+    MusicPlayer.play('assets/audio/MatchOST/01.mp3');
   },
 
   _stopMatchMusic() {
@@ -273,6 +273,7 @@ const CardGameScreen = {
       }),
       EventBus.on('cardgame:gameOver', ({ win, isQuickPlay, npcId }) => {
         if (win) SoundSystem.victory(); else SoundSystem.defeat();
+        MusicPlayer.play(win ? 'assets/audio/VictoryOST/01.mp3' : 'assets/audio/DefeatOST/01.mp3');
         this._showGameOverPopup(win, isQuickPlay ?? false, npcId ?? null);
       }),
       EventBus.on('cardgame:hqCaptured', () => {

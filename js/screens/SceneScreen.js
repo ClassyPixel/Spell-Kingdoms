@@ -7,6 +7,7 @@
 import EventBus           from '../EventBus.js';
 import GameState           from '../GameState.js';
 import { NPCS, LOCATIONS, WORLD_LOCATIONS, ITEMS, STORY_STARTER_DECKS, DIALOGUES } from '../Data.js';
+import MusicPlayer         from '../systems/MusicPlayer.js';
 import InventoryScreen     from './InventoryScreen.js';
 import DeckBuilderScreen   from './DeckBuilderScreen.js';
 import QuestJournalScreen  from './QuestJournalScreen.js';
@@ -34,10 +35,15 @@ const SceneScreen = {
       id: this._locationId, name: this._locationId, description: '', icon: '🏛️', bgIcon: '🏛️',
     };
     const locationNpcs = NPCS.filter(n => n.location === this._locationId);
+
+    // Play area music based on location
+    MusicPlayer.play('assets/audio/MapAreaOST/Academy.mp3');
+
     this._render(location, locationNpcs);
   },
 
   unmount() {
+    MusicPlayer.stop();
     if (this._clockTimer) clearInterval(this._clockTimer);
     this._clockTimer = null;
     if (this._narratorTimer) { clearTimeout(this._narratorTimer); this._narratorTimer = null; }

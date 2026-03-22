@@ -147,7 +147,7 @@ function animateLoading() {
 function showTitleScreen() {
   const TitleScreen = {
     mount(container) {
-      MusicPlayer.play('assets/audio/matchost/Triple 8.mp3');
+      MusicPlayer.play('assets/audio/TitleOST/01.mp3');
       container.innerHTML = '';
       const screen = document.createElement('div');
       screen.className = 'title-screen fade-in';

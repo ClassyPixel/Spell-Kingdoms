@@ -1458,7 +1458,7 @@ DIALOGUES.conj_malachar = {
     malachar_facade: {
       speaker: 'Malachar', portrait: '🔥',
       text: "*short pause, looks away* ...It saves time. Most people aren't worth the effort of knowing. You seem to be an exception. I haven't decided if that's convenient or irritating.",
-      choices: [{ label: 'I'll take it.', effects: [{ type: 'relationship', value: 2 }], next: null }],
+      choices: [{ label: "I'll take it.", effects: [{ type: 'relationship', value: 2 }], next: null }],
     },
     malachar_work: {
       speaker: 'Malachar', portrait: '🔥',

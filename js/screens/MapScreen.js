@@ -52,7 +52,6 @@ const MapScreen = {
   },
 
   unmount() {
-    MusicPlayer.stop();
     this._container = null;
   },
 

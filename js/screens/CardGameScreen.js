@@ -249,6 +249,9 @@ const CardGameScreen = {
       EventBus.on('cardgame:summonAssigned', ({ row, col, art, power }) => {
         this._showSummonPopup(row, col, art, power);
       }),
+      EventBus.on('cardgame:campHeal', ({ row, col }) => {
+        this._showCampHealPopup(row, col);
+      }),
       EventBus.on('cardgame:beginMatch', () => {
         this._showBeginMatchPopup();
         CardArtPreloader.preloadMatchFullInBackground(this._state);
@@ -973,7 +976,7 @@ const CardGameScreen = {
         div.innerHTML = `
           <div class="cg-card-top">
             <span class="cg-card-name">${card.name ?? 'Elite'}</span>
-            <span class="cg-hcard-cost">${card.summonCost ?? ''}</span>
+            <span class="cg-hcard-cost cg-hcard-cost--glow">0</span>
           </div>
           <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
           <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#c07820"></div></div>
@@ -1038,7 +1041,7 @@ const CardGameScreen = {
         div.innerHTML = `
           <div class="cg-card-top">
             <span class="cg-card-name">${card.name ?? 'Elite'}</span>
-            <span class="cg-hcard-cost">${card.summonCost ?? ''}</span>
+            <span class="cg-hcard-cost cg-hcard-cost--glow">0</span>
           </div>
           <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
           <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#c07820"></div></div>
@@ -1090,7 +1093,7 @@ const CardGameScreen = {
         div.innerHTML = `
           <div class="cg-card-top">
             <span class="cg-card-name">${card.name ?? 'Summon'}</span>
-            <span class="cg-hcard-cost">${card.summonCost}</span>
+            <span class="cg-hcard-cost${isMatching ? ' cg-hcard-cost--glow' : ''}">${card.summonCost}</span>
           </div>
           <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
           <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${hpPct}%;background:#4ab87c"></div></div>
@@ -1194,6 +1197,10 @@ const CardGameScreen = {
         div.classList.add('cg-dragging');
       });
       div.addEventListener('dragend', () => div.classList.remove('cg-dragging'));
+      div.addEventListener('dblclick', () => {
+        SoundSystem.drop();
+        EventBus.emit('cardgame:playFromChampion', { champCol: col, summonIdx: idx, eliteRow: P_ELITE_ROW, eliteCol: col });
+      });
       div.addEventListener('touchstart', () => this._setTouchSel({ source: 'panel', champCol: col, summonIdx: idx }, div), { passive: true });
       this._bindPreview(div, card);
       cardsEl.appendChild(div);
@@ -1390,6 +1397,24 @@ const CardGameScreen = {
     popup.style.top  = (cellRect.top  - screenRect.top) + 'px';
     screen.appendChild(popup);
     setTimeout(() => popup.remove(), 1100);
+  },
+
+  // ── Camp heal pop-up (+1 HP float animation) ─────────────────────────────────
+  _showCampHealPopup(row, col) {
+    const grid   = document.getElementById('cg-grid');
+    const screen = this._container?.querySelector('.cg-screen');
+    if (!grid || !screen) return;
+    const cell = grid.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    if (!cell) return;
+    const cellRect   = cell.getBoundingClientRect();
+    const screenRect = screen.getBoundingClientRect();
+    const popup = document.createElement('div');
+    popup.className = 'cg-camp-heal-popup';
+    popup.textContent = `⛺ +1 HP`;
+    popup.style.left = (cellRect.left - screenRect.left + cellRect.width / 2) + 'px';
+    popup.style.top  = (cellRect.top  - screenRect.top) + 'px';
+    screen.appendChild(popup);
+    setTimeout(() => popup.remove(), 1200);
   },
 
   // ── Stack tooltip (hover over elite/champion) ─────────────────────────────────

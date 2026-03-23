@@ -29,6 +29,7 @@ const GameState = {
   },
 
   deck: {
+    activeDeckId: 'story_ember_adept',
     activeDeck: ['ember_bolt', 'ember_bolt', 'frost_shard', 'frost_shard',
                  'shield_wall', 'shield_wall', 'healing_light', 'healing_light'],
     collection: ['ember_bolt', 'ember_bolt', 'frost_shard', 'frost_shard',

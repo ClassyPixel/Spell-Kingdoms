@@ -55,6 +55,7 @@ const InventoryScreen = {
   },
 
   unmount() {
+    document.querySelectorAll('[data-inv-modal]').forEach(el => el.remove());
     this._container = null;
   },
 
@@ -455,8 +456,8 @@ const InventoryScreen = {
     modal.appendChild(actions);
     overlay.appendChild(modal);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-
-    this._container.appendChild(overlay);
+    overlay.dataset.invModal = '1';
+    document.body.appendChild(overlay);
   },
 
   _showDeckEditModal(deck) {
@@ -497,8 +498,8 @@ const InventoryScreen = {
     modal.appendChild(actions);
     overlay.appendChild(modal);
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-
-    this._container.appendChild(overlay);
+    overlay.dataset.invModal = '1';
+    document.body.appendChild(overlay);
   },
 
   _openLootBox(idx, content) {

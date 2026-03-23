@@ -43,7 +43,6 @@ const SceneScreen = {
   },
 
   unmount() {
-    MusicPlayer.stop();
     if (this._clockTimer) clearInterval(this._clockTimer);
     this._clockTimer = null;
     if (this._narratorTimer) { clearTimeout(this._narratorTimer); this._narratorTimer = null; }
@@ -84,14 +83,12 @@ const SceneScreen = {
   // ── Active deck display name ────────────────────────────────────────────────
 
   _deckLabel() {
-    const active = GameState.deck.activeDeck;
-    // Try to match against a saved starter deck by comparing card sets
-    const match = STORY_STARTER_DECKS.find(d => {
-      const allCards = [...d.elites, ...d.summons, ...d.spells];
-      return allCards.length === active.length &&
-        allCards.every((id, i) => id === active[i]);
-    });
-    return match ? match.name : `Active Deck · ${active.length} cards`;
+    const id = GameState.deck.activeDeckId;
+    if (id) {
+      const match = STORY_STARTER_DECKS.find(d => d.id === id);
+      if (match) return match.name;
+    }
+    return `Active Deck · ${GameState.deck.activeDeck?.length ?? 0} cards`;
   },
 
   // ── Sidebar ─────────────────────────────────────────────────────────────────
@@ -100,72 +97,105 @@ const SceneScreen = {
     const sidebar = document.createElement('div');
     sidebar.className = 'scene-sidebar';
 
-    // Avatar
+    // ── Player info panel (top of strip) ──────────────────────────
+    const playerPanel = document.createElement('div');
+    playerPanel.className = 'scene-player-panel';
+
+    // Left column: avatar + coin + gems
+    const sppLeft = document.createElement('div');
+    sppLeft.className = 'spp-left';
+
     const avatar = document.createElement('div');
     avatar.className = 'sidebar-avatar';
     avatar.innerHTML = `<img src="assets/images/CardGameArt/AvatarArt/playeravatar_img.JPG" alt="Player Avatar" class="sidebar-avatar-img">`;
 
-    // Player name
+    const coinEl = document.createElement('div');
+    coinEl.className = 'sidebar-currency';
+    coinEl.innerHTML = `🪙 <span id="sidebar-coin-val">${GameState.player.coin}</span>`;
+
+    const gemsEl = document.createElement('div');
+    gemsEl.className = 'sidebar-currency sidebar-currency--gems';
+    gemsEl.innerHTML = `💎 <span id="sidebar-gems-val">${GameState.player.gemstones ?? 0}</span>`;
+
+    const currencyRow = document.createElement('div');
+    currencyRow.className = 'spp-currencies';
+    currencyRow.appendChild(coinEl);
+    currencyRow.appendChild(gemsEl);
+
+    sppLeft.appendChild(avatar);
+    sppLeft.appendChild(currencyRow);
+
+    // Right column: name on top, then [LV + clock] row below
+    const sppRight = document.createElement('div');
+    sppRight.className = 'spp-right';
+
     const nameEl = document.createElement('div');
     nameEl.className = 'sidebar-player-name';
     nameEl.textContent = GameState.player.name;
 
-    // Level
-    const levelEl = document.createElement('div');
-    levelEl.className = 'sidebar-stat';
-    levelEl.textContent = `Lv. ${GameState.player.level}`;
+    const lvClockRow = document.createElement('div');
+    lvClockRow.className = 'spp-lv-clock-row';
 
-    // Deck
-    const deckEl = document.createElement('div');
-    deckEl.className = 'sidebar-stat sidebar-deck-label';
-    deckEl.textContent = `🃏 ${this._deckLabel()}`;
+    const lvEl = document.createElement('div');
+    lvEl.className = 'sidebar-player-lv';
+    lvEl.textContent = `LV:${GameState.player.level}`;
 
-    // Currency
-    const coinEl = document.createElement('div');
-    coinEl.className = 'sidebar-stat sidebar-currency';
-    coinEl.innerHTML = `🪙 <span id="sidebar-coin-val">${GameState.player.coin}</span>`;
-
-    const gemsEl = document.createElement('div');
-    gemsEl.className = 'sidebar-stat sidebar-currency';
-    gemsEl.innerHTML = `💎 <span id="sidebar-gems-val">${GameState.player.gemstones ?? 0}</span>`;
-
-    // Clock
     const clockEl = document.createElement('div');
     clockEl.className = 'sidebar-clock';
     clockEl.id = 'scene-sidebar-clock';
     this._updateClockEl(clockEl);
 
-    // Divider
-    const divider = document.createElement('div');
-    divider.className = 'sidebar-divider';
+    lvClockRow.appendChild(lvEl);
+    lvClockRow.appendChild(clockEl);
 
-    // Menu buttons
+    sppRight.appendChild(nameEl);
+    sppRight.appendChild(lvClockRow);
+
+    playerPanel.appendChild(sppLeft);
+    playerPanel.appendChild(sppRight);
+
+    // ── Deck panel (separate auto-size panel below player panel) ──
+    const deckPanel = document.createElement('div');
+    deckPanel.className = 'scene-deck-panel';
+    const deckIcon = document.createElement('img');
+    deckIcon.src = 'assets/images/CardGameArt/IconArt/deckboxicon_img.png';
+    deckIcon.alt = 'Deck';
+    deckIcon.className = 'scene-deck-icon';
+    const deckLabelEl = document.createElement('span');
+    deckLabelEl.className = 'scene-deck-label-prefix';
+    deckLabelEl.textContent = 'Active Deck:';
+    const deckNameEl = document.createElement('span');
+    deckNameEl.textContent = this._deckLabel();
+    deckPanel.appendChild(deckIcon);
+    deckPanel.appendChild(deckLabelEl);
+    deckPanel.appendChild(deckNameEl);
+
+    // ── Nav button strip ───────────────────────────────────────────
+    const navStrip = document.createElement('div');
+    navStrip.className = 'scene-nav-strip';
+
     const NAV_BUTTONS = [
-      { label: '🎒 Inventory',    action: () => EventBus.emit('screen:push', { screen: InventoryScreen,    params: {} }) },
-      { label: '🃏 Deck Builder', action: () => EventBus.emit('screen:push', { screen: DeckBuilderScreen,  params: {} }) },
-      { label: '📜 Quest Journal',action: () => EventBus.emit('screen:push', { screen: QuestJournalScreen, params: {} }) },
-      { label: '🗺 Area Map',     action: () => this._showAreaMap() },
-      { label: '💾 Save / Load',  action: () => EventBus.emit('menu:open') },
-      { label: '⚙️ Settings',    action: () => EventBus.emit('screen:push', { screen: SettingsScreen,     params: {} }) },
-      { label: '🚪 Exit Game',   action: () => EventBus.emit('game:returnToTitle') },
+      { icon: '🎒', title: 'Inventory',    action: () => EventBus.emit('screen:push', { screen: InventoryScreen,    params: {} }) },
+      { icon: '🃏', title: 'Deck Builder', action: () => EventBus.emit('screen:push', { screen: DeckBuilderScreen,  params: {} }) },
+      { icon: '📜', title: 'Quest Journal',action: () => EventBus.emit('screen:push', { screen: QuestJournalScreen, params: {} }) },
+      { icon: '🗺', title: 'Area Map',     action: () => this._showAreaMap() },
+      { icon: '💾', title: 'Save / Load',  action: () => EventBus.emit('menu:open') },
+      { icon: '⚙️', title: 'Settings',    action: () => EventBus.emit('screen:push', { screen: SettingsScreen,     params: {} }) },
+      { icon: '🚪', title: 'Exit Game',   action: () => EventBus.emit('game:returnToTitle') },
     ];
 
-    sidebar.appendChild(avatar);
-    sidebar.appendChild(nameEl);
-    sidebar.appendChild(levelEl);
-    sidebar.appendChild(deckEl);
-    sidebar.appendChild(coinEl);
-    sidebar.appendChild(gemsEl);
-    sidebar.appendChild(clockEl);
-    sidebar.appendChild(divider);
-
-    NAV_BUTTONS.forEach(({ label, action }) => {
+    NAV_BUTTONS.forEach(({ icon, title, action }) => {
       const btn = document.createElement('button');
-      btn.className = 'sidebar-nav-btn';
-      btn.textContent = label;
+      btn.className = 'scene-nav-circle';
+      btn.title = title;
+      btn.textContent = icon;
       btn.addEventListener('click', action);
-      sidebar.appendChild(btn);
+      navStrip.appendChild(btn);
     });
+
+    sidebar.appendChild(playerPanel);
+    sidebar.appendChild(deckPanel);
+    sidebar.appendChild(navStrip);
 
     // Start clock ticker (every second)
     this._clockTimer = setInterval(() => {
@@ -254,33 +284,6 @@ const SceneScreen = {
     }
 
     screen.appendChild(backdrop);
-
-    // Bottom bar — show area name when inside a sub-area
-    const areaLabel = currentArea && currentArea !== location.areas?.[0]
-      ? ` · ${currentArea.name}`
-      : (currentArea ? ` · ${currentArea.name}` : '');
-    const displayDesc = currentArea?.description ?? location.description ?? '';
-
-    const bar = document.createElement('div');
-    bar.className = 'scene-bottom-bar';
-    bar.innerHTML = `
-      <div>
-        <div class="scene-location-name">${location.name}${areaLabel}</div>
-        <div class="scene-location-desc">${displayDesc}</div>
-      </div>
-    `;
-
-    const actions = document.createElement('div');
-    actions.className = 'scene-actions';
-
-    const mapBtn = document.createElement('button');
-    mapBtn.className = 'btn-scene';
-    mapBtn.textContent = '🗺 Map';
-    mapBtn.addEventListener('click', () => EventBus.emit('screen:pop'));
-
-    actions.appendChild(mapBtn);
-    bar.appendChild(actions);
-    screen.appendChild(bar);
 
     c.appendChild(screen);
 

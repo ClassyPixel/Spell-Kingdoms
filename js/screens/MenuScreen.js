@@ -1,28 +1,14 @@
 /**
- * MenuScreen — pauses the game and shows a hub for all sub-menus.
+ * MenuScreen — Save / Load overlay.
  * Pushed on top of the current screen; popping returns to game.
  */
-import EventBus from '../EventBus.js';
-import GameState from '../GameState.js';
+import EventBus  from '../EventBus.js';
 import SaveSystem from '../SaveSystem.js';
-import InventoryScreen   from './InventoryScreen.js';
-import DeckBuilderScreen from './DeckBuilderScreen.js';
-import QuestJournalScreen from './QuestJournalScreen.js';
-import RelationshipScreen from './RelationshipScreen.js';
-import SettingsScreen    from './SettingsScreen.js';
-
-const ITEMS = [
-  { label: 'Inventory',     icon: '🎒', screen: () => InventoryScreen },
-  { label: 'Deck Builder',  icon: '🃏', screen: () => DeckBuilderScreen },
-  { label: 'Quest Journal', icon: '📜', screen: () => QuestJournalScreen },
-  { label: 'Relationships', icon: '💜', screen: () => RelationshipScreen },
-  { label: 'Settings',      icon: '⚙️', screen: () => SettingsScreen },
-];
 
 const MenuScreen = {
   _container: null,
 
-  mount(container, params = {}) {
+  mount(container) {
     this._container = container;
     this._render();
   },
@@ -42,70 +28,57 @@ const MenuScreen = {
     panel.className = 'menu-panel';
 
     const title = document.createElement('h2');
-    title.textContent = '— Menu —';
+    title.textContent = '— Save / Load —';
     panel.appendChild(title);
 
     const list = document.createElement('div');
     list.className = 'menu-items';
 
-    ITEMS.forEach(item => {
-      const el = document.createElement('div');
-      el.className = 'menu-item';
-      el.innerHTML = `<span class="menu-item-icon">${item.icon}</span><span>${item.label}</span>`;
-      el.addEventListener('click', () => {
-        EventBus.emit('screen:push', { screen: item.screen(), params: {} });
-      });
-      list.appendChild(el);
-    });
+    // Save Game
+    const saveEl = document.createElement('div');
+    saveEl.className = 'menu-item';
+    saveEl.innerHTML = `<span class="menu-item-icon">💾</span><span>Save Game</span>`;
+    saveEl.addEventListener('click', () => this._openSlotPicker('save'));
+    list.appendChild(saveEl);
+
+    // Load Game
+    const loadEl = document.createElement('div');
+    loadEl.className = 'menu-item';
+    loadEl.innerHTML = `<span class="menu-item-icon">📂</span><span>Load Game</span>`;
+    loadEl.addEventListener('click', () => this._openSlotPicker('load'));
+    list.appendChild(loadEl);
 
     // Divider
     const div = document.createElement('div');
     div.className = 'menu-divider';
     list.appendChild(div);
 
-    // Save
-    const saveEl = document.createElement('div');
-    saveEl.className = 'menu-item';
-    saveEl.innerHTML = `<span class="menu-item-icon">💾</span><span>Save Game</span>`;
-    saveEl.addEventListener('click', () => this._openSave());
-    list.appendChild(saveEl);
-
-    // Return to title
+    // Return to Title
     const titleEl = document.createElement('div');
     titleEl.className = 'menu-item';
     titleEl.style.color = 'var(--color-text-dim)';
     titleEl.innerHTML = `<span class="menu-item-icon">🚪</span><span>Return to Title</span>`;
-    titleEl.addEventListener('click', () => this._returnToTitle());
+    titleEl.addEventListener('click', () => EventBus.emit('game:returnToTitle'));
     list.appendChild(titleEl);
 
     panel.appendChild(list);
 
-    // Close / Resume
+    // Resume
     const closeBtn = document.createElement('button');
     closeBtn.className = 'back-btn';
     closeBtn.textContent = '← Resume';
-    closeBtn.style.marginTop = '14px';
-    closeBtn.style.width = '100%';
+    closeBtn.style.cssText = 'margin-top:14px;width:100%';
     closeBtn.addEventListener('click', () => EventBus.emit('screen:pop'));
     panel.appendChild(closeBtn);
 
     overlay.appendChild(panel);
-
-    // Click outside panel to close
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) EventBus.emit('screen:pop');
-    });
-
+    overlay.addEventListener('click', e => { if (e.target === overlay) EventBus.emit('screen:pop'); });
     c.appendChild(overlay);
   },
 
-  _openSave() {
+  _openSlotPicker(mode) {
     const slots = SaveSystem.getSlotsInfo();
-    // Simple: show a sub-overlay with slot selection
-    this._renderSaveOverlay(slots);
-  },
 
-  _renderSaveOverlay(slots) {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
 
@@ -114,7 +87,7 @@ const MenuScreen = {
     box.style.width = '340px';
 
     const h = document.createElement('h3');
-    h.textContent = 'Save Game';
+    h.textContent = mode === 'save' ? 'Save Game' : 'Load Game';
     box.appendChild(h);
 
     slots.forEach(s => {
@@ -124,17 +97,27 @@ const MenuScreen = {
 
       if (s.empty) {
         btn.innerHTML = `<span style="font-weight:600;color:var(--color-text-dim)">Slot ${s.slot + 1} — Empty</span>`;
+        if (mode === 'load') btn.disabled = true;
       } else {
         btn.innerHTML = `
           <span style="font-weight:600;color:var(--color-accent2)">Slot ${s.slot + 1} — ${s.playerName}</span>
-          <span style="font-size:0.8em;color:var(--color-text-dim)">${SaveSystem.formatTimestamp(s.timestamp)}</span>
+          <span style="font-size:0.8em;color:var(--color-text-dim)">${s.location ?? ''} · ${SaveSystem.formatTimestamp(s.timestamp)}</span>
+          <span style="font-size:0.75em;color:var(--color-text-dim)">${SaveSystem.formatPlaytime(s.playtime)}</span>
         `;
       }
 
       btn.addEventListener('click', () => {
-        SaveSystem.save(s.slot);
-        overlay.remove();
-        EventBus.emit('toast', { message: `Saved to Slot ${s.slot + 1}`, type: 'success' });
+        if (mode === 'save') {
+          SaveSystem.save(s.slot);
+          overlay.remove();
+          EventBus.emit('toast', { message: `Saved to Slot ${s.slot + 1}`, type: 'success' });
+        } else {
+          if (SaveSystem.load(s.slot)) {
+            overlay.remove();
+            EventBus.emit('screen:pop'); // close menu
+            EventBus.emit('game:loaded');
+          }
+        }
       });
       box.appendChild(btn);
     });
@@ -147,11 +130,6 @@ const MenuScreen = {
 
     overlay.appendChild(box);
     this._container.appendChild(overlay);
-  },
-
-  _returnToTitle() {
-    // Re-emit clear to TitleScreen — resolved in main.js
-    EventBus.emit('game:returnToTitle');
   },
 
   update(dt) {},

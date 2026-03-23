@@ -11,8 +11,9 @@
  * Phase auto-advances: draw→conjure, regroup→end (if nothing to do), end→opponent.
  */
 import EventBus from '../EventBus.js';
-import { CHAMPION_CARDS, ELITE_CARD_DECK, SUMMON_CARD_DECK, SPELL_CARD_DECK } from '../Data.js';
+import { CHAMPION_CARDS, ELITE_CARD_DECK, SUMMON_CARD_DECK, SPELL_CARD_DECK, STORY_STARTER_DECKS } from '../Data.js';
 import CardArtPreloader from './CardArtPreloader.js';
+import GameState from '../GameState.js';
 
 const ROWS = 6;
 const COLS = 5;
@@ -91,7 +92,10 @@ function applyTerrainEffects(s) {
           if (sm.maxHp !== undefined) {
             const prev = sm.hp;
             sm.hp = Math.min(sm.maxHp, sm.hp + 1);
-            if (sm.hp > prev) log(s, `⛺ Camp: ${sm.name} restored 1 HP (${sm.hp}/${sm.maxHp}).`);
+            if (sm.hp > prev) {
+              log(s, `⛺ Camp: ${sm.name} restored 1 HP (${sm.hp}/${sm.maxHp}).`);
+              EventBus.emit('cardgame:campHeal', { row: r, col: c, name: sm.name, hp: sm.hp, maxHp: sm.maxHp });
+            }
           }
         }
       }
@@ -209,9 +213,12 @@ function log(s, msg) {
 
 // ── State factory ──────────────────────────────────────────────────────────────
 function makeState(npcId, deckOverride, isQuickPlay = false) {
-  const elites  = deckOverride?.elites  ?? ELITE_CARD_DECK;
-  const summons = deckOverride?.summons ?? SUMMON_CARD_DECK;
-  const spells  = deckOverride?.spells  ?? SPELL_CARD_DECK;
+  const activeDeck = deckOverride
+    ?? STORY_STARTER_DECKS.find(d => d.id === GameState.deck.activeDeckId)
+    ?? null;
+  const elites  = activeDeck?.elites  ?? ELITE_CARD_DECK;
+  const summons = activeDeck?.summons ?? SUMMON_CARD_DECK;
+  const spells  = activeDeck?.spells  ?? SPELL_CARD_DECK;
   return {
     npcId,
     isQuickPlay,
@@ -347,7 +354,7 @@ const CardSystem = {
     s.initSubStep = 'place_elites';
     for (let i = 0; i < 3; i++) {
       const el = s.playerEliteDeck.shift();
-      if (el) { el.owner = 'player'; s.playerHand.push(el); }
+      if (el) { el.owner = 'player'; s.playerHand.unshift(el); }
     }
     log(s, 'Champions placed! Drag your elite cards in front of each champion.');
   },
@@ -998,12 +1005,17 @@ const CardSystem = {
         }
       }
 
+    // Restore full HP on all summon cards currently in hand
+    for (const c of s.playerHand) {
+      if (c.type === 'summon' && c.maxHp !== undefined) c.hp = c.maxHp;
+    }
+
     // Draw replacement elite first if one is pending
     if (s.playerNeedsElite && s.playerEliteDeck.length) {
       s.playerNeedsElite = false;
       const el = s.playerEliteDeck.shift();
       el.owner = 'player';
-      s.playerHand.push(el);
+      s.playerHand.unshift(el);
       log(s, `${el.name} drawn to hand — place it on a champion!`);
       EventBus.emit('cardgame:cardDrawn');
     }
@@ -1111,44 +1123,44 @@ const CardSystem = {
   // Evaluate opponent goal each turn
   _evalOppGoal(s) {
     if (!s.opponentChampions.length) return 'offensive';
-
-    // Threat: player elite advanced into opponent territory (rows 2 or lower)
-    const playerAdvanced = findEliteOnGrid(s, 'player').some(e => e.row <= 2);
+    const plrInOppTerritory = findEliteOnGrid(s, 'player').filter(e => e.row <= 2).length;
+    if (s.turnNumber <= 2 || plrInOppTerritory >= 2) return 'absoluteDefense';
     const anyOppChampLow = s.opponentChampions.some(c => c.hp / c.maxHp < 0.45);
-    if (playerAdvanced || anyOppChampLow) return 'defensive';
-
-    // Offensive if player champions are vulnerable or opponent can overwhelm
-    const totalPlrHp   = s.playerChampions.reduce((sum, c) => sum + Math.max(0, c.hp), 0);
-    const totalOppPow  = findEliteOnGrid(s, 'opponent').reduce((sum, {elite}) => sum + totalPower(elite), 0);
+    if (anyOppChampLow || plrInOppTerritory >= 1) return 'defensive';
     const plrVulnerable = s.playerChampions.some(c => c.hp / c.maxHp < 0.45);
+    const totalPlrHp  = s.playerChampions.reduce((sum, c) => sum + Math.max(0, c.hp), 0);
+    const totalOppPow = findEliteOnGrid(s, 'opponent').reduce((sum, {elite}) => sum + totalPower(elite), 0);
     if (plrVulnerable || (totalPlrHp > 0 && totalOppPow >= totalPlrHp * 0.6)) return 'offensive';
-
-    return s.opponentGoal ?? 'offensive';
+    return 'balanced';
   },
 
   // Choose which elite to stack summons on based on goal
   _oppPickSummonTarget(s, elites, goal) {
+    if (goal === 'absoluteDefense' || goal === 'defensive') {
+      const oppCols = new Set(s.opponentChampions.map(c => c.col));
+      const defenders = elites.filter(e => oppCols.has(e.col));
+      const pool = defenders.length ? defenders : elites;
+      return pool.reduce((a, b) => a.elite.summons.length <= b.elite.summons.length ? a : b);
+    }
     if (goal === 'offensive') {
-      // Stack on most advanced elite (highest row = closest to player)
       return elites.reduce((a, b) => b.row > a.row ? b : a);
     }
-    // Defensive: stack on elite nearest own champion column, fewest summons as tiebreak
-    const oppChampCols = new Set(s.opponentChampions.map(c => c.col));
-    const defenders = elites.filter(e => oppChampCols.has(e.col));
-    const pool = defenders.length ? defenders : elites;
-    return pool.reduce((a, b) => a.elite.summons.length <= b.elite.summons.length ? a : b);
+    // balanced: most advanced with fewest summons
+    return elites.reduce((a, b) => {
+      if (b.row !== a.row) return b.row > a.row ? b : a;
+      return a.elite.summons.length <= b.elite.summons.length ? a : b;
+    });
   },
 
   // Main movement/attack loop — returns true if game ended
   _oppActElites(s) {
-    const goal = s.opponentGoal ?? 'offensive';
+    const globalGoal = s.opponentGoal ?? 'balanced';
     const snapshot = findEliteOnGrid(s, 'opponent').sort((a, b) => b.row - a.row);
 
     for (const { elite } of snapshot) {
-      // Use live position (elite may have been moved by a prior iteration)
       const r = elite.row, c = elite.col;
 
-      // ── Attack player champion directly ────────────────────────────────────
+      // Attack player champion directly — always highest priority
       if (r === P_ELITE_ROW) {
         const pChamp = s.playerChampions.find(ch => ch.col === c);
         if (pChamp) {
@@ -1156,30 +1168,85 @@ const CardSystem = {
           EventBus.emit('cardgame:attackPerformed', { attackerRow: r, attackerCol: c, targetRow: PLAYER_ROW, targetCol: c, art: elite.art ?? '⚔️', artFile: elite.artFile ?? null });
           pChamp.hp -= atkPow;
           log(s, `${elite.name} attacks your ${pChamp.name} for ${atkPow}! (${Math.max(0, pChamp.hp)}/${pChamp.maxHp} HP)`);
-          if (pChamp.hp <= 0) {
-            log(s, `${pChamp.name} defeated!`);
-            s.playerChampions = s.playerChampions.filter(ch => ch !== pChamp);
-          }
+          if (pChamp.hp <= 0) { log(s, `${pChamp.name} defeated!`); s.playerChampions = s.playerChampions.filter(ch => ch !== pChamp); }
           if (this._checkWin()) return true;
           continue;
         }
       }
 
-      // ── Attack adjacent player elite ───────────────────────────────────────
-      const target = this._oppFindAttackTarget(s, r, c, goal);
-      if (target) {
-        const destroyed = this._oppDoEliteAttack(s, elite, r, c, target.row, target.col);
-        if (this._checkWin()) return true;
-        if (destroyed) this._spawnPlayerElite(target.col);
+      const eliteGoal = this._pickEliteStrategy(s, elite, r, c, globalGoal);
+
+      // ── FullOffensive ──────────────────────────────────────────────────────────
+      if (eliteGoal === 'fullOffensive') {
+        const target = this._oppFindAttackTarget(s, r, c, 'offensive');
+        if (target && this._canOneShot(elite, target.elite)) {
+          const destroyed = this._oppDoEliteAttack(s, elite, r, c, target.row, target.col);
+          if (this._checkWin()) return true;
+          if (destroyed) this._spawnPlayerElite(target.col);
+        } else {
+          this._oppMoveOffensive(s, elite, r, c);
+          if (this._checkWin()) return true;
+        }
         continue;
       }
 
-      // ── Move ──────────────────────────────────────────────────────────────
-      if (goal === 'offensive') {
-        this._oppMoveOffensive(s, elite, r, c);
-      } else {
-        this._oppMoveDefensive(s, elite, r, c);
+      // ── Coward ─────────────────────────────────────────────────────────────────
+      if (eliteGoal === 'coward') {
+        const target = this._oppFindAttackTarget(s, r, c, 'defensive');
+        if (target) {
+          const destroyed = this._oppDoEliteAttack(s, elite, r, c, target.row, target.col);
+          if (this._checkWin()) return true;
+          if (destroyed) this._spawnPlayerElite(target.col);
+        } else {
+          this._oppMoveCoward(s, elite, r, c);
+          if (this._checkWin()) return true;
+        }
+        continue;
       }
+
+      // ── TerrainAdvantage ───────────────────────────────────────────────────────
+      if (eliteGoal === 'terrainAdvantage') {
+        const target = this._oppFindAttackTarget(s, r, c, 'offensive');
+        if (target) {
+          const destroyed = this._oppDoEliteAttack(s, elite, r, c, target.row, target.col);
+          if (this._checkWin()) return true;
+          if (destroyed) this._spawnPlayerElite(target.col);
+        } else {
+          const terrainDest = this._findBeneficialTerrain(s, elite, r, c);
+          if (terrainDest) this._oppMoveTowardCell(s, elite, r, c, terrainDest.row, terrainDest.col);
+          if (this._checkWin()) return true;
+        }
+        continue;
+      }
+
+      // ── Initiative ─────────────────────────────────────────────────────────────
+      if (eliteGoal === 'initiative') {
+        const initTarget = this._findInitiativeTarget(s, r, c);
+        if (initTarget) {
+          this._oppMoveTowardCell(s, elite, r, c, initTarget.row, initTarget.col);
+          if (this._checkWin()) return true;
+          continue;
+        }
+      }
+
+      // ── Global goal attack + move ──────────────────────────────────────────────
+      const target = this._oppFindAttackTarget(s, r, c, globalGoal);
+      if (target) {
+        // Balanced: only attack if can one-shot (don't engage otherwise)
+        if (globalGoal === 'balanced' && elite.summons.length === 0 && !this._canOneShot(elite, target.elite)) {
+          // hold — fall through to move
+        } else {
+          const destroyed = this._oppDoEliteAttack(s, elite, r, c, target.row, target.col);
+          if (this._checkWin()) return true;
+          if (destroyed) this._spawnPlayerElite(target.col);
+          continue;
+        }
+      }
+
+      if      (globalGoal === 'offensive')       this._oppMoveOffensive(s, elite, r, c);
+      else if (globalGoal === 'absoluteDefense') this._oppMoveAbsoluteDefense(s, elite, r, c);
+      else if (globalGoal === 'defensive')       this._oppMoveDefensive(s, elite, r, c);
+      else                                        this._oppMoveBalanced(s, elite, r, c);
       if (this._checkWin()) return true;
     }
     return false;
@@ -1350,6 +1417,175 @@ const CardSystem = {
     return s.opponentChampions.reduce((best, ch) =>
       Math.abs(ch.col - fromCol) < Math.abs(best.col - fromCol) ? ch : best
     ).col;
+  },
+
+  // Per-elite strategy override on top of global goal
+  _pickEliteStrategy(s, elite, row, col, globalGoal) {
+    // Coward: strongest elite with dangerously low HP
+    if (elite.hp / elite.maxHp < 0.35 && this._isStrongestOppElite(s, elite)) return 'coward';
+    // FullOffensive: can one-shot an adjacent player elite
+    const adjTarget = this._oppFindAttackTarget(s, row, col, 'offensive');
+    if (adjTarget && this._canOneShot(elite, adjTarget.elite)) return 'fullOffensive';
+    // TerrainAdvantage: beneficial terrain nearby
+    if (this._findBeneficialTerrain(s, elite, row, col)) return 'terrainAdvantage';
+    // Initiative: player elite approaching — advance to intercept (not during absoluteDefense)
+    if (globalGoal !== 'absoluteDefense' && this._findInitiativeTarget(s, row, col)) return 'initiative';
+    return globalGoal;
+  },
+
+  // Can attacker destroy target (elite + all stacked summons) in one hit?
+  _canOneShot(attacker, target) {
+    const totalHp = target.hp + (target.summons ?? []).reduce((sum, sm) => sum + sm.hp, 0);
+    return totalPower(attacker) >= totalHp;
+  },
+
+  // Is this the opponent's highest-power elite on the grid?
+  _isStrongestOppElite(s, elite) {
+    const elites = findEliteOnGrid(s, 'opponent');
+    if (elites.length <= 1) return true;
+    const thisPow = totalPower(elite);
+    return elites.every(e => totalPower(e.elite) <= thisPow);
+  },
+
+  // Find nearest beneficial terrain within Manhattan distance 2; returns {row,col} or null
+  _findBeneficialTerrain(s, elite, row, col) {
+    const needsHeal = elite.hp / elite.maxHp < 0.65 ||
+      (elite.summons ?? []).some(sm => sm.maxHp !== undefined && sm.hp < sm.maxHp);
+    let best = null, bestDist = Infinity;
+    for (let dr = -2; dr <= 2; dr++) {
+      for (let dc = -2; dc <= 2; dc++) {
+        const dist = Math.abs(dr) + Math.abs(dc);
+        if (dist > 2 || dist === 0) continue;
+        const tr = row + dr, tc = col + dc;
+        if (tr < 0 || tr >= ROWS || tc < 0 || tc >= COLS) continue;
+        const terrain = s.terrainGrid[tr][tc];
+        if (!terrain) continue;
+        if (terrain === 'camp' && needsHeal && dist < bestDist) { best = { row: tr, col: tc }; bestDist = dist; }
+        if (terrain === 'lava_floor' && elite.terrain === 'fire' && dist < bestDist) {
+          const hasNearTarget = findEliteOnGrid(s, 'player').some(e => Math.abs(e.row - tr) + Math.abs(e.col - tc) <= 1);
+          if (hasNearTarget) { best = { row: tr, col: tc }; bestDist = dist; }
+        }
+      }
+    }
+    return best;
+  },
+
+  // Find a player elite 2 steps ahead that we could one-shot once adjacent
+  _findInitiativeTarget(s, row, col) {
+    // Two rows forward with clear path
+    if (row + 2 < PLAYER_ROW && s.grid[row + 1]?.[col] === null) {
+      const t = gridElite(s, row + 2, col);
+      if (t?.owner === 'player' && this._canOneShot(gridElite(s, row, col), t)) return { row: row + 2, col };
+    }
+    // One forward, one lateral
+    if (row + 1 < PLAYER_ROW && s.grid[row + 1]?.[col] === null) {
+      for (const dc of [-1, 1]) {
+        const nc = col + dc;
+        if (nc < 0 || nc >= COLS) continue;
+        const t = gridElite(s, row + 1, nc);
+        if (t?.owner === 'player' && this._canOneShot(gridElite(s, row, col), t)) return { row: row + 1, col: nc };
+      }
+    }
+    return null;
+  },
+
+  // Move elite one step toward a target cell (greedy best-first)
+  _oppMoveTowardCell(s, elite, row, col, targetRow, targetCol) {
+    const moves = [];
+    if (targetRow > row && row + 1 < PLAYER_ROW && s.grid[row + 1][col] === null) moves.push([row + 1, col]);
+    if (targetRow < row && row - 1 >= 0          && s.grid[row - 1][col] === null) moves.push([row - 1, col]);
+    if (targetCol > col && col + 1 < COLS         && s.grid[row][col + 1] === null) moves.push([row, col + 1]);
+    if (targetCol < col && col - 1 >= 0           && s.grid[row][col - 1] === null) moves.push([row, col - 1]);
+    if (!moves.length) return;
+    const [nr, nc] = moves.reduce((best, m) => {
+      return (Math.abs(m[0] - targetRow) + Math.abs(m[1] - targetCol)) <
+             (Math.abs(best[0] - targetRow) + Math.abs(best[1] - targetCol)) ? m : best;
+    });
+    clearTerrainBonus(elite);
+    s.grid[row][col] = null;
+    elite.row = nr; elite.col = nc;
+    s.grid[nr][nc] = elite;
+    log(s, `${elite.name} moves toward (${nr + 1},${nc + 1}).`);
+    applyTerrainToCell(s, nr, nc);
+  },
+
+  // Coward: retreat toward own base, seek camp terrain if available
+  _oppMoveCoward(s, elite, row, col) {
+    const camp = this._findBeneficialTerrain(s, elite, row, col);
+    if (camp) { this._oppMoveTowardCell(s, elite, row, col, camp.row, camp.col); return; }
+    // Retreat upward
+    if (row - 1 >= O_ELITE_ROW && s.grid[row - 1][col] === null) {
+      clearTerrainBonus(elite);
+      s.grid[row][col] = null; elite.row = row - 1; elite.col = col; s.grid[row - 1][col] = elite;
+      log(s, `${elite.name} retreats!`);
+      applyTerrainToCell(s, row - 1, col);
+      return;
+    }
+    // Can't go up — retreat laterally toward own champion column
+    const nc = this._nearestOppChampCol(s, col);
+    if (nc !== null && nc !== col) {
+      const dc = nc > col ? 1 : -1;
+      const newC = col + dc;
+      if (newC >= 0 && newC < COLS && s.grid[row][newC] === null) {
+        clearTerrainBonus(elite);
+        s.grid[row][col] = null; elite.row = row; elite.col = newC; s.grid[row][newC] = elite;
+        log(s, `${elite.name} retreats laterally!`);
+        applyTerrainToCell(s, row, newC);
+      }
+    }
+  },
+
+  // AbsoluteDefense movement: stay near champion column, only advance with 2+ summons
+  _oppMoveAbsoluteDefense(s, elite, row, col) {
+    const nearestCol = this._nearestOppChampCol(s, col);
+    if (nearestCol !== null && col !== nearestCol) {
+      const dc = nearestCol > col ? 1 : -1;
+      const nc = col + dc;
+      if (nc >= 0 && nc < COLS && s.grid[row][nc] === null) {
+        clearTerrainBonus(elite);
+        s.grid[row][col] = null; elite.row = row; elite.col = nc; s.grid[row][nc] = elite;
+        log(s, `${elite.name} defends column ${nc + 1}.`);
+        applyTerrainToCell(s, row, nc);
+        return;
+      }
+    }
+    // Only advance if 2+ summons stacked
+    if ((elite.summons?.length ?? 0) >= 2) {
+      const nextRow = row + 1;
+      if (nextRow < PLAYER_ROW && s.grid[nextRow][col] === null) {
+        clearTerrainBonus(elite);
+        s.grid[row][col] = null; elite.row = nextRow; elite.col = col; s.grid[nextRow][col] = elite;
+        log(s, `${elite.name} advances with full summons.`);
+        applyTerrainToCell(s, nextRow, col);
+      }
+    }
+  },
+
+  // Balanced movement: hold until 1 summon stacked, then advance while avoiding player elites
+  _oppMoveBalanced(s, elite, row, col) {
+    if ((elite.summons?.length ?? 0) === 0) return; // Hold position — wait for a summon
+    const nextRow = row + 1;
+    if (nextRow >= PLAYER_ROW) return;
+    // Advance if no player elite in next cell
+    if (s.grid[nextRow][col] === null && gridElite(s, nextRow, col)?.owner !== 'player') {
+      clearTerrainBonus(elite);
+      s.grid[row][col] = null; elite.row = nextRow; elite.col = col; s.grid[nextRow][col] = elite;
+      log(s, `${elite.name} advances (balanced).`);
+      applyTerrainToCell(s, nextRow, col);
+      return;
+    }
+    // Blocked — flank toward weakest player champion column
+    const targetCol = this._oppTargetChampCol(s);
+    const dirs = targetCol !== null && targetCol !== col ? (targetCol > col ? [1, -1] : [-1, 1]) : [1, -1];
+    for (const dc of dirs) {
+      const nc = col + dc;
+      if (nc < 0 || nc >= COLS || s.grid[row][nc] !== null) continue;
+      clearTerrainBonus(elite);
+      s.grid[row][col] = null; elite.row = row; elite.col = nc; s.grid[row][nc] = elite;
+      log(s, `${elite.name} flanks (balanced).`);
+      applyTerrainToCell(s, row, nc);
+      return;
+    }
   },
 
   // ── Win condition ──────────────────────────────────────────────────────────

@@ -4,15 +4,19 @@
  * If autoplay is blocked by the browser, retries on the first user gesture.
  */
 const MusicPlayer = {
-  _audio:    null,
-  _pending:  null,  // src waiting for user gesture unlock
+  _audio:   null,
+  _pending: null,  // src waiting for user gesture unlock
+  _src:     null,  // currently playing (or pending) src
 
   play(src) {
+    // Already playing this exact track — don't restart
+    if (this._src === src && this._audio && !this._audio.paused && !this._audio.ended) return;
     if (this._audio) {
       this._audio.pause();
       this._audio = null;
     }
     this._pending = null;
+    this._src = src;
     this._audio = new Audio(src);
     this._audio.loop   = true;
     this._audio.volume = 0.5;
@@ -32,6 +36,7 @@ const MusicPlayer = {
 
   stop() {
     this._pending = null;
+    this._src     = null;
     if (this._audio) {
       this._audio.pause();
       this._audio.currentTime = 0;

@@ -599,6 +599,15 @@ function setupGlobalEvents() {
     showTitleScreen();
   });
 
+  // Load game from in-game menu — navigate to saved location
+  EventBus.on('game:loaded', () => {
+    const loc  = GameState.progression.currentLocation ?? 'academy_courtyard';
+    const area = GameState.progression.currentAreaByLocation?.[loc] ?? null;
+    showHUD();
+    updateHUD();
+    ScreenManager.clear(SceneScreen, { locationId: loc, areaId: area });
+  });
+
   // Toast notifications
   const toastContainer = document.createElement('div');
   toastContainer.className = 'toast-container';

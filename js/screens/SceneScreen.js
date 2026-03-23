@@ -12,6 +12,7 @@ import InventoryScreen     from './InventoryScreen.js';
 import DeckBuilderScreen   from './DeckBuilderScreen.js';
 import QuestJournalScreen  from './QuestJournalScreen.js';
 import SettingsScreen      from './SettingsScreen.js';
+import MapScreen           from './MapScreen.js';
 
 const SceneScreen = {
   _container:       null,
@@ -283,6 +284,16 @@ const SceneScreen = {
     if (currentArea?.objects?.length) {
       this._renderObjects(currentArea.objects, backdrop);
     }
+
+    // World Map button — top right of backdrop
+    const worldMapBtn = document.createElement('button');
+    worldMapBtn.className = 'scene-worldmap-btn';
+    worldMapBtn.title = 'World Map';
+    worldMapBtn.innerHTML = '🌍 World Map';
+    worldMapBtn.addEventListener('click', () => {
+      EventBus.emit('screen:push', { screen: MapScreen, params: {} });
+    });
+    backdrop.appendChild(worldMapBtn);
 
     screen.appendChild(backdrop);
 
@@ -663,6 +674,17 @@ const SceneScreen = {
     });
 
     panel.appendChild(mapArea);
+
+    // World Map button — bottom right of area map panel
+    const areaMapWorldBtn = document.createElement('button');
+    areaMapWorldBtn.className = 'area-map-worldmap-btn';
+    areaMapWorldBtn.innerHTML = '🌍 World Map';
+    areaMapWorldBtn.addEventListener('click', () => {
+      overlay.remove();
+      EventBus.emit('screen:push', { screen: MapScreen, params: {} });
+    });
+    panel.appendChild(areaMapWorldBtn);
+
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
   },

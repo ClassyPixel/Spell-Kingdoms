@@ -6,6 +6,7 @@
  */
 import EventBus from '../EventBus.js';
 import GameState from '../GameState.js';
+import { CONJURER_COMPANIONS } from '../Data.js';
 
 const TIER_NAMES  = ['Stranger', 'Acquaintance', 'Friend', 'Close Friend', 'Bonded'];
 const TIER_REWARDS = {
@@ -52,6 +53,18 @@ const RelationshipSystem = {
     if (newTier > prevTier) {
       this._prevTiers[npcId] = newTier;
       this._applyTierReward(npcId, newTier);
+    }
+
+    // Auto-unlock conjurer companion when friendship threshold is reached
+    const conjData = CONJURER_COMPANIONS.find(c => c.id === npcId);
+    if (conjData && !GameState.companions[npcId]?.isCompanion) {
+      if (rel.points >= conjData.friendshipRequired) {
+        GameState.unlockCompanion(npcId);
+        EventBus.emit('toast', {
+          message: `${conjData.name} has joined as your companion! Check Key Items.`,
+          type: 'success',
+        });
+      }
     }
   },
 

@@ -943,29 +943,20 @@ const CardGameScreen = {
       const total = s.playerHand.length;
       s.playerHand.forEach((card, i) => {
         const div = document.createElement('div');
+        div.className = 'cg-hand-card cg-hand-champion';
         div.draggable = true;
         const champHpPct = card.maxHp > 0 ? Math.max(0, card.hp / card.maxHp * 100) : 0;
-        if (card.conjurer && card.artFile) {
-          div.className = 'cg-hand-card cg-hand-conjurer';
-          div.innerHTML = `
-            <img class="cg-conjurer-art" src="${ART_BASE}${card.artFile}" alt="${card.name}" decoding="sync">
-            <div class="cg-conjurer-hp" style="border-color:#4ab87c;color:#4ab87c">${card.hp}</div>
-            ${(card.summons?.length ?? 0) > 0 ? `<div class="cg-conjurer-stack">⚔ ${card.summons.length}</div>` : ''}
-          `;
-        } else {
-          div.className = 'cg-hand-card cg-hand-champion';
-          div.innerHTML = `
-            ${(card.summons?.length ?? 0) > 0 ? `<div class="cg-champ-stack-badge">${card.summons.length}</div>` : ''}
-            <div class="cg-card-top">
-              <span class="cg-card-name">${card.name ?? 'Conjurer'}</span>
-            </div>
-            <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
-            <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${champHpPct}%;background:#4ab87c"></div></div>
-            <div class="cg-card-stats">
-              <span class="cg-stat-hp">HP ${card.hp}</span>
-            </div>
-          `;
-        }
+        div.innerHTML = `
+          ${(card.summons?.length ?? 0) > 0 ? `<div class="cg-champ-stack-badge">${card.summons.length}</div>` : ''}
+          <div class="cg-card-top">
+            <span class="cg-card-name">${card.name ?? 'Conjurer'}</span>
+          </div>
+          <div class="cg-card-art-wrap">${_cardArtImg(card)}</div>
+          <div class="cg-hp-bar-wrap"><div class="cg-hp-bar" style="width:${champHpPct}%;background:#4ab87c"></div></div>
+          <div class="cg-card-stats">
+            <span class="cg-stat-hp">HP ${card.hp}</span>
+          </div>
+        `;
         div.addEventListener('dragstart', e => {
           SoundSystem.dragStart();
           e.dataTransfer.setData('text/plain', String(i));

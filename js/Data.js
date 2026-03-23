@@ -1000,9 +1000,9 @@ export const DIALOGUES = {
 // Conjurer cards — named companion characters that serve as deck conjurers (formerly Champions).
 // type:'champion' is kept internally so CardSystem continues to work without changes.
 export const CHAMPION_CARDS = [
-  { cardId: 'conj_elder_rook',    type: 'champion', conjurer: true, name: 'Elder Rook',    hp: 25, maxHp: 25, art: '🔮', cardType: 'Human', rarity: 'S', terrain: 'spell', cardUid: 'C01', artFile: 'Conjurers/conjurer1.png' },
-  { cardId: 'conj_lira_solstice', type: 'champion', conjurer: true, name: 'Lira Solstice', hp: 22, maxHp: 22, art: '✨', cardType: 'Human', rarity: 'S', terrain: 'fire',  cardUid: 'C02', artFile: 'Conjurers/conjurer2.png' },
-  { cardId: 'conj_malachar',      type: 'champion', conjurer: true, name: 'Malachar',      hp: 20, maxHp: 20, art: '🔥', cardType: 'Human', rarity: 'S', terrain: 'fire',  cardUid: 'C03', artFile: 'Conjurers/conjurer3.png' },
+  { cardId: 'conj_elder_rook',    type: 'champion', conjurer: true, name: 'Elder Rook',    hp: 25, maxHp: 25, art: '🔮', cardType: 'Human', rarity: 'S', terrain: 'spell', cardUid: 'C01', artFile: 'Conjurers/001C.png' },
+  { cardId: 'conj_lira_solstice', type: 'champion', conjurer: true, name: 'Lira Solstice', hp: 22, maxHp: 22, art: '✨', cardType: 'Human', rarity: 'S', terrain: 'fire',  cardUid: 'C02', artFile: 'Conjurers/002C.png' },
+  { cardId: 'conj_malachar',      type: 'champion', conjurer: true, name: 'Malachar',      hp: 20, maxHp: 20, art: '🔥', cardType: 'Human', rarity: 'S', terrain: 'fire',  cardUid: 'C03', artFile: 'Conjurers/003C.png' },
 ];
 
 // Conjurer companion NPC definitions — used by the companion panel and companion system.
@@ -1011,7 +1011,7 @@ export const CONJURER_COMPANIONS = [
     id: 'conj_elder_rook',
     name: 'Elder Rook',
     portrait: '🔮',
-    portraitImg: 'assets/images/CardGameArt/CardArt/Conjurers/conjurer1.png',
+    portraitImg: 'assets/images/CardGameArt/CardArt/Conjurers/001C.png',
     cardId: 'conj_elder_rook',
     friendshipRequired: 30,
     description: 'A venerable arcane scholar whose mastery of the old magics has made him a living legend at the Academy.',
@@ -1021,7 +1021,7 @@ export const CONJURER_COMPANIONS = [
     id: 'conj_lira_solstice',
     name: 'Lira Solstice',
     portrait: '✨',
-    portraitImg: 'assets/images/CardGameArt/CardArt/Conjurers/conjurer2.png',
+    portraitImg: 'assets/images/CardGameArt/CardArt/Conjurers/002C.png',
     cardId: 'conj_lira_solstice',
     friendshipRequired: 25,
     description: 'A talented young conjurer with a radiant golden flame. She specialises in fire-and-light combination magic.',
@@ -1031,7 +1031,7 @@ export const CONJURER_COMPANIONS = [
     id: 'conj_malachar',
     name: 'Malachar',
     portrait: '🔥',
-    portraitImg: 'assets/images/CardGameArt/CardArt/Conjurers/conjurer3.png',
+    portraitImg: 'assets/images/CardGameArt/CardArt/Conjurers/003C.png',
     cardId: 'conj_malachar',
     friendshipRequired: 40,
     description: 'A brooding fire conjurer of immense power. His allegiance is hard to earn, but invaluable once gained.',

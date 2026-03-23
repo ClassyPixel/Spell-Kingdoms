@@ -1000,8 +1000,8 @@ export const DIALOGUES = {
 // Conjurer cards — named companion characters that serve as deck conjurers (formerly Champions).
 // type:'champion' is kept internally so CardSystem continues to work without changes.
 export const CHAMPION_CARDS = [
-  { cardId: 'conj_elder_rook',    type: 'champion', conjurer: true, name: 'Elder Rook',    hp: 25, maxHp: 25, art: '🔮', cardType: 'Human', rarity: 'S', terrain: 'spell', cardUid: 'C01', artFile: 'Conjurers/001C.png' },
-  { cardId: 'conj_lira_solstice', type: 'champion', conjurer: true, name: 'Lira Solstice', hp: 22, maxHp: 22, art: '✨', cardType: 'Human', rarity: 'S', terrain: 'fire',  cardUid: 'C02', artFile: 'Conjurers/002C.png' },
+  { cardId: 'conj_elder_rook',    type: 'champion', conjurer: true, name: 'Elder Rook',    hp: 20, maxHp: 20, art: '🔮', cardType: 'Human', rarity: 'S', terrain: 'spell', cardUid: 'C01', artFile: 'Conjurers/001C.png' },
+  { cardId: 'conj_lira_solstice', type: 'champion', conjurer: true, name: 'Lira Solstice', hp: 20, maxHp: 20, art: '✨', cardType: 'Human', rarity: 'S', terrain: 'fire',  cardUid: 'C02', artFile: 'Conjurers/002C.png' },
   { cardId: 'conj_malachar',      type: 'champion', conjurer: true, name: 'Malachar',      hp: 20, maxHp: 20, art: '🔥', cardType: 'Human', rarity: 'S', terrain: 'fire',  cardUid: 'C03', artFile: 'Conjurers/003C.png' },
 ];
 

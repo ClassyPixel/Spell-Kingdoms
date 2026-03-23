@@ -18,7 +18,7 @@ const GameState = {
 
   progression: {
     currentLocation: 'academy_courtyard',
-    unlockedLocations: ['academy_courtyard', 'dormitory'],
+    unlockedLocations: ['academy_courtyard', 'library', 'dueling_grounds', 'market', 'dormitory', 'headmaster_office'],
     gameFlags: {},   // boolean/string key-value: backbone of all branching logic
   },
 

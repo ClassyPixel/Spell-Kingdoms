@@ -26,7 +26,7 @@ const POOLS = {
 };
 
 const REQ = {
-  champions: { min: 1,  max: 3,   exact: false, label: 'Champions', icon: '👑', hint: '1–3 champions' },
+  champions: { min: 1,  max: 3,   exact: false, label: 'Conjurers', icon: '🔮', hint: '1–3 conjurers' },
   elites:    { min: 10, max: 10,  exact: true,  label: 'Elites',    icon: '🐉', hint: 'Exactly 10 unique elites' },
   summons:   { min: 40, max: 9999,exact: false, label: 'Summons',   icon: '✨', hint: '40 or more summons' },
   spells:    { min: 10, max: 10,  exact: true,  label: 'Spells',    icon: '🔮', hint: 'Exactly 10 spells · max 2 per type' },

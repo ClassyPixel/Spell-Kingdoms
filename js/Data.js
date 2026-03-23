@@ -997,20 +997,56 @@ export const DIALOGUES = {
 
 // ── Grid Card Game Data ───────────────────────────────────────────────────────
 
+// Conjurer cards — named companion characters that serve as deck conjurers (formerly Champions).
+// type:'champion' is kept internally so CardSystem continues to work without changes.
 export const CHAMPION_CARDS = [
-  { cardId: 'champ_arcane', type: 'champion', name: 'Arcane Champion', hp: 20, maxHp: 20, art: '🔮', cardType: 'Human',  rarity: 'S', terrain: 'spell', cardUid: '035A', artFile: '035A_img.JPG' },
-  { cardId: 'champ_fire',   type: 'champion', name: 'Fire Champion',   hp: 20, maxHp: 20, art: '🔥', cardType: 'Human',  rarity: 'S', terrain: 'fire',  cardUid: '001A', artFile: '001A_img.jpg' },
-  { cardId: 'champ_frost',  type: 'champion', name: 'Frost Champion',  hp: 20, maxHp: 20, art: '❄️', cardType: 'Human',  rarity: 'S', terrain: 'ice',   cardUid: '025A', artFile: '025A_img.png' },
+  { cardId: 'conj_elder_rook',    type: 'champion', conjurer: true, name: 'Elder Rook',    hp: 25, maxHp: 25, art: '🔮', cardType: 'Human', rarity: 'S', terrain: 'spell', cardUid: 'C01', artFile: 'Conjurers/conjurer1.png' },
+  { cardId: 'conj_lira_solstice', type: 'champion', conjurer: true, name: 'Lira Solstice', hp: 22, maxHp: 22, art: '✨', cardType: 'Human', rarity: 'S', terrain: 'fire',  cardUid: 'C02', artFile: 'Conjurers/conjurer2.png' },
+  { cardId: 'conj_malachar',      type: 'champion', conjurer: true, name: 'Malachar',      hp: 20, maxHp: 20, art: '🔥', cardType: 'Human', rarity: 'S', terrain: 'fire',  cardUid: 'C03', artFile: 'Conjurers/conjurer3.png' },
+];
+
+// Conjurer companion NPC definitions — used by the companion panel and companion system.
+export const CONJURER_COMPANIONS = [
+  {
+    id: 'conj_elder_rook',
+    name: 'Elder Rook',
+    portrait: '🔮',
+    portraitImg: 'assets/images/CardGameArt/CardArt/Conjurers/conjurer1.png',
+    cardId: 'conj_elder_rook',
+    friendshipRequired: 30,
+    description: 'A venerable arcane scholar whose mastery of the old magics has made him a living legend at the Academy.',
+    romanceable: true,
+  },
+  {
+    id: 'conj_lira_solstice',
+    name: 'Lira Solstice',
+    portrait: '✨',
+    portraitImg: 'assets/images/CardGameArt/CardArt/Conjurers/conjurer2.png',
+    cardId: 'conj_lira_solstice',
+    friendshipRequired: 25,
+    description: 'A talented young conjurer with a radiant golden flame. She specialises in fire-and-light combination magic.',
+    romanceable: true,
+  },
+  {
+    id: 'conj_malachar',
+    name: 'Malachar',
+    portrait: '🔥',
+    portraitImg: 'assets/images/CardGameArt/CardArt/Conjurers/conjurer3.png',
+    cardId: 'conj_malachar',
+    friendshipRequired: 40,
+    description: 'A brooding fire conjurer of immense power. His allegiance is hard to earn, but invaluable once gained.',
+    romanceable: false,
+  },
 ];
 
 export const ELITE_CARD_DECK = [
   { cardId: 'elite_golem',       type: 'elite', name: 'Stone Golem',     hp: 20, power: 4,  art: '🗿',  role: 'defensive', ability: { type: 'heal_per_turn',  amount: 2, desc: 'Heals 2 HP at the start of each turn.' },  cardType: 'Golem',     rarity: 'A', terrain: 'earth', cardUid: '017A', artFile: '017A_img.jpg'  },
-  { cardId: 'elite_phoenix',     type: 'elite', name: 'Phoenix',         hp: 7,  power: 9,  art: '🦅',  role: 'offensive', ability: { type: 'kill_bonus',              desc: 'Gains +1 attack for each card destroyed.' }, cardType: 'Beast',     rarity: 'A', terrain: 'fire',  cardUid: '034A', artFile: '034A_img.JPG'  },
+  { cardId: 'elite_phoenix',     type: 'elite', name: 'Phoenix',         hp: 7,  power: 9,  art: '🦅',  role: 'offensive', ability: { type: 'kill_bonus',              desc: 'Gains +1 attack for each card destroyed.' }, cardType: 'Beast',     rarity: 'A', terrain: 'fire',  cardUid: '033A', artFile: '033A_img.JPG'  },
   { cardId: 'elite_dragon',      type: 'elite', name: 'Shadow Dragon',   hp: 10, power: 10, art: '🐉',  role: 'support',   ability: { type: 'extended_rally',           desc: 'Rally 2 cells when HP ≤ 50%.' },             cardType: 'Dragon',    rarity: 'S', terrain: 'wind',  cardUid: '031A', artFile: '031A_img.jpg'  },
   { cardId: 'elite_knight',      type: 'elite', name: 'Iron Knight',     hp: 18, power: 5,  art: '🛡️', role: 'defensive', ability: { type: 'heal_per_turn',  amount: 2, desc: 'Heals 2 HP at the start of each turn.' },  cardType: 'Anthro',    rarity: 'A', terrain: 'earth', cardUid: '011A', artFile: '011A_img.jpg'  },
   { cardId: 'elite_witch',       type: 'elite', name: 'Dark Witch',      hp: 8,  power: 9,  art: '🧙',  role: 'offensive', ability: { type: 'kill_bonus',              desc: 'Gains +1 attack for each card destroyed.' }, cardType: 'Fae',       rarity: 'A', terrain: 'spell', cardUid: '003A', artFile: '003A_img.jpeg' },
   { cardId: 'elite_vampire',     type: 'elite', name: 'Vampire Lord',    hp: 7,  power: 10, art: '🧛',  role: 'offensive', ability: { type: 'kill_bonus',              desc: 'Gains +1 attack for each card destroyed.' }, cardType: 'Human',     rarity: 'A', terrain: 'spell', cardUid: '013A', artFile: '013A_img.jpg'  },
-  { cardId: 'elite_elemental',   type: 'elite', name: 'Storm Elemental', hp: 9,  power: 9,  art: '⛈️', role: 'support',   ability: { type: 'extended_rally',           desc: 'Rally 2 cells when HP ≤ 50%.' },             cardType: 'Beast',     rarity: 'A', terrain: 'wind',  cardUid: '000A', artFile: '000A_img.jpg'  },
+  { cardId: 'elite_elemental',   type: 'elite', name: 'Storm Elemental', hp: 9,  power: 9,  art: '⛈️', role: 'support',   ability: { type: 'extended_rally',           desc: 'Rally 2 cells when HP ≤ 50%.' },             cardType: 'Beast',     rarity: 'A', terrain: 'wind',  cardUid: '032A', artFile: '032A_img.JPG'  },
   { cardId: 'elite_paladin',     type: 'elite', name: 'Light Paladin',   hp: 16, power: 6,  art: '⚜️', role: 'defensive', ability: { type: 'heal_per_turn',  amount: 2, desc: 'Heals 2 HP at the start of each turn.' },  cardType: 'Worshiper', rarity: 'A', terrain: 'spell', cardUid: '023A', artFile: '023A_img.JPG'  },
   { cardId: 'elite_assassin',    type: 'elite', name: 'Shadow Assassin', hp: 7,  power: 10, art: '🗡️', role: 'offensive', ability: { type: 'kill_bonus',              desc: 'Gains +1 attack for each card destroyed.' }, cardType: 'Fae',       rarity: 'A', terrain: 'earth', cardUid: '005A', artFile: '005A_img.jpg'  },
   { cardId: 'elite_necromancer', type: 'elite', name: 'Necromancer',     hp: 9,  power: 9,  art: '💀',  role: 'support',   ability: { type: 'extended_rally',           desc: 'Rally 2 cells when HP ≤ 50%.' },             cardType: 'Human',     rarity: 'A', terrain: 'spell', cardUid: '009A', artFile: '009A_img.jpg'  },
@@ -1018,12 +1054,12 @@ export const ELITE_CARD_DECK = [
 
 export const SUMMON_CARD_DECK = [
   // Cost 2 — hardest low roll (1/36) — both have special abilities
-  { cardId: 'sum_imp',       type: 'summon', name: 'Fire Imp',       hp: 5, power: 2, summonCost: 2,  art: '👺', role: 'defensive', ability: { type: 'stack_to_any_elite', desc: 'Can be dragged from any Champion\'s stack to any Elite on the field.' }, cardType: 'Demon',  rarity: 'C', terrain: 'fire',  cardUid: '033A', artFile: '033A_img.JPG' },
-  { cardId: 'sum_wisp',      type: 'summon', name: 'Arcane Wisp',    hp: 4, power: 4, summonCost: 2,  art: '✨', role: 'support',   ability: { type: 'heal_parent',       desc: 'Heals parent elite +1 HP each turn.' },                   cardType: 'Beast',  rarity: 'C', terrain: 'spell', cardUid: '037A', artFile: '037A_img.JPG' },
+  { cardId: 'sum_imp',       type: 'summon', name: 'Fire Imp',       hp: 5, power: 2, summonCost: 2,  art: '👺', role: 'defensive', ability: { type: 'stack_to_any_elite', desc: 'Can be dragged from any Champion\'s stack to any Elite on the field.' }, cardType: 'Demon',  rarity: 'C', terrain: 'fire',  cardUid: '033A' },
+  { cardId: 'sum_wisp',      type: 'summon', name: 'Arcane Wisp',    hp: 4, power: 4, summonCost: 2,  art: '✨', role: 'support',   ability: { type: 'heal_parent',       desc: 'Heals parent elite +1 HP each turn.' },                   cardType: 'Beast',  rarity: 'C', terrain: 'spell', cardUid: '037A' },
   // Cost 3 — hard roll (2/36) — both have special abilities
-  { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 5, power: 2, summonCost: 3,  art: '🧊', role: 'defensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' },                        cardType: 'Fae',    rarity: 'C', terrain: 'ice',   cardUid: '032A', artFile: '032A_img.JPG' },
+  { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 5, power: 2, summonCost: 3,  art: '🧊', role: 'defensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' },                        cardType: 'Fae',    rarity: 'C', terrain: 'ice',   cardUid: '032A' },
   { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 2, power: 4, summonCost: 3,  art: '🦇', role: 'offensive', ability: { type: 'void_on_death', desc: 'When destroyed, tears open The Void on a random cell.' }, cardType: 'Human',  rarity: 'C', terrain: 'spell', cardUid: '014A', artFile: '014A_img.jpg'  },
-  { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 5, power: 2, summonCost: 3,  art: '🧊', role: 'defensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' },                        cardType: 'Fae',    rarity: 'C', terrain: 'ice',   cardUid: '032A', artFile: '032A_img.JPG' },
+  { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 5, power: 2, summonCost: 3,  art: '🧊', role: 'defensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' },                        cardType: 'Fae',    rarity: 'C', terrain: 'ice',   cardUid: '032A' },
   { cardId: 'sum_bat',       type: 'summon', name: 'Shadow Bat',     hp: 2, power: 4, summonCost: 3,  art: '🦇', role: 'offensive', ability: { type: 'void_on_death', desc: 'When destroyed, tears open The Void on a random cell.' }, cardType: 'Human',  rarity: 'C', terrain: 'spell', cardUid: '014A', artFile: '014A_img.jpg'  },
   // Cost 4 (×5)
   { cardId: 'sum_shaman',    type: 'summon', name: 'Earth Shaman',   hp: 5, power: 2, summonCost: 4,  art: '🌿', role: 'defensive', cardType: 'Human',  rarity: 'C', terrain: 'earth', cardUid: '007A', artFile: '007A_img.jpg'  },
@@ -1033,9 +1069,9 @@ export const SUMMON_CARD_DECK = [
   { cardId: 'sum_hawk',      type: 'summon', name: 'Storm Hawk',     hp: 2, power: 4, summonCost: 4,  art: '🦅', role: 'offensive', cardType: 'Beast',  rarity: 'C', terrain: 'wind',  cardUid: '021A', artFile: '021A_img.jpg'  },
   // Cost 5 (×5)
   { cardId: 'sum_bear',      type: 'summon', name: 'Forest Bear',    hp: 6, power: 2, summonCost: 5,  art: '🐻', role: 'defensive', cardType: 'Beast',  rarity: 'B', terrain: 'earth', cardUid: '019A', artFile: '019A_img.jpg'  },
-  { cardId: 'sum_djinn',     type: 'summon', name: 'Fire Djinn',     hp: 2, power: 3, summonCost: 5,  art: '🌋', role: 'offensive', cardType: 'Beast',  rarity: 'B', terrain: 'fire',  cardUid: '036A', artFile: '036A_img.JPG'  },
+  { cardId: 'sum_djinn',     type: 'summon', name: 'Fire Djinn',     hp: 2, power: 3, summonCost: 5,  art: '🌋', role: 'offensive', cardType: 'Beast',  rarity: 'B', terrain: 'fire',  cardUid: '036A'  },
   { cardId: 'sum_bear',      type: 'summon', name: 'Forest Bear',    hp: 6, power: 2, summonCost: 5,  art: '🐻', role: 'defensive', cardType: 'Beast',  rarity: 'B', terrain: 'earth', cardUid: '019A', artFile: '019A_img.jpg'  },
-  { cardId: 'sum_djinn',     type: 'summon', name: 'Fire Djinn',     hp: 2, power: 3, summonCost: 5,  art: '🌋', role: 'offensive', cardType: 'Beast',  rarity: 'B', terrain: 'fire',  cardUid: '036A', artFile: '036A_img.JPG'  },
+  { cardId: 'sum_djinn',     type: 'summon', name: 'Fire Djinn',     hp: 2, power: 3, summonCost: 5,  art: '🌋', role: 'offensive', cardType: 'Beast',  rarity: 'B', terrain: 'fire',  cardUid: '036A'  },
   { cardId: 'sum_bear',      type: 'summon', name: 'Forest Bear',    hp: 6, power: 2, summonCost: 5,  art: '🐻', role: 'defensive', cardType: 'Beast',  rarity: 'B', terrain: 'earth', cardUid: '019A', artFile: '019A_img.jpg'  },
   // Cost 6 (×6)
   { cardId: 'sum_sentinel',  type: 'summon', name: 'Stone Sentinel', hp: 5, power: 1, summonCost: 6,  art: '🗿', role: 'defensive', cardType: 'Golem',  rarity: 'B', terrain: 'earth', cardUid: '018A', artFile: '018A_img.jpg'  },
@@ -1059,12 +1095,12 @@ export const SUMMON_CARD_DECK = [
   { cardId: 'sum_leviathan', type: 'summon', name: 'Void Leviathan', hp: 4, power: 4, summonCost: 10, art: '🌊', role: 'support',   cardType: 'Beast',  rarity: 'A', terrain: 'water', cardUid: '022A', artFile: '022A_img.jpg'  },
   { cardId: 'sum_leviathan', type: 'summon', name: 'Void Leviathan', hp: 4, power: 4, summonCost: 10, art: '🌊', role: 'support',   cardType: 'Beast',  rarity: 'A', terrain: 'water', cardUid: '022A', artFile: '022A_img.jpg'  },
   // Cost 11 — hard roll (2/36) — special ability
-  { cardId: 'sum_ephoenix',  type: 'summon', name: 'Elder Phoenix',  hp: 3, power: 5, summonCost: 11, art: '🦅', role: 'offensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' }, cardType: 'Beast',  rarity: 'S', terrain: 'fire',  cardUid: '034A', artFile: '034A_img.JPG' },
+  { cardId: 'sum_ephoenix',  type: 'summon', name: 'Elder Phoenix',  hp: 3, power: 5, summonCost: 11, art: '🦅', role: 'offensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' }, cardType: 'Beast',  rarity: 'S', terrain: 'fire',  cardUid: '034A' },
   // Cost 12 — hardest high roll (1/36) — special ability
   { cardId: 'sum_adragon',   type: 'summon', name: 'Ancient Dragon', hp: 8, power: 4, summonCost: 12, art: '🐉', role: 'defensive', ability: { type: 'heal_parent',       desc: 'Heals parent elite +1 HP each turn.' },   cardType: 'Dragon', rarity: 'S', terrain: 'fire',  cardUid: '031A', artFile: '031A_img.jpg'  },
   // Extra copies to reach minimum 40
-  { cardId: 'sum_imp',       type: 'summon', name: 'Fire Imp',       hp: 5, power: 2, summonCost: 2,  art: '👺', role: 'defensive', ability: { type: 'stack_to_any_elite', desc: 'Can be dragged from any Champion\'s stack to any Elite on the field.' }, cardType: 'Demon',  rarity: 'C', terrain: 'fire',  cardUid: '033A', artFile: '033A_img.JPG' },
-  { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 5, power: 2, summonCost: 3,  art: '🧊', role: 'defensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' },                        cardType: 'Fae',    rarity: 'C', terrain: 'ice',   cardUid: '032A', artFile: '032A_img.JPG' },
+  { cardId: 'sum_imp',       type: 'summon', name: 'Fire Imp',       hp: 5, power: 2, summonCost: 2,  art: '👺', role: 'defensive', ability: { type: 'stack_to_any_elite', desc: 'Can be dragged from any Champion\'s stack to any Elite on the field.' }, cardType: 'Demon',  rarity: 'C', terrain: 'fire',  cardUid: '033A' },
+  { cardId: 'sum_sprite',    type: 'summon', name: 'Frost Sprite',   hp: 5, power: 2, summonCost: 3,  art: '🧊', role: 'defensive', ability: { type: 'return_from_crypt', desc: 'Returns to hand when destroyed.' },                        cardType: 'Fae',    rarity: 'C', terrain: 'ice',   cardUid: '032A' },
   { cardId: 'sum_shaman',    type: 'summon', name: 'Earth Shaman',   hp: 5, power: 2, summonCost: 4,  art: '🌿', role: 'defensive', cardType: 'Human',  rarity: 'C', terrain: 'earth', cardUid: '007A', artFile: '007A_img.jpg'  },
   { cardId: 'sum_bear',      type: 'summon', name: 'Forest Bear',    hp: 6, power: 2, summonCost: 5,  art: '🐻', role: 'defensive', cardType: 'Beast',  rarity: 'B', terrain: 'earth', cardUid: '019A', artFile: '019A_img.jpg'  },
   { cardId: 'sum_sentinel',  type: 'summon', name: 'Stone Sentinel', hp: 5, power: 1, summonCost: 6,  art: '🗿', role: 'defensive', cardType: 'Golem',  rarity: 'B', terrain: 'earth', cardUid: '018A', artFile: '018A_img.jpg'  },
@@ -1074,19 +1110,19 @@ export const SUMMON_CARD_DECK = [
 // Spell cards have no summonCost, HP, or power — only a special effect.
 export const SPELL_CARD_DECK = [
   // ×2 each for most cards, giving a 10-card deck
-  { cardId: 'spell_double_roll', type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                  effect: { type: 'extra_roll' } },
-  { cardId: 'spell_double_roll', type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                  effect: { type: 'extra_roll' } },
+  { cardId: 'spell_double_roll', type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                  effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
+  { cardId: 'spell_double_roll', type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                  effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
   { cardId: 'spell_revive',      type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
   { cardId: 'spell_revive',      type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
-  { cardId: 'spell_draw',        type: 'spell', name: 'Arcane Draw',   art: '📖', description: 'Draw 2 summon cards from your deck.',                                     effect: { type: 'draw_cards', count: 2 } },
-  { cardId: 'spell_boost_elite', type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',               effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
-  { cardId: 'spell_heal_champ',  type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                 effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+  { cardId: 'spell_draw',        type: 'spell', name: 'Arcane Draw',   art: '📖', description: 'Draw 2 summon cards from your deck.',                                     effect: { type: 'draw_cards', count: 2 }, artFile: '035A_img.JPG' },
+  { cardId: 'spell_boost_elite', type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',               effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite', artFile: '036A_img.JPG' },
+  { cardId: 'spell_heal_champ',  type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                 effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion', artFile: '037A_img.JPG' },
   { cardId: 'spell_teleport_champ', type: 'spell', name: 'Teleportation', art: '✈️', description: 'Relocate a champion to any open space in your champion row.',           effect: { type: 'teleport_champion' }, needsTarget: 'teleport_champion' },
   { cardId: 'spell_shield',      type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                   effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
   { cardId: 'spell_weaken',      type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',       effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
   // ── Terrain spells ──────────────────────────────────────────────────────────
   { cardId: 'spell_forbidden',   type: 'spell', name: 'Forbidden Spell',   art: '⬛', description: 'Place The Void on any play zone cell. Any elite standing on it is immediately destroyed and banished.',    effect: { type: 'set_terrain', terrain: 'the_void' }, needsTarget: 'any_terrain_cell' },
-  { cardId: 'spell_eruption',    type: 'spell', name: 'Volcanic Eruption', art: '🌋', description: 'Randomly place Lava Floor terrain on 3 play zone cells for 3 turns. Fire-type units on these cells gain +1 power.', effect: { type: 'random_terrain', terrain: 'lava_floor', count: 3, duration: 3 } },
+  { cardId: 'spell_eruption',    type: 'spell', name: 'Volcanic Eruption', art: '🌋', description: 'Randomly place Lava Floor terrain on 3 play zone cells for 3 turns. Fire-type units on these cells gain +1 power.', effect: { type: 'random_terrain', terrain: 'lava_floor', count: 3, duration: 3 }, artFile: '034A_img.JPG' },
   { cardId: 'spell_encampment',  type: 'spell', name: 'Encampment',        art: '⛺', description: 'Place a Camp terrain on any play zone cell. Stacked summons on the elite in that cell restore +1 HP each draw phase.', effect: { type: 'set_terrain', terrain: 'camp' }, needsTarget: 'any_terrain_cell' },
 ];
 
@@ -1226,6 +1262,230 @@ DIALOGUES.narrator = {
   },
 };
 
+// ── Conjurer companion dialogues ─────────────────────────────────────────────
+DIALOGUES.conj_elder_rook = {
+  npcId: 'conj_elder_rook', portrait: '🔮',
+  entries: [
+    { requires: { flag: 'conj_elder_rook_romanced' }, node: 'romanced_greeting' },
+    { requires: { flag: 'conj_elder_rook_companion' }, node: 'companion_greeting' },
+    { requires: { flag: 'met_elder_rook' }, node: 'returning' },
+  ],
+  nodes: {
+    start: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "Hm. A new face lingers near my study. Curiosity? Or perhaps something more deliberate. Either way — I don't mind the company. Ask what you will.",
+      choices: [
+        { label: 'What do you teach here?',     effects: [{ type: 'setFlag', flag: 'met_elder_rook' }, { type: 'relationship', value: 2 }], next: 'rook_teaching' },
+        { label: 'You seem... different from the other professors.', effects: [{ type: 'setFlag', flag: 'met_elder_rook' }, { type: 'relationship', value: 3 }], next: 'rook_different' },
+        { label: 'Nothing. Just passing by.',   effects: [{ type: 'setFlag', flag: 'met_elder_rook' }], next: null },
+      ],
+    },
+    rook_teaching: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "I teach Applied Conjuration — the discipline of binding summoned entities through will alone, rather than relying on circles and incantations. Most consider it old-fashioned. I consider it the only honest way.",
+      choices: [{ label: 'Fascinating.', effects: [{ type: 'relationship', value: 1 }], next: null }],
+    },
+    rook_different: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "*a faint smile* That's because I arrived here as a student, same as you. Decades ago. I never quite left. Perhaps I should have. But then — where else would I be needed?",
+      choices: [{ label: 'I think the Academy is lucky to have you.', effects: [{ type: 'relationship', value: 2 }], next: null }],
+    },
+    returning: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "Back again. Good. Stagnation is the enemy of a conjurer's craft. What's on your mind?",
+      choices: [
+        { label: 'Tell me more about your magic.', effects: [{ type: 'relationship', value: 1 }], next: 'rook_magic_deeper' },
+        { label: 'I admire the way you carry yourself.',            requires: { min_charisma: 20 }, effects: [{ type: 'relationship', value: 2 }], next: 'rook_charisma_20' },
+        { label: 'Do you ever feel lonely here?',                  requires: { min_charisma: 40 }, effects: [{ type: 'relationship', value: 3 }], next: 'rook_charisma_40' },
+        { label: 'I came back because I wanted to see you.',       requires: { min_charisma: 60 }, effects: [{ type: 'relationship', value: 4 }], next: 'rook_charisma_60' },
+        { label: 'Just passing by again.', next: null },
+      ],
+    },
+    rook_magic_deeper: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "True conjuration isn't about power — it's about trust. A summon you force into existence will betray you the moment your will wavers. One that chooses to serve you? That bond is unbreakable.",
+      choices: [{ label: 'I want to learn that.', effects: [{ type: 'relationship', value: 2 }], next: null }],
+    },
+    rook_charisma_20: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "*surprised pause* ...You're quite perceptive. Most students only see the age, the title. Not many bother to look further. I appreciate that.",
+      choices: [{ label: 'There's a lot worth seeing.', effects: [{ type: 'relationship', value: 2 }], next: null }],
+    },
+    rook_charisma_40: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "*long pause, staring out the window* ...Yes. More than I admit. But loneliness is part of what makes one sharp. You learn to listen to what others cannot hear.",
+      choices: [{ label: "Then I'll keep visiting.", effects: [{ type: 'relationship', value: 3 }], next: null }],
+    },
+    rook_charisma_60: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "*stillness* ...That is the most honest thing anyone has said to me in a very long time. *quietly* I am... glad you did.",
+      choices: [{ label: 'Me too.', effects: [{ type: 'relationship', value: 4 }], next: 'rook_romance_seed' }],
+    },
+    rook_romance_seed: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "You are unlike the students I have taught for decades. There is something... uncommon about you. I find myself hoping you will return.",
+      choices: [{ label: 'I will.', next: null }],
+    },
+    companion_greeting: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "Ah. My favourite distraction. What schemes are we concocting today?",
+      choices: [
+        { label: 'Just wanted to talk.', effects: [{ type: 'relationship', value: 1 }], next: null },
+        { label: 'Tell me more about your past.', effects: [{ type: 'relationship', value: 2 }], next: 'rook_past' },
+      ],
+    },
+    rook_past: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "I was once a student radical — convinced the Academy was hiding something. I was right. But what I found... changed the questions I was asking. Perhaps I'll tell you more another time.",
+      choices: [{ label: 'I look forward to it.', next: null }],
+    },
+    romanced_greeting: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "*quiet warmth* You make this old place feel considerably less ancient. Come in.",
+      choices: [{ label: 'Always.', effects: [{ type: 'relationship', value: 1 }], next: null }],
+    },
+  },
+};
+
+DIALOGUES.conj_lira_solstice = {
+  npcId: 'conj_lira_solstice', portrait: '✨',
+  entries: [
+    { requires: { flag: 'conj_lira_solstice_romanced' }, node: 'romanced_greeting' },
+    { requires: { flag: 'conj_lira_solstice_companion' }, node: 'companion_greeting' },
+    { requires: { flag: 'met_lira_solstice' }, node: 'returning' },
+  ],
+  nodes: {
+    start: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "Oh! Hi there — I didn't hear you approach. I get a little lost in my practice sometimes. I'm Lira. Are you new here?",
+      choices: [
+        { label: "Yes, just arrived.", effects: [{ type: 'setFlag', flag: 'met_lira_solstice' }, { type: 'relationship', value: 2 }], next: 'lira_welcome' },
+        { label: "Not exactly new, but I haven't seen you before.", effects: [{ type: 'setFlag', flag: 'met_lira_solstice' }, { type: 'relationship', value: 2 }], next: 'lira_not_new' },
+      ],
+    },
+    lira_welcome: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "Welcome! The Academy can be overwhelming at first — so many people, so many expectations. But it gets better, I promise. Find me if you ever need someone to talk to!",
+      choices: [{ label: 'Thank you, Lira.', effects: [{ type: 'relationship', value: 1 }], next: null }],
+    },
+    lira_not_new: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "Ha — that happens. The Academy is huge and people tend to stick to their circles. I try to wander around and meet everyone, but there's always someone I've missed!",
+      choices: [{ label: "I'm glad you didn't miss me.", effects: [{ type: 'relationship', value: 2 }], next: null }],
+    },
+    returning: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "Hey! *waves* Good timing — I just finished a breakthrough with my light-to-heat conversion technique. Want to hear about it?",
+      choices: [
+        { label: "Absolutely.", effects: [{ type: 'relationship', value: 2 }], next: 'lira_technique' },
+        { label: "Actually, I just wanted to spend time with you.", requires: { min_charisma: 30 }, effects: [{ type: 'relationship', value: 3 }], next: 'lira_charisma_30' },
+        { label: "How are you doing?", effects: [{ type: 'relationship', value: 1 }], next: 'lira_doing' },
+        { label: "Maybe later.", next: null },
+      ],
+    },
+    lira_technique: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "So the trick is — instead of converting at the point of contact, you initiate the phase shift mid-flight! The orb arrives already at combustion temperature. Nobody taught me that; I figured it out on my own.",
+      choices: [{ label: "That's brilliant.", effects: [{ type: 'relationship', value: 2 }], next: null }],
+    },
+    lira_doing: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "Honestly? Really good lately. I've been sleeping better, my magic flows easier... I think having someone around who actually listens has something to do with it.",
+      choices: [{ label: 'I'm glad.', effects: [{ type: 'relationship', value: 2 }], next: null }],
+    },
+    lira_charisma_30: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "*pause, then a slow smile* ...Yeah? *laughs softly* Okay. Then let's just sit for a bit. No magic. Just us.",
+      choices: [{ label: 'Perfect.', effects: [{ type: 'relationship', value: 3 }], next: null }],
+    },
+    companion_greeting: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "There you are! I was starting to wonder if you'd gotten lost in the east wing again.",
+      choices: [
+        { label: 'I have a terrible sense of direction.', effects: [{ type: 'relationship', value: 1 }], next: null },
+        { label: 'I wanted to make sure you missed me.', requires: { min_charisma: 40 }, effects: [{ type: 'relationship', value: 2 }], next: 'lira_missed' },
+      ],
+    },
+    lira_missed: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "*flustered laugh* ...I did. Don't tell anyone.",
+      choices: [{ label: 'Your secret is safe.', next: null }],
+    },
+    romanced_greeting: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "*lights up* Hi! *small happy wave* I've been thinking about you.",
+      choices: [{ label: 'Good things, I hope.', effects: [{ type: 'relationship', value: 1 }], next: null }],
+    },
+  },
+};
+
+DIALOGUES.conj_malachar = {
+  npcId: 'conj_malachar', portrait: '🔥',
+  entries: [
+    { requires: { flag: 'conj_malachar_companion' }, node: 'companion_greeting' },
+    { requires: { flag: 'met_malachar' }, node: 'returning' },
+  ],
+  nodes: {
+    start: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "...*stares* You're staring at me. Most people know better. What do you want?",
+      choices: [
+        { label: "I wasn't intimidated — that's rare.", effects: [{ type: 'setFlag', flag: 'met_malachar' }, { type: 'relationship', value: 3 }], next: 'malachar_bold' },
+        { label: 'I just wanted to introduce myself.', effects: [{ type: 'setFlag', flag: 'met_malachar' }, { type: 'relationship', value: 1 }], next: 'malachar_intro' },
+        { label: 'Nothing. Forget it.', effects: [{ type: 'setFlag', flag: 'met_malachar' }], next: null },
+      ],
+    },
+    malachar_intro: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "...Fine. Name's Malachar. I'm not here to make friends. But I respect directness. Don't waste my time and I won't waste yours.",
+      choices: [{ label: 'Fair enough.', effects: [{ type: 'relationship', value: 1 }], next: null }],
+    },
+    malachar_bold: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "*long look* ...Hm. You're either reckless or sharp. Might be both. Malachar. Remember it.",
+      choices: [{ label: 'I will.', effects: [{ type: 'relationship', value: 2 }], next: null }],
+    },
+    returning: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "You again. *pause* ...I suppose I don't object.",
+      choices: [
+        { label: 'Still trying to scare people off?', effects: [{ type: 'relationship', value: 2 }], next: 'malachar_facade' },
+        { label: 'What are you working on?',          effects: [{ type: 'relationship', value: 1 }], next: 'malachar_work' },
+        { label: 'I like your fire magic.',           requires: { min_charisma: 30 }, effects: [{ type: 'relationship', value: 3 }], next: 'malachar_charisma_30' },
+        { label: 'Just checking in.',                 next: null },
+      ],
+    },
+    malachar_facade: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "*short pause, looks away* ...It saves time. Most people aren't worth the effort of knowing. You seem to be an exception. I haven't decided if that's convenient or irritating.",
+      choices: [{ label: 'I'll take it.', effects: [{ type: 'relationship', value: 2 }], next: null }],
+    },
+    malachar_work: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "Fire compression — containing an explosion in a sphere no larger than your fist, then releasing it at precisely the right moment. Most conjurers lack the patience for it. I find it... meditative.",
+      choices: [{ label: 'Teach me?', effects: [{ type: 'relationship', value: 3 }], next: null }],
+    },
+    malachar_charisma_30: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "*stills* ...It's not for show. *quieter* Fire answers honestly. No politics. No deception. Just heat, or nothing. I respect that.",
+      choices: [{ label: 'So do I.', effects: [{ type: 'relationship', value: 3 }], next: null }],
+    },
+    companion_greeting: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "...*nod* You made it back. Good.",
+      choices: [
+        { label: 'Miss me?', effects: [{ type: 'relationship', value: 1 }], next: 'malachar_missed' },
+        { label: 'Always.', effects: [{ type: 'relationship', value: 1 }], next: null },
+      ],
+    },
+    malachar_missed: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "...*exhales slowly* Don't push it.",
+      choices: [{ label: '*smiles*', next: null }],
+    },
+  },
+};
+
 // ── Dialogue reactions ────────────────────────────────────────────────────────
 // Maps "npcId.nodeId" → reaction name.
 // Reactions: neutral | happy | sad | scared | mad | shy | aroused
@@ -1329,7 +1589,7 @@ export function validateDeck(deck) {
   const summonCount = (deck.summons ?? []).length;
   const errors = [];
   if (eliteCount  !== 10) errors.push(`Elites: ${eliteCount}/10 required`);
-  if (spellCount  !== 10) errors.push(`Spells: ${spellCount}/10 required`);
+  if (spellCount  >   10) errors.push(`Spells: ${spellCount} exceeds max of 10`);
   if (summonCount  < 40)  errors.push(`Summons: ${summonCount}/40 minimum`);
   // Each elite must be unique (no duplicate cardIds)
   const eliteIds = (deck.elites ?? []).map(e => e.cardId);
@@ -1378,16 +1638,16 @@ export const STARTER_DECKS = [
       _sc('sum_adragon', 1)[0],
     ],
     spells: [
-      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' } },
-      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' } },
-      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
-      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite', artFile: '036A_img.JPG' },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite', artFile: '036A_img.JPG' },
       { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
       { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
       { cardId: 'spell_teleport',       type: 'spell', name: 'Arcane Gate',   art: '🌀', description: 'Teleport target player elite to the front of its nearest champion.',           effect: { type: 'teleport_elite' }, needsTarget: 'player_elite' },
       { cardId: 'spell_teleport_champ', type: 'spell', name: 'Teleportation', art: '✈️', description: 'Relocate a champion to any open space in your champion row.',                 effect: { type: 'teleport_champion' }, needsTarget: 'teleport_champion' },
       { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                              effect: { type: 'revive' } },
-      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                       effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                       effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion', artFile: '037A_img.JPG' },
     ],
   },
   {
@@ -1407,13 +1667,13 @@ export const STARTER_DECKS = [
     spells: [
       { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
       { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
-      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
-      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion', artFile: '037A_img.JPG' },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion', artFile: '037A_img.JPG' },
       { cardId: 'spell_shield',         type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                    effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
       { cardId: 'spell_shield',         type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                    effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
-      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                   effect: { type: 'extra_roll' } },
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                   effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
       { cardId: 'spell_teleport_champ', type: 'spell', name: 'Teleportation', art: '✈️', description: 'Relocate a champion to any open space in your champion row.',            effect: { type: 'teleport_champion' }, needsTarget: 'teleport_champion' },
-      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',               effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',               effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite', artFile: '036A_img.JPG' },
       { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',       effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
     ],
   },
@@ -1423,7 +1683,18 @@ export const STARTER_DECKS = [
     champions: CHAMPION_CARDS,
     elites: ELITE_CARD_DECK,
     summons: SUMMON_CARD_DECK,
-    spells: SPELL_CARD_DECK,
+    spells: [
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',      art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',      art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
+      { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',     art: '💫', description: 'Return the top card of your crypt to your hand.',                              effect: { type: 'revive' } },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',      art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite', artFile: '036A_img.JPG' },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light',    art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                       effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion', artFile: '037A_img.JPG' },
+      { cardId: 'spell_teleport_champ', type: 'spell', name: 'Teleportation',    art: '✈️', description: 'Relocate a champion to any open space in your champion row.',                 effect: { type: 'teleport_champion' }, needsTarget: 'teleport_champion' },
+      { cardId: 'spell_shield',         type: 'spell', name: 'Iron Barrier',     art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                          effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',        art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
+      { cardId: 'spell_encampment',     type: 'spell', name: 'Encampment',       art: '⛺', description: 'Place a Camp terrain on any play zone cell. Stacked summons on the elite in that cell restore +1 HP each draw phase.', effect: { type: 'set_terrain', terrain: 'camp' }, needsTarget: 'any_terrain_cell' },
+      { cardId: 'spell_draw',           type: 'spell', name: 'Arcane Draw',      art: '📖', description: 'Draw 2 summon cards from your deck.',                                          effect: { type: 'draw_cards', count: 2 }, artFile: '035A_img.JPG' },
+    ],
   },
 ];
 
@@ -1444,16 +1715,16 @@ export const STORY_STARTER_DECKS = [
       ..._sc('sum_wyrm',  3), ..._sc('sum_leviathan', 2), _sc('sum_adragon', 1)[0],
     ],
     spells: [
-      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' } },
-      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' } },
-      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
-      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite' },
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',   art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite', artFile: '036A_img.JPG' },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',   art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite', artFile: '036A_img.JPG' },
       { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
       { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',     art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
-      { cardId: 'spell_eruption',       type: 'spell', name: 'Volcanic Eruption', art: '🌋', description: 'Randomly place Lava Floor terrain on 3 play zone cells for 3 turns. Fire-type units on these cells gain +1 power.', effect: { type: 'random_terrain', terrain: 'lava_floor', count: 3, duration: 3 } },
+      { cardId: 'spell_eruption',       type: 'spell', name: 'Volcanic Eruption', art: '🌋', description: 'Randomly place Lava Floor terrain on 3 play zone cells for 3 turns. Fire-type units on these cells gain +1 power.', effect: { type: 'random_terrain', terrain: 'lava_floor', count: 3, duration: 3 }, artFile: '034A_img.JPG' },
       { cardId: 'spell_encampment',     type: 'spell', name: 'Encampment',    art: '⛺', description: 'Place a Camp terrain on any play zone cell. Stacked summons on the elite in that cell restore +1 HP each draw phase.', effect: { type: 'set_terrain', terrain: 'camp' }, needsTarget: 'any_terrain_cell' },
       { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                              effect: { type: 'revive' } },
-      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                       effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                       effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion', artFile: '037A_img.JPG' },
     ],
   },
   {
@@ -1473,8 +1744,8 @@ export const STORY_STARTER_DECKS = [
     spells: [
       { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
       { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',  art: '💫', description: 'Return the top card of your crypt to your hand.',                         effect: { type: 'revive' } },
-      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
-      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion' },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion', artFile: '037A_img.JPG' },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light', art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                  effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion', artFile: '037A_img.JPG' },
       { cardId: 'spell_shield',         type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                    effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
       { cardId: 'spell_shield',         type: 'spell', name: 'Iron Barrier',  art: '🛡', description: 'Target player elite gains +5 max HP and heals 5 HP.',                    effect: { type: 'shield_elite', amount: 5 }, needsTarget: 'player_elite' },
       { cardId: 'spell_encampment',     type: 'spell', name: 'Encampment',    art: '⛺', description: 'Place a Camp terrain on any play zone cell. Stacked summons on the elite in that cell restore +1 HP each draw phase.', effect: { type: 'set_terrain', terrain: 'camp' }, needsTarget: 'any_terrain_cell' },
@@ -1493,6 +1764,17 @@ export const STORY_STARTER_DECKS = [
       _ec('elite_knight'),      _ec('elite_golem'),
     ],
     summons: SUMMON_CARD_DECK,
-    spells: SPELL_CARD_DECK,
+    spells: [
+      { cardId: 'spell_forbidden',      type: 'spell', name: 'Forbidden Spell',  art: '⬛', description: 'Place The Void on any play zone cell. Any elite standing on it is immediately destroyed and banished.',    effect: { type: 'set_terrain', terrain: 'the_void' }, needsTarget: 'any_terrain_cell' },
+      { cardId: 'spell_forbidden',      type: 'spell', name: 'Forbidden Spell',  art: '⬛', description: 'Place The Void on any play zone cell. Any elite standing on it is immediately destroyed and banished.',    effect: { type: 'set_terrain', terrain: 'the_void' }, needsTarget: 'any_terrain_cell' },
+      { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',        art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
+      { cardId: 'spell_weaken',         type: 'spell', name: 'Hex Curse',        art: '💀', description: 'Target opponent elite loses 3 power until the end of their turn.',             effect: { type: 'weaken_elite', amount: 3 }, needsTarget: 'opponent_elite' },
+      { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',     art: '💫', description: 'Return the top card of your crypt to your hand.',                              effect: { type: 'revive' } },
+      { cardId: 'spell_revive',         type: 'spell', name: 'Resurrection',     art: '💫', description: 'Return the top card of your crypt to your hand.',                              effect: { type: 'revive' } },
+      { cardId: 'spell_double_roll',    type: 'spell', name: 'Second Wind',      art: '🎲', description: 'Roll the dice one more time this turn.',                                        effect: { type: 'extra_roll' }, artFile: '000A_img.jpg' },
+      { cardId: 'spell_boost_elite',    type: 'spell', name: 'Battle Fury',      art: '⚡', description: 'Target player elite gains +3 power until your next turn.',                     effect: { type: 'boost_elite', amount: 3 }, needsTarget: 'player_elite', artFile: '036A_img.JPG' },
+      { cardId: 'spell_teleport_champ', type: 'spell', name: 'Teleportation',    art: '✈️', description: 'Relocate a champion to any open space in your champion row.',                 effect: { type: 'teleport_champion' }, needsTarget: 'teleport_champion' },
+      { cardId: 'spell_heal_champ',     type: 'spell', name: 'Mending Light',    art: '💚', description: 'Restore 5 HP to target player champion (up to max HP).',                       effect: { type: 'heal_champion', amount: 5 }, needsTarget: 'player_champion', artFile: '037A_img.JPG' },
+    ],
   },
 ];

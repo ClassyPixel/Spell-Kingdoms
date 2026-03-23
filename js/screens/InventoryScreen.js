@@ -7,6 +7,7 @@ import SoundSystem from '../systems/SoundSystem.js';
 import DeckBuilderScreen from './DeckBuilderScreen.js';
 import {
   ITEMS, STORY_STARTER_DECKS, validateDeck, LOOT_BOX_TYPES, openLootBox,
+  CONJURER_COMPANIONS, CHAMPION_CARDS,
 } from '../Data.js';
 
 // ── Card art / rarity helpers (mirrors CardGameScreen) ───────────────────────
@@ -160,7 +161,7 @@ const InventoryScreen = {
     if (total === 0) return;
 
     const sections = [
-      { label: '👑 Champions', cards: champions },
+      { label: '🔮 Conjurers', cards: champions },
       { label: '🐉 Elites',    cards: elites },
       { label: '✨ Summons',   cards: summons },
       { label: '🔮 Spells',    cards: spells },
@@ -364,7 +365,7 @@ const InventoryScreen = {
         <div class="inv-deck-icon-tooltip">
           <div class="inv-dit-name">${deck.name}</div>
           ${deck.description ? `<div class="inv-dit-desc">${deck.description}</div><div class="inv-dit-divider"></div>` : ''}
-          <div class="inv-dit-row"><span>👑 Champions</span><span>${deck.champions?.length ?? 0}</span></div>
+          <div class="inv-dit-row"><span>🔮 Conjurers</span><span>${deck.champions?.length ?? 0}</span></div>
           <div class="inv-dit-row"><span>🐉 Elites</span><span>${deck.elites?.length ?? 0} / 10</span></div>
           <div class="inv-dit-row"><span>✨ Summons</span><span>${deck.summons?.length ?? 0} / 40+</span></div>
           <div class="inv-dit-row"><span>🔮 Spells</span><span>${deck.spells?.length ?? 0} / 10</span></div>
@@ -613,10 +614,55 @@ const InventoryScreen = {
   // ── Key Items ──────────────────────────────────────────────────────────────
 
   _renderKeyItems(content) {
-    const empty = document.createElement('p');
-    empty.className = 'inv-empty';
-    empty.textContent = 'Nothing here yet.';
-    content.appendChild(empty);
+    // Conjurer cards earned via the companion system
+    const unlockedCards = CHAMPION_CARDS.filter(c =>
+      c.conjurer && GameState.companions[c.cardId]?.cardUnlocked
+    );
+
+    const conjurerSection = document.createElement('div');
+    conjurerSection.className = 'inv-section-title';
+    conjurerSection.textContent = unlockedCards.length > 0
+      ? `${unlockedCards.length} Conjurer Card${unlockedCards.length !== 1 ? 's' : ''}`
+      : 'No conjurer cards yet — befriend conjurers to earn their cards.';
+    content.appendChild(conjurerSection);
+
+    if (unlockedCards.length > 0) {
+      const grid = document.createElement('div');
+      grid.className = 'inv-card-grid';
+      unlockedCards.forEach(card => {
+        const tile = document.createElement('div');
+        tile.className = 'inv-conjurer-key-tile';
+        const comp = CONJURER_COMPANIONS.find(c => c.id === card.cardId);
+        tile.innerHTML = `
+          <div class="inv-conjurer-key-art">
+            <img src="assets/images/CardGameArt/CardArt/${card.artFile}" alt="${card.name}" class="inv-conjurer-key-img">
+          </div>
+          <div class="inv-conjurer-key-name">${card.name}</div>
+          <div class="inv-conjurer-key-desc">${comp?.description ?? ''}</div>
+        `;
+        grid.appendChild(tile);
+      });
+      content.appendChild(grid);
+    }
+
+    // Standard key items
+    const keyItems = GameState.inventory.items.filter(slot => {
+      const def = this._itemsMap[slot.itemId];
+      return def && def.type === 'key';
+    });
+    if (keyItems.length > 0) {
+      const heading = document.createElement('div');
+      heading.className = 'inv-card-section-heading';
+      heading.textContent = 'Key Items';
+      content.appendChild(heading);
+      keyItems.forEach(slot => {
+        const def = this._itemsMap[slot.itemId];
+        const row = document.createElement('div');
+        row.className = 'inv-key-item-row';
+        row.innerHTML = `<span class="inv-ki-icon">${def.icon ?? '📦'}</span><span class="inv-ki-name">${def.name}</span><span class="inv-ki-qty">×${slot.quantity}</span>`;
+        content.appendChild(row);
+      });
+    }
   },
 
   update(dt) {},

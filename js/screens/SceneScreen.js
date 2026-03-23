@@ -6,7 +6,7 @@
  */
 import EventBus           from '../EventBus.js';
 import GameState           from '../GameState.js';
-import { NPCS, LOCATIONS, WORLD_LOCATIONS, ITEMS, STORY_STARTER_DECKS, DIALOGUES } from '../Data.js';
+import { NPCS, LOCATIONS, WORLD_LOCATIONS, ITEMS, STORY_STARTER_DECKS, DIALOGUES, CONJURER_COMPANIONS } from '../Data.js';
 import MusicPlayer         from '../systems/MusicPlayer.js';
 import InventoryScreen     from './InventoryScreen.js';
 import DeckBuilderScreen   from './DeckBuilderScreen.js';
@@ -178,6 +178,7 @@ const SceneScreen = {
       { icon: '🎒', title: 'Inventory',    action: () => EventBus.emit('screen:push', { screen: InventoryScreen,    params: {} }) },
       { icon: '🃏', title: 'Deck Builder', action: () => EventBus.emit('screen:push', { screen: DeckBuilderScreen,  params: {} }) },
       { icon: '📜', title: 'Quest Journal',action: () => EventBus.emit('screen:push', { screen: QuestJournalScreen, params: {} }) },
+      { icon: '👥', title: 'Companions',   action: () => this._showCompanionsPanel() },
       { icon: '🗺', title: 'Area Map',     action: () => this._showAreaMap() },
       { icon: '💾', title: 'Save / Load',  action: () => EventBus.emit('menu:open') },
       { icon: '⚙️', title: 'Settings',    action: () => EventBus.emit('screen:push', { screen: SettingsScreen,     params: {} }) },
@@ -508,6 +509,98 @@ const SceneScreen = {
       overlay.classList.add('hotel-rest-overlay--fadeout');
       setTimeout(() => overlay.remove(), 1500);
     }, 1500);
+  },
+
+  // ── Companions Panel ────────────────────────────────────────────────────────
+
+  _showCompanionsPanel() {
+    if (document.querySelector('.companions-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'companions-overlay';
+
+    const panel = document.createElement('div');
+    panel.className = 'companions-panel';
+
+    const header = document.createElement('div');
+    header.className = 'companions-header';
+    header.innerHTML = '<span>👥 Companions</span>';
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'companions-close';
+    closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', () => overlay.remove());
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    const list = document.createElement('div');
+    list.className = 'companions-list';
+
+    const activeCompanions = CONJURER_COMPANIONS.filter(c =>
+      GameState.companions[c.id]?.isCompanion
+    );
+
+    if (activeCompanions.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'companions-empty';
+      empty.textContent = 'No companions yet. Build friendships with conjurers you meet to earn their company.';
+      list.appendChild(empty);
+    } else {
+      activeCompanions.forEach(comp => {
+        const state    = GameState.companions[comp.id] ?? {};
+        const rel      = GameState.relationships[comp.id] ?? {};
+        const fp       = rel.points ?? 0;
+        const romanced = state.romanced ?? false;
+
+        const entry = document.createElement('div');
+        entry.className = 'companions-entry';
+
+        const portrait = document.createElement('div');
+        portrait.className = 'companions-portrait';
+        if (comp.portraitImg) {
+          portrait.innerHTML = `<img src="${comp.portraitImg}" alt="${comp.name}" class="companions-portrait-img">`;
+        } else {
+          portrait.textContent = comp.portrait;
+        }
+
+        const info = document.createElement('div');
+        info.className = 'companions-info';
+        info.innerHTML = `
+          <div class="companions-name">${comp.name}${romanced ? ' 💕' : ''}</div>
+          <div class="companions-friendship">
+            <div class="companions-fp-bar-wrap">
+              <div class="companions-fp-bar" style="width:${fp}%"></div>
+            </div>
+            <span class="companions-fp-label">${fp} / 100</span>
+          </div>
+        `;
+
+        // Tooltip on hover
+        const tooltip = document.createElement('div');
+        tooltip.className = 'companions-tooltip';
+        tooltip.innerHTML = `
+          <strong>${comp.name}</strong>
+          <p>${comp.description}</p>
+          <div>Friendship: ${fp} / 100</div>
+          ${romanced ? '<div style="color:#f9a;margin-top:4px">💕 Romanced</div>' : ''}
+        `;
+        entry.appendChild(tooltip);
+
+        entry.appendChild(portrait);
+        entry.appendChild(info);
+
+        entry.addEventListener('click', () => {
+          overlay.remove();
+          EventBus.emit('dialogue:start', { npcId: comp.id });
+        });
+
+        list.appendChild(entry);
+      });
+    }
+
+    panel.appendChild(list);
+    overlay.appendChild(panel);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
   },
 
   _showAreaMap() {

@@ -41,9 +41,12 @@ const GameState = {
   },
 
   relationships: {
-    aria:          { points: 0, tier: 0, name: 'Aria',          portrait: '🧙‍♀️' },
-    master_aldric: { points: 0, tier: 0, name: 'Master Aldric', portrait: '🧓' },
-    zephyr:        { points: 0, tier: 0, name: 'Zephyr',        portrait: '🧝' },
+    aria:               { points: 0, tier: 0, name: 'Aria',           portrait: '🧙‍♀️' },
+    master_aldric:      { points: 0, tier: 0, name: 'Master Aldric',  portrait: '🧓' },
+    zephyr:             { points: 0, tier: 0, name: 'Zephyr',         portrait: '🧝' },
+    conj_elder_rook:    { points: 0, tier: 0, name: 'Elder Rook',     portrait: '🔮', isConjurer: true },
+    conj_lira_solstice: { points: 0, tier: 0, name: 'Lira Solstice',  portrait: '✨', isConjurer: true },
+    conj_malachar:      { points: 0, tier: 0, name: 'Malachar',       portrait: '🔥', isConjurer: true },
   },
 
   quests: {
@@ -78,6 +81,13 @@ const GameState = {
   },
 
   shops: {},   // { shopId: { purchasedCounts: { itemId: count } } }
+
+  // Conjurer companion tracking
+  companions: {
+    conj_elder_rook:    { friendshipPoints: 0, isCompanion: false, cardUnlocked: false, romanced: false },
+    conj_lira_solstice: { friendshipPoints: 0, isCompanion: false, cardUnlocked: false, romanced: false },
+    conj_malachar:      { friendshipPoints: 0, isCompanion: false, cardUnlocked: false, romanced: false },
+  },
 
   gameTime: {
     startedAt: null,  // real timestamp when session began (ms); null = set on first use
@@ -206,6 +216,30 @@ const GameState = {
     if (idx !== -1) this.deck.activeDeck.splice(idx, 1);
   },
 
+  /** Add friendship points to a conjurer companion; check if they should join. */
+  addCompanionFriendship(conjurerId, points) {
+    const c = this.companions[conjurerId];
+    if (!c) return;
+    c.friendshipPoints = Math.min(100, Math.max(0, c.friendshipPoints + points));
+  },
+
+  /** Mark a conjurer as a companion and unlock their card in key items. */
+  unlockCompanion(conjurerId) {
+    const c = this.companions[conjurerId];
+    if (!c) return;
+    c.isCompanion = true;
+    c.cardUnlocked = true;
+    this.setFlag(`conj_${conjurerId}_companion`, true);
+  },
+
+  /** Set romance status for a conjurer companion. */
+  setCompanionRomanced(conjurerId, value = true) {
+    const c = this.companions[conjurerId];
+    if (!c) return;
+    c.romanced = value;
+    this.setFlag(`${conjurerId}_romanced`, value);
+  },
+
   /** Lazily initialise game clock — call before reading gameTime. */
   initGameClock() {
     if (!this.gameTime.startedAt) this.gameTime.startedAt = Date.now();
@@ -222,6 +256,7 @@ const GameState = {
       relationships: this.relationships,
       quests:       this.quests,
       shops:        this.shops,
+      companions:   this.companions,
       settings:     this.settings,
       gameTime:     this.gameTime,
     }));
@@ -237,9 +272,10 @@ const GameState = {
     this.progression  = data.progression  ?? this.progression;
     this.inventory    = { lootBoxes: [], ...this.inventory, ...(data.inventory ?? {}) };
     this.deck         = { savedDeckIds: ['blitz_rush', 'iron_bulwark', 'arcane_balance'], ...this.deck, ...(data.deck ?? {}) };
-    this.relationships = data.relationships ?? this.relationships;
+    this.relationships = { ...this.relationships, ...(data.relationships ?? {}) };
     this.quests       = data.quests       ?? this.quests;
     this.shops        = data.shops        ?? this.shops;
+    this.companions   = { ...this.companions, ...(data.companions ?? {}) };
     this.settings     = { ...this.settings, ...(data.settings ?? {}) };
     this.gameTime     = { startedAt: null, baseHour: 8, ...(data.gameTime ?? {}) };
     // cardGame is always reset on load

@@ -2160,6 +2160,57 @@ body {
   line-height: 1.3;
 }
 
+/* ── Conjurer card (frameless) ───────────────────────────── */
+.cg-conjurer-cell {
+  position: relative;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  border-radius: 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.cg-conjurer-art {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  display: block;
+}
+.cg-conjurer-hp {
+  position: absolute;
+  top: 3px; right: 3px;
+  min-width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(10, 16, 32, 0.85);
+  border: 2px solid;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.55rem; font-weight: bold;
+  line-height: 1;
+  z-index: 5;
+  pointer-events: none;
+  padding: 0 2px;
+}
+.cg-conjurer-stack {
+  position: absolute;
+  bottom: 2px; left: 0; right: 0;
+  text-align: center;
+  font-size: 0.5rem;
+  color: #c090ff;
+  background: rgba(50, 10, 90, 0.7);
+  padding: 1px 0;
+  z-index: 5;
+  pointer-events: none;
+}
+/* Hand card: frameless conjurer in placement phase */
+.cg-hand-conjurer {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: 0 2px 12px rgba(180, 100, 255, 0.3);
+  border-radius: 6px;
+  cursor: grab;
+}
+
 /* ── Cell backgrounds ────────────────────────────────────── */
 .cg-cell-champion.cg-cell-plr { background: transparent; border-color: transparent; }
 .cg-cell-champion.cg-cell-opp { background: transparent; border-color: transparent; }
@@ -4941,6 +4992,203 @@ body {
 }
 
 /* ── Rest / confirm dialog ───────────────────────────────────────────────── */
+/* ── Companions Panel ─────────────────────────────────────── */
+.companions-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.6);
+}
+.companions-panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 0;
+  min-width: 340px;
+  max-width: 520px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(180,120,255,0.12);
+  overflow: hidden;
+}
+.companions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  background: rgba(60,20,100,0.45);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: 0.03em;
+}
+.companions-close {
+  background: none;
+  border: none;
+  color: var(--color-text-dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.companions-close:hover { background: rgba(255,255,255,0.08); color: var(--color-text); }
+.companions-list {
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.companions-empty {
+  color: var(--color-text-dim);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 24px 12px;
+  line-height: 1.6;
+}
+.companions-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(180,120,255,0.14);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.companions-entry:hover {
+  background: rgba(160,80,255,0.1);
+  border-color: rgba(180,120,255,0.4);
+}
+.companions-entry:hover .companions-tooltip { opacity: 1; pointer-events: auto; }
+.companions-portrait {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(60,20,100,0.5);
+  border: 2px solid rgba(180,120,255,0.3);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+}
+.companions-portrait-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+.companions-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.companions-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.companions-friendship {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.companions-fp-bar-wrap {
+  flex: 1;
+  height: 5px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.companions-fp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #a040ff, #ff80c0);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.companions-fp-label {
+  font-size: 0.72rem;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+}
+.companions-tooltip {
+  position: absolute;
+  left: 110%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--color-panel);
+  border: 1px solid rgba(180,120,255,0.3);
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-width: 200px;
+  max-width: 280px;
+  font-size: 0.82rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.companions-tooltip strong { display: block; margin-bottom: 4px; font-size: 0.9rem; color: #c890ff; }
+.companions-tooltip p { margin: 0 0 6px; color: var(--color-text-dim); }
+
+/* ── Inventory: Conjurer key tile ──────────────────────────── */
+.inv-conjurer-key-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(60,20,100,0.35);
+  border: 1px solid rgba(180,120,255,0.2);
+  border-radius: 10px;
+  padding: 10px;
+  width: 130px;
+}
+.inv-conjurer-key-art {
+  width: 100px; height: 130px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(20,10,40,0.6);
+}
+.inv-conjurer-key-img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+.inv-conjurer-key-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #c890ff;
+  text-align: center;
+}
+.inv-conjurer-key-desc {
+  font-size: 0.72rem;
+  color: var(--color-text-dim);
+  text-align: center;
+  line-height: 1.4;
+}
+.inv-key-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+.inv-ki-icon { font-size: 1.2rem; }
+.inv-ki-name { flex: 1; font-size: 0.9rem; }
+.inv-ki-qty  { color: var(--color-text-dim); font-size: 0.82rem; }
+
 .scene-confirm-overlay {
   position: fixed;
   inset: 0;

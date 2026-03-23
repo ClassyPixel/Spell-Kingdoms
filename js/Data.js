@@ -1309,7 +1309,7 @@ DIALOGUES.conj_elder_rook = {
     rook_charisma_20: {
       speaker: 'Elder Rook', portrait: '🔮',
       text: "*surprised pause* ...You're quite perceptive. Most students only see the age, the title. Not many bother to look further. I appreciate that.",
-      choices: [{ label: 'There's a lot worth seeing.', effects: [{ type: 'relationship', value: 2 }], next: null }],
+      choices: [{ label: "There's a lot worth seeing.", effects: [{ type: 'relationship', value: 2 }], next: null }],
     },
     rook_charisma_40: {
       speaker: 'Elder Rook', portrait: '🔮',
@@ -1391,7 +1391,7 @@ DIALOGUES.conj_lira_solstice = {
     lira_doing: {
       speaker: 'Lira Solstice', portrait: '✨',
       text: "Honestly? Really good lately. I've been sleeping better, my magic flows easier... I think having someone around who actually listens has something to do with it.",
-      choices: [{ label: 'I'm glad.', effects: [{ type: 'relationship', value: 2 }], next: null }],
+      choices: [{ label: "I'm glad.", effects: [{ type: 'relationship', value: 2 }], next: null }],
     },
     lira_charisma_30: {
       speaker: 'Lira Solstice', portrait: '✨',

@@ -23,6 +23,9 @@ const CHAR_BASE = {
   training_dummy:      'assets/images/characters/training_dummy.svg',
   merchant:            'assets/images/CardGameArt/NPCart/Merchant_A/wizard_npc.png',
   merchant_courtyard:  'assets/images/CardGameArt/NPCart/Merchant_A/wizard_npc.png',
+  conj_elder_rook:     'assets/images/CardGameArt/CardArt/Conjurers/001C.png',
+  conj_lira_solstice:  'assets/images/CardGameArt/CardArt/Conjurers/002C.png',
+  conj_malachar:       'assets/images/CardGameArt/CardArt/Conjurers/003C.png',
 };
 const PLAYER_IMAGE = 'assets/images/CardGameArt/MainPlayerArt/mage_npc.png';
 
@@ -161,8 +164,22 @@ const DialogueScreen = {
     const npc    = document.getElementById('dlg-char-npc');
     if (!box || !player || !npc) return;
     const h = box.offsetHeight * 3;
-    player.style.height = h + 'px';
-    npc.style.height    = h + 'px';
+    this._applyCharSize(player, h);
+    this._applyCharSize(npc,    h);
+  },
+
+  _applyCharSize(img, h) {
+    if (!img) return;
+    const applyNow = () => {
+      const aspect = img.naturalWidth / img.naturalHeight;
+      img.style.height = h + 'px';
+      img.style.width  = (aspect > 0 ? Math.round(h * aspect) : h) + 'px';
+    };
+    if (img.naturalWidth > 0) {
+      applyNow();
+    } else {
+      img.addEventListener('load', applyNow, { once: true });
+    }
   },
 
   _bindEvents() {

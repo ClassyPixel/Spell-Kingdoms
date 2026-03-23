@@ -21,6 +21,7 @@ const SceneScreen = {
   _prevAreaId:      null,
   _clockTimer:      null,
   _unsubHotelRest:  null,
+  _unsubDialogue:   [],
   _narratorTimer:   null,
 
   mount(container, params = {}) {
@@ -31,6 +32,17 @@ const SceneScreen = {
     this._areaId = params.areaId ?? savedAreaMap[this._locationId] ?? null;
     GameState.initGameClock();
     this._unsubHotelRest = EventBus.on('hotel:rest', (d) => this._doHotelRest(d));
+
+    this._unsubDialogue = [
+      EventBus.on('dialogue:start', () => {
+        const backdrop = this._container?.querySelector('.scene-backdrop');
+        if (backdrop) backdrop.classList.add('dlg-active');
+      }),
+      EventBus.on('dialogue:end', () => {
+        const backdrop = this._container?.querySelector('.scene-backdrop');
+        if (backdrop) backdrop.classList.remove('dlg-active');
+      }),
+    ];
 
     const location = LOCATIONS.find(l => l.id === this._locationId) ?? {
       id: this._locationId, name: this._locationId, description: '', icon: '🏛️', bgIcon: '🏛️',
@@ -51,6 +63,8 @@ const SceneScreen = {
     this._areaId     = null;
     this._prevAreaId = null;
     if (this._unsubHotelRest) { this._unsubHotelRest(); this._unsubHotelRest = null; }
+    this._unsubDialogue.forEach(fn => fn());
+    this._unsubDialogue = [];
   },
 
   // ── Clock helpers ───────────────────────────────────────────────────────────
@@ -432,7 +446,15 @@ const SceneScreen = {
       const el = document.createElement('div');
       el.className = 'scene-treasure';
       el.title = treasure.label;
-      el.textContent = treasure.icon;
+      if (treasure.img) {
+        const img = document.createElement('img');
+        img.src = treasure.img;
+        img.alt = treasure.label;
+        img.className = 'scene-treasure-img';
+        el.appendChild(img);
+      } else {
+        el.textContent = treasure.icon;
+      }
       Object.assign(el.style, treasure.position);
       el.addEventListener('click', () => this._openTreasure(treasure, el));
       backdrop.appendChild(el);
@@ -452,7 +474,15 @@ const SceneScreen = {
       const el = document.createElement('div');
       el.className = 'scene-barrel' + (available ? '' : ' scene-barrel--empty');
       el.title = available ? barrel.label : `${barrel.label} (refills in a day)`;
-      el.textContent = barrel.icon;
+      if (barrel.img) {
+        const img = document.createElement('img');
+        img.src = barrel.img;
+        img.alt = barrel.label;
+        img.className = 'scene-barrel-img';
+        el.appendChild(img);
+      } else {
+        el.textContent = barrel.icon;
+      }
       Object.assign(el.style, barrel.position);
       if (available) {
         el.addEventListener('click', () => this._openBarrel(barrel, el));
@@ -480,6 +510,8 @@ const SceneScreen = {
   _applyLoot(loot) {
     if (loot.type === 'coin') {
       GameState.addCoin(loot.amount);
+      const coinEl = document.getElementById('sidebar-coin-val');
+      if (coinEl) coinEl.textContent = GameState.player.coin;
       return `+${loot.amount} 🪙`;
     } else if (loot.type === 'item') {
       const qty = loot.quantity ?? 1;

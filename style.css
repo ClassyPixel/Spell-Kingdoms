@@ -638,7 +638,7 @@ body {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  transition: var(--transition);
+  transition: var(--transition), opacity 0.4s ease;
 }
 
 .scene-npc:hover { transform: scale(1.05); }
@@ -978,7 +978,6 @@ body {
 
 /* Character wrappers */
 .dlg-char-wrap {
-  width: 160px;
   flex-shrink: 0;
   display: flex;
   align-items: flex-end;
@@ -986,10 +985,9 @@ body {
 }
 
 .dlg-char-img {
-  width: 160px;
-  height: 200px; /* overridden by JS to 3× dialogue box height */
-  object-fit: contain;
-  object-position: bottom center;
+  width: auto;           /* overridden by JS proportionally from natural aspect ratio */
+  height: 200px;         /* overridden by JS to 3× dialogue box height */
+  display: block;
   filter: drop-shadow(0 8px 20px rgba(0,0,0,0.7)) brightness(0.7) saturate(0.8);
   opacity: 0.65;
   transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease;
@@ -1038,6 +1036,7 @@ body {
 .dialogue-box {
   flex: 0 1 50%;
   min-width: 360px;
+  position: relative;
   z-index: 10;
   background: linear-gradient(180deg, rgba(20,14,44,0.50) 0%, rgba(10,8,22,0.50) 100%);
   border-top: 2px solid var(--color-border);
@@ -1085,6 +1084,9 @@ body {
 }
 
 /* ── Narrator mode ───────────────────────────────────────────────────────────── */
+.dlg-narrator .dlg-char-wrap {
+  visibility: hidden;
+}
 .dlg-narrator .dialogue-text {
   font-style: italic;
   color: var(--color-text-dim, #b0b8c8);
@@ -4895,7 +4897,7 @@ body {
   gap: 5px;
   cursor: pointer;
   z-index: 15;
-  transition: transform 0.18s ease, filter 0.18s ease;
+  transition: transform 0.18s ease, filter 0.18s ease, opacity 0.4s ease;
 }
 .scene-door:hover {
   transform: translateY(-4px);
@@ -4981,10 +4983,11 @@ body {
   z-index: 12;
   opacity: 0.9;
   pointer-events: auto;
+  transition: opacity 0.4s ease;
 }
 .scene-prop--interactive {
   cursor: pointer;
-  transition: transform 0.15s, filter 0.15s;
+  transition: transform 0.15s, filter 0.15s, opacity 0.4s ease;
 }
 .scene-prop--interactive:hover {
   transform: scale(1.15);
@@ -5270,7 +5273,7 @@ body {
   cursor: pointer;
   user-select: none;
   z-index: 14;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: transform 0.2s ease, filter 0.2s ease, opacity 0.4s ease;
   filter: drop-shadow(0 0 0px gold);
 }
 .scene-treasure:hover {
@@ -5306,6 +5309,16 @@ body {
   to   { opacity: 0; }
 }
 
+/* ── Scene object images ────────────────────────────────────────────────── */
+.scene-treasure-img,
+.scene-barrel-img {
+  display: block;
+  pointer-events: none;
+  image-rendering: auto;
+}
+.scene-treasure-img { width: 52px; height: auto; }
+.scene-barrel-img   { width: 48px; height: auto; }
+
 /* ── Scene Barrels ──────────────────────────────────────────────────────── */
 .scene-barrel {
   position: absolute;
@@ -5313,7 +5326,7 @@ body {
   cursor: pointer;
   user-select: none;
   z-index: 13;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: transform 0.2s ease, filter 0.2s ease, opacity 0.4s ease;
 }
 .scene-barrel:hover {
   transform: scale(1.18);
@@ -5324,6 +5337,16 @@ body {
   cursor: default;
   pointer-events: none;
   filter: grayscale(0.8);
+}
+
+/* ── Dialogue active — fade out scene entities ──────────────────────────── */
+.scene-backdrop.dlg-active .scene-npc,
+.scene-backdrop.dlg-active .scene-barrel,
+.scene-backdrop.dlg-active .scene-treasure,
+.scene-backdrop.dlg-active .scene-door,
+.scene-backdrop.dlg-active .scene-prop {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ── Loot Popup ─────────────────────────────────────────────────────────── */
@@ -5578,8 +5601,7 @@ button, [role="button"],
   .qm-opponent-grid          { grid-template-columns: repeat(2, 1fr); }
   .qm-deck-grid              { grid-template-columns: repeat(2, 1fr); }
   .db-subdeck-row            { grid-template-columns: repeat(2, 1fr); }
-  .dlg-char-wrap             { width: 120px; }
-  .dlg-char-img              { width: 120px; }
+  /* .dlg-char-img width is set by JS proportionally */
   .cg-left-panel             { width: 130px; }
   .cg-right-panel            { width: 130px; }
   .cg-sidebar                { width: 130px; }
@@ -5639,8 +5661,7 @@ button, [role="button"],
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     padding: 14px 18px 12px;
   }
-  .dlg-char-wrap           { width: 70px; }
-  .dlg-char-img            { width: 70px; }
+  /* .dlg-char-img width is set by JS proportionally */
   .dlg-reaction-badge      { right: 10px; bottom: 160px; }
 
   /* ── Card game ───────────────────────────────────── */
@@ -5722,8 +5743,7 @@ button, [role="button"],
   .title-screen h1  { font-size: 3.15em; }
   .cg-right-panel   { display: none; }  /* hide right panel too, grid fills all */
   .dialogue-box     { padding: 10px 14px 10px; }
-  .dlg-char-wrap    { width: 52px; }
-  .dlg-char-img     { width: 52px; }
+  /* .dlg-char-img width is set by JS proportionally */
   .cg-hand-card     { width: 64px; height: 88px; }
 }
 
@@ -5828,8 +5848,7 @@ button, [role="button"],
 
   /* Dialogue box — less vertical padding */
   .dialogue-box        { padding: 8px 14px 8px; }
-  .dlg-char-wrap       { width: 64px; }
-  .dlg-char-img        { width: 64px; }
+  /* .dlg-char-img width is set by JS proportionally */
 
   /* Scene NPCs — shorter */
   .scene-npc--img .npc-sprite { height: 180px; }

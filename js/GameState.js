@@ -229,7 +229,7 @@ const GameState = {
     if (!c) return;
     c.isCompanion = true;
     c.cardUnlocked = true;
-    this.setFlag(`conj_${conjurerId}_companion`, true);
+    this.setFlag(`${conjurerId}_companion`, true);
   },
 
   /** Set romance status for a conjurer companion. */

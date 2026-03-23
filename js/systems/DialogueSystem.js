@@ -284,6 +284,17 @@ const DialogueSystem = {
         EventBus.emit('quest:objectiveComplete', { objectiveId: effect.objectiveId });
         break;
 
+      case 'companionUnlock': {
+        const conjurerId = effect.conjurerId ?? this._npcId;
+        GameState.unlockCompanion(conjurerId);
+        const conjName = GameState.relationships[conjurerId]?.name ?? conjurerId;
+        EventBus.emit('toast', {
+          message: `${conjName} has joined as your companion! Check Key Items.`,
+          type: 'success',
+        });
+        break;
+      }
+
       case 'unlockLocation':
         GameState.unlockLocation(effect.locationId);
         EventBus.emit('toast', { message: `New location: ${effect.locationId}`, type: 'info' });

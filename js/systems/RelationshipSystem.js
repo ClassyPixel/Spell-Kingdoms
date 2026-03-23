@@ -55,14 +55,16 @@ const RelationshipSystem = {
       this._applyTierReward(npcId, newTier);
     }
 
-    // Auto-unlock conjurer companion when friendship threshold is reached
+    // When friendship threshold is reached, flag that the companion invite is available.
+    // The conjurer will ask the player in dialogue — they must choose to accept.
     const conjData = CONJURER_COMPANIONS.find(c => c.id === npcId);
     if (conjData && !GameState.companions[npcId]?.isCompanion) {
-      if (rel.points >= conjData.friendshipRequired) {
-        GameState.unlockCompanion(npcId);
+      if (rel.points >= conjData.friendshipRequired &&
+          !GameState.getFlag(`${npcId}_offer_available`)) {
+        GameState.setFlag(`${npcId}_offer_available`);
         EventBus.emit('toast', {
-          message: `${conjData.name} has joined as your companion! Check Key Items.`,
-          type: 'success',
+          message: `${conjData.name} has something to say to you...`,
+          type: 'info',
         });
       }
     }

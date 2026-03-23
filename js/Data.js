@@ -101,12 +101,12 @@ export const LOCATIONS = [
           { id: 'plaza_to_dormitory',   label: 'Dormitory',   targetLocationId: 'dormitory', targetAreaId: 'common_room', position: { left: '50%', bottom: '10%', transform: 'translateX(-50%)' } },
         ],
         treasures: [
-          { id: 'plaza_chest_1',   icon: '📦', label: 'Abandoned Crate',  position: { left: '22%',  bottom: '18%' }, loot: { type: 'coin',  amount: 40 } },
-          { id: 'plaza_pouch_1',   icon: '💰', label: 'Lost Coin Pouch',  position: { right: '25%', bottom: '22%' }, loot: { type: 'coin',  amount: 20 } },
+          { id: 'plaza_chest_1',   icon: '📦', img: 'assets/images/CardGameArt/ObjectArt/chest1.png',  label: 'Abandoned Crate',  position: { left: '22%',  bottom: '18%' }, loot: { type: 'coin',  amount: 40 } },
+          { id: 'plaza_pouch_1',   icon: '💰', img: 'assets/images/CardGameArt/ObjectArt/chest1.png',  label: 'Lost Coin Pouch',  position: { right: '25%', bottom: '22%' }, loot: { type: 'coin',  amount: 20 } },
         ],
         barrels: [
-          { id: 'plaza_barrel_1',  icon: '🛢️', label: 'Supply Barrel',    position: { left: '45%',  bottom: '16%' }, loot: { type: 'coin',  amount: 15 } },
-          { id: 'plaza_barrel_2',  icon: '🛢️', label: 'Old Barrel',       position: { right: '42%', bottom: '20%' }, loot: { type: 'coin',  amount: 10 } },
+          { id: 'plaza_barrel_1',  icon: '🛢️', img: 'assets/images/CardGameArt/ObjectArt/barrel.png', label: 'Supply Barrel',    position: { left: '45%',  bottom: '16%' }, loot: { type: 'coin',  amount: 15 } },
+          { id: 'plaza_barrel_2',  icon: '🛢️', img: 'assets/images/CardGameArt/ObjectArt/barrel.png', label: 'Old Barrel',       position: { right: '42%', bottom: '20%' }, loot: { type: 'coin',  amount: 10 } },
         ],
       },
       {
@@ -116,11 +116,11 @@ export const LOCATIONS = [
           { id: 'garden_to_plaza',     label: 'Back to Plaza',    targetAreaId: 'plaza',      position: { right: '8%', bottom: '10%' } },
         ],
         treasures: [
-          { id: 'garden_chest_1',  icon: '🎁', label: 'Hidden Gift',      position: { left: '35%',  bottom: '20%' }, loot: { type: 'coin',  amount: 25 } },
-          { id: 'garden_scroll_1', icon: '📜', label: 'Forgotten Scroll', position: { right: '30%', bottom: '25%' }, loot: { type: 'coin',  amount: 30 } },
+          { id: 'garden_chest_1',  icon: '🎁', img: 'assets/images/CardGameArt/ObjectArt/chest1.png',  label: 'Hidden Gift',      position: { left: '35%',  bottom: '20%' }, loot: { type: 'coin',  amount: 25 } },
+          { id: 'garden_scroll_1', icon: '📜', img: 'assets/images/CardGameArt/ObjectArt/chest1.png',  label: 'Forgotten Scroll', position: { right: '30%', bottom: '25%' }, loot: { type: 'coin',  amount: 30 } },
         ],
         barrels: [
-          { id: 'garden_barrel_1', icon: '🛢️', label: 'Garden Barrel',    position: { left: '20%',  bottom: '18%' }, loot: { type: 'coin',  amount: 15 } },
+          { id: 'garden_barrel_1', icon: '🛢️', img: 'assets/images/CardGameArt/ObjectArt/barrel.png', label: 'Garden Barrel',    position: { left: '20%',  bottom: '18%' }, loot: { type: 'coin',  amount: 15 } },
         ],
       },
       {
@@ -130,10 +130,10 @@ export const LOCATIONS = [
           { id: 'studyhall_to_plaza',  label: 'Back to Plaza',    targetAreaId: 'plaza',      position: { left: '8%',  bottom: '10%' } },
         ],
         treasures: [
-          { id: 'studyhall_chest_1', icon: '💎', label: 'Arcane Fragment', position: { right: '20%', bottom: '18%' }, loot: { type: 'coin',  amount: 25 } },
+          { id: 'studyhall_chest_1', icon: '💎', img: 'assets/images/CardGameArt/ObjectArt/chest1.png',  label: 'Arcane Fragment', position: { right: '20%', bottom: '18%' }, loot: { type: 'coin',  amount: 25 } },
         ],
         barrels: [
-          { id: 'studyhall_barrel_1', icon: '🛢️', label: 'Storage Barrel', position: { left: '30%', bottom: '16%' }, loot: { type: 'coin',  amount: 20 } },
+          { id: 'studyhall_barrel_1', icon: '🛢️', img: 'assets/images/CardGameArt/ObjectArt/barrel.png', label: 'Storage Barrel', position: { left: '30%', bottom: '16%' }, loot: { type: 'coin',  amount: 20 } },
         ],
       },
     ],
@@ -1300,6 +1300,7 @@ DIALOGUES.conj_elder_rook = {
   entries: [
     { requires: { flag: 'conj_elder_rook_romanced' }, node: 'romanced_greeting' },
     { requires: { flag: 'conj_elder_rook_companion' }, node: 'companion_greeting' },
+    { requires: { flag: 'conj_elder_rook_offer_available', flag_unset: 'conj_elder_rook_companion' }, node: 'companion_invite' },
     { requires: { flag: 'met_elder_rook' }, node: 'returning' },
   ],
   nodes: {
@@ -1358,6 +1359,19 @@ DIALOGUES.conj_elder_rook = {
       text: "You are unlike the students I have taught for decades. There is something... uncommon about you. I find myself hoping you will return.",
       choices: [{ label: 'I will.', next: null }],
     },
+    companion_invite: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "I have been... considering something. You have proven yourself a persistent presence in my life — and I find I do not object. If you are willing, I would have you as a companion. Someone to walk this path alongside.",
+      choices: [
+        { label: 'I would be honoured.', effects: [{ type: 'companionUnlock', conjurerId: 'conj_elder_rook' }], next: 'companion_joined' },
+        { label: 'I need to think about it.', next: null },
+      ],
+    },
+    companion_joined: {
+      speaker: 'Elder Rook', portrait: '🔮',
+      text: "*a rare, quiet smile* Then it is settled. You will find my company understated — but I will be there when it counts. Check your key items; I have entrusted you with something.",
+      choices: [{ label: 'Thank you, Elder Rook.', next: null }],
+    },
     companion_greeting: {
       speaker: 'Elder Rook', portrait: '🔮',
       text: "Ah. My favourite distraction. What schemes are we concocting today?",
@@ -1384,6 +1398,7 @@ DIALOGUES.conj_lira_solstice = {
   entries: [
     { requires: { flag: 'conj_lira_solstice_romanced' }, node: 'romanced_greeting' },
     { requires: { flag: 'conj_lira_solstice_companion' }, node: 'companion_greeting' },
+    { requires: { flag: 'conj_lira_solstice_offer_available', flag_unset: 'conj_lira_solstice_companion' }, node: 'companion_invite' },
     { requires: { flag: 'met_lira_solstice' }, node: 'returning' },
   ],
   nodes: {
@@ -1430,6 +1445,19 @@ DIALOGUES.conj_lira_solstice = {
       text: "*pause, then a slow smile* ...Yeah? *laughs softly* Okay. Then let's just sit for a bit. No magic. Just us.",
       choices: [{ label: 'Perfect.', effects: [{ type: 'relationship', value: 3 }], next: null }],
     },
+    companion_invite: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "*takes a breath* Okay, I've been wanting to say this for a while. You mean a lot to me, and — I'd really like it if we were companions. Officially. If that's something you'd want too?",
+      choices: [
+        { label: "Of course. I'd love that.", effects: [{ type: 'companionUnlock', conjurerId: 'conj_lira_solstice' }], next: 'companion_joined' },
+        { label: "Can I have a little more time?", next: null },
+      ],
+    },
+    companion_joined: {
+      speaker: 'Lira Solstice', portrait: '✨',
+      text: "*beams* Really?! — I mean — *clears throat* — that's great. Really great. There's something in your key items. I hope you like it.",
+      choices: [{ label: 'Thank you, Lira.', next: null }],
+    },
     companion_greeting: {
       speaker: 'Lira Solstice', portrait: '✨',
       text: "There you are! I was starting to wonder if you'd gotten lost in the east wing again.",
@@ -1455,6 +1483,7 @@ DIALOGUES.conj_malachar = {
   npcId: 'conj_malachar', portrait: '🔥',
   entries: [
     { requires: { flag: 'conj_malachar_companion' }, node: 'companion_greeting' },
+    { requires: { flag: 'conj_malachar_offer_available', flag_unset: 'conj_malachar_companion' }, node: 'companion_invite' },
     { requires: { flag: 'met_malachar' }, node: 'returning' },
   ],
   nodes: {
@@ -1501,6 +1530,19 @@ DIALOGUES.conj_malachar = {
       speaker: 'Malachar', portrait: '🔥',
       text: "*stills* ...It's not for show. *quieter* Fire answers honestly. No politics. No deception. Just heat, or nothing. I respect that.",
       choices: [{ label: 'So do I.', effects: [{ type: 'relationship', value: 3 }], next: null }],
+    },
+    companion_invite: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "*long silence* ...You keep coming back. Most don't. *looks away* I'm not asking out of sentiment — but I could use someone who isn't useless at my back. If you want to call it companionship... I won't stop you.",
+      choices: [
+        { label: "I want that.", effects: [{ type: 'companionUnlock', conjurerId: 'conj_malachar' }], next: 'companion_joined' },
+        { label: "Give me some time to decide.", next: null },
+      ],
+    },
+    companion_joined: {
+      speaker: 'Malachar', portrait: '🔥',
+      text: "...*nod* Good. Don't make me regret it. There's something in your key items — don't read too much into it.",
+      choices: [{ label: 'I will not.', next: null }],
     },
     companion_greeting: {
       speaker: 'Malachar', portrait: '🔥',

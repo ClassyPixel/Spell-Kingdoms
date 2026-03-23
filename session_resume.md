@@ -1,5 +1,5 @@
 # Session Resume — Conjuring Masters
-**Date:** 2026-03-22
+**Date:** 2026-03-23
 **Repo:** https://github.com/ClassyPixel/Spell-Kingdoms (private)
 **Branch:** master
 **Last committed:** see `git log --oneline -5`
@@ -93,8 +93,9 @@ All mobile work is committed and live on GitHub Pages.
 - `GameState.companions` tracks `{ friendshipPoints, isCompanion, cardUnlocked, romanced }` per conjurer
 - `GameState.relationships` includes all 3 conjurers with `isConjurer: true`
 - Helper methods: `addCompanionFriendship()`, `unlockCompanion()`, `setCompanionRomanced()`
-- **Auto-unlock:** `RelationshipSystem._onChanged()` checks `friendshipRequired` on every relationship change; calls `unlockCompanion()` + fires a toast when threshold is reached
-- Friendship threshold to unlock: **5 points** (low, for easy testing)
+- **Opt-in unlock via dialogue:** When friendship meets `friendshipRequired`, `RelationshipSystem` sets `${npcId}_offer_available` and shows a hint toast. The conjurer will then open with a `companion_invite` node on next conversation. Player can accept or defer — if deferred, the invite opens every subsequent conversation until accepted.
+- Accepting fires the `companionUnlock` dialogue effect → `GameState.unlockCompanion()` → sets `${npcId}_companion` flag and unlocks card in Key Items.
+- Friendship threshold to trigger invite: **5 points** (low, for easy testing)
 
 ### Conjurer locations (in-world NPCs)
 | Conjurer | Location |
@@ -107,7 +108,11 @@ All mobile work is committed and live on GitHub Pages.
 - Full dialogue in `Data.js`: `DIALOGUES.conj_elder_rook`, `DIALOGUES.conj_lira_solstice`, `DIALOGUES.conj_malachar`
 - Charisma-gated romance paths for Elder Rook and Lira Solstice
 - Malachar: companion path only (not romanceable)
-- Entry conditions: romanced → companion greeting → returning → fresh start
+- Entry conditions: romanced → companion greeting → companion_invite (if offer available) → returning → fresh start
+
+### Conjurer art in dialogue
+- `CHAR_BASE` in `DialogueScreen.js` maps all 3 conjurer NPC IDs to their card art PNGs
+- Art is displayed as the NPC character panel (right side) during dialogue conversations
 
 ### Companions sidebar panel
 - 👥 button in SceneScreen sidebar opens companion panel overlay
@@ -136,6 +141,38 @@ All mobile work is committed and live on GitHub Pages.
 
 ---
 
+## Interactable Objects (completed 2026-03-23)
+
+- `assets/images/CardGameArt/ObjectArt/barrel.png` assigned to all barrel objects (`img` field in Data.js)
+- `assets/images/CardGameArt/ObjectArt/chest1.png` assigned to all treasure objects
+- Scene renders `<img class="scene-barrel-img">` / `<img class="scene-treasure-img">` when `obj.img` is set, emoji fallback otherwise
+- Editor (`editor.html`) shows interactable objects list per area with add/remove controls and image preview
+- Sidebar coin value now updates immediately when looting barrels/treasures (DOM update after `GameState.addCoin()`)
+
+---
+
+## Dialogue Screen Polish (completed 2026-03-23)
+
+### NPC character art sizing
+- `_updateCharHeight()` in `DialogueScreen.js` now calls `_applyCharSize(img, h)` for both player and NPC images
+- `_applyCharSize` reads `img.naturalWidth / img.naturalHeight` to set both `height` and `width` proportionally at 3× the dialogue box height — no more stretching
+- If the image hasn't loaded yet, a one-time `load` listener applies sizing after load
+- `max-width` removed from `.dlg-char-img` (JS now owns both dimensions)
+
+### Narrator mode
+- When an NPC has no entry in `CHAR_BASE`, the overlay gets `dlg-narrator` class
+- `.dlg-narrator .dlg-char-wrap { visibility: hidden }` hides **both** player and NPC character panels
+- Previously only the NPC wrap was hidden; player art was still visible
+
+### Scene fade during dialogue
+- When `dialogue:start` fires, SceneScreen adds `dlg-active` to `.scene-backdrop`
+- CSS rule `.scene-backdrop.dlg-active` fades `.scene-npc`, `.scene-barrel`, `.scene-treasure`, `.scene-door`, `.scene-prop` to `opacity: 0; pointer-events: none`
+- `opacity 0.4s ease` added to all those elements' transition rules for smooth fade
+- When `dialogue:end` fires, `dlg-active` is removed and elements fade back in
+- Unsub refs stored in `SceneScreen._unsubDialogue[]`, cleaned up in `unmount()`
+
+---
+
 ## Current Known State / Pending
 
 - **All changes committed and pushed** to `origin/master`
@@ -154,5 +191,6 @@ All mobile work is committed and live on GitHub Pages.
    - `js/GameState.js` — mutable game state + helper methods
    - `js/systems/RelationshipSystem.js` — relationship + companion unlock logic
    - `js/screens/SceneScreen.js` — world exploration, NPC interaction, companion panel
+   - `js/screens/DialogueScreen.js` — dialogue overlay, character art sizing, narrator mode
    - `js/screens/CardGameScreen.js` — card match UI
    - `style.css` — all styling

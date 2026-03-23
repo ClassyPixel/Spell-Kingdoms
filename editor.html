@@ -1614,9 +1614,9 @@ function renderMapObjList(loc, area) {
     { key: 'doors',     icon: '🚪', label: 'Doors',     canAdd: true,
       newObj: () => ({ id: `door_${Date.now()}`, label: 'New Door', targetAreaId: '', position: { left: '50%', bottom: '10%' } }) },
     { key: 'treasures', icon: '💎', label: 'Treasures', canAdd: true,
-      newObj: () => ({ id: `treasure_${Date.now()}`, icon: '📦', label: 'New Treasure', position: { left: '50%', bottom: '30%' }, loot: { type: 'coin', amount: 10 } }) },
+      newObj: () => ({ id: `treasure_${Date.now()}`, icon: '📦', img: 'assets/images/CardGameArt/ObjectArt/chest1.png', label: 'New Treasure', position: { left: '50%', bottom: '30%' }, loot: { type: 'coin', amount: 10 } }) },
     { key: 'barrels',   icon: '🛢️', label: 'Barrels',   canAdd: true,
-      newObj: () => ({ id: `barrel_${Date.now()}`, icon: '🛢️', label: 'New Barrel', position: { left: '50%', bottom: '25%' }, loot: { type: 'coin', amount: 10 } }) },
+      newObj: () => ({ id: `barrel_${Date.now()}`, icon: '🛢️', img: 'assets/images/CardGameArt/ObjectArt/barrel.png', label: 'New Barrel', position: { left: '50%', bottom: '25%' }, loot: { type: 'coin', amount: 10 } }) },
     { key: 'objects',   icon: '🪑', label: 'Objects',   canAdd: true,
       newObj: () => ({ id: `obj_${Date.now()}`, icon: '📦', label: 'New Object', position: { left: '50%', bottom: '40%' }, action: '' }) },
   ];
@@ -1672,7 +1672,7 @@ function buildMapObjCard(obj, type, idx, area, loc) {
   const isSelected = mapSelObj?.type === type && mapSelObj?.id === obj.id;
   if (isSelected) { card.classList.add('selected'); card.classList.remove('collapsed'); }
 
-  const objIcon  = obj.icon ?? obj.portrait ?? (type === 'doors' ? '🚪' : '📦');
+  const objIcon  = obj.img && (type === 'treasures' || type === 'barrels') ? null : (obj.icon ?? obj.portrait ?? (type === 'doors' ? '🚪' : '📦'));
   const objName  = obj.name ?? obj.label ?? obj.id;
   const pos      = isNpc ? getNpcPos(loc.id, mapSel.areaId, obj.id) : posToXY(obj.position);
   const posLabel = `${Number(pos.left).toFixed(1)}%, ${Number(pos.bottom).toFixed(1)}%`;
@@ -1683,7 +1683,15 @@ function buildMapObjCard(obj, type, idx, area, loc) {
 
   const iconSpan = document.createElement('span');
   iconSpan.className = 'map-obj-icon';
-  iconSpan.textContent = objIcon;
+  if (objIcon === null && obj.img) {
+    const thumbEl = document.createElement('img');
+    thumbEl.src = obj.img;
+    thumbEl.alt = objName;
+    thumbEl.style.cssText = 'width:20px;height:auto;vertical-align:middle;display:block;';
+    iconSpan.appendChild(thumbEl);
+  } else {
+    iconSpan.textContent = objIcon;
+  }
 
   const nameSpan = document.createElement('span');
   nameSpan.className = 'map-obj-name';
@@ -1767,8 +1775,9 @@ function buildMapObjCard(obj, type, idx, area, loc) {
     addField('Target Area',     obj.targetAreaId    ?? '', v => { obj.targetAreaId = v; });
     addField('Target Location', obj.targetLocationId ?? '', v => { obj.targetLocationId = v; });
   } else if (type === 'treasures' || type === 'barrels') {
-    addField('Icon',       obj.icon       ?? '', v => { obj.icon = v; iconSpan.textContent = v; syncMapPreviewIcon(type, obj.id, v); });
     addField('Label',      obj.label      ?? '', v => { obj.label = v; nameSpan.textContent = v; syncMapPreviewLabel(type, obj.id, v); });
+    addField('Image',      obj.img        ?? '', v => { obj.img = v; syncMapPreviewImg(type, obj.id, v); });
+    addField('Icon',       obj.icon       ?? '', v => { obj.icon = v; if (!obj.img) { iconSpan.textContent = v; syncMapPreviewIcon(type, obj.id, v); } });
     addField('Loot Type',  obj.loot?.type ?? '', v => { if (!obj.loot) obj.loot = {}; obj.loot.type = v; });
     addField('Loot Amt',   String(obj.loot?.amount ?? ''), v => { if (!obj.loot) obj.loot = {}; obj.loot.amount = parseInt(v) || 0; });
   } else if (type === 'objects') {
@@ -1877,8 +1886,26 @@ function syncMapPreviewLabel(type, id, val) {
   if (t) t.textContent = val;
 }
 function syncMapPreviewIcon(type, id, val) {
-  const t = document.querySelector(`.map-token[data-obj-type="${type}"][data-obj-id="${id}"] .map-token-icon`);
-  if (t) t.textContent = val;
+  const iconEl = document.querySelector(`.map-token[data-obj-type="${type}"][data-obj-id="${id}"] .map-token-icon`);
+  if (!iconEl) return;
+  // Only update text if no image is present
+  if (!iconEl.querySelector('img')) iconEl.textContent = val;
+}
+function syncMapPreviewImg(type, id, src) {
+  const iconEl = document.querySelector(`.map-token[data-obj-type="${type}"][data-obj-id="${id}"] .map-token-icon`);
+  if (!iconEl) return;
+  let imgEl = iconEl.querySelector('img');
+  if (src) {
+    if (!imgEl) {
+      imgEl = document.createElement('img');
+      imgEl.style.cssText = 'width:28px;height:auto;display:block;pointer-events:none;';
+      iconEl.textContent = '';
+      iconEl.appendChild(imgEl);
+    }
+    imgEl.src = src;
+  } else {
+    if (imgEl) imgEl.remove();
+  }
 }
 
 // ── Preview ───────────────────────────────────────────────────────
@@ -1940,7 +1967,15 @@ function renderMapPreview(loc, area) {
 
       const iconDiv = document.createElement('div');
       iconDiv.className = 'map-token-icon';
-      iconDiv.textContent = typeIconFn[type](obj);
+      if (obj.img && (type === 'treasures' || type === 'barrels')) {
+        const imgEl = document.createElement('img');
+        imgEl.src = obj.img;
+        imgEl.alt = obj.label ?? type;
+        imgEl.style.cssText = 'width:28px;height:auto;display:block;pointer-events:none;';
+        iconDiv.appendChild(imgEl);
+      } else {
+        iconDiv.textContent = typeIconFn[type](obj);
+      }
 
       const lblDiv = document.createElement('div');
       lblDiv.className = 'map-token-lbl';

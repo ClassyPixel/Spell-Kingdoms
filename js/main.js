@@ -60,6 +60,11 @@ import { QUICK_MATCH_OPPONENTS, STARTER_DECKS, validateDeck, LOCATIONS, NPCS } f
       if (nOv.description !== undefined) npc.description = nOv.description;
       if (nOv.location    !== undefined) npc.location    = nOv.location;
     });
+
+    // NPC scene positions set in the map editor (key = "locId:areaId:npcId")
+    if (ov.npcPositions) {
+      window._mapNpcPositions = ov.npcPositions;
+    }
   } catch (e) {
     console.warn('applyMapOverrides failed:', e);
   }

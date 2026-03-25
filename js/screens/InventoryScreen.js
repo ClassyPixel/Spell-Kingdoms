@@ -328,8 +328,10 @@ const InventoryScreen = {
       art:         d.art         ?? '🃏',
       color:       d.color       ?? '#3a3060',
       description: d.description ?? 'Custom deck',
+      _isStarter:  false,
     }));
-    const allDecks = [...STORY_STARTER_DECKS, ...customDecks];
+    const starterDecks = STORY_STARTER_DECKS.map(d => ({ ...d, _isStarter: true }));
+    const allDecks = [...starterDecks, ...customDecks];
 
     const sectionTitle = document.createElement('div');
     sectionTitle.className = 'inv-section-title';
@@ -481,6 +483,17 @@ const InventoryScreen = {
     const actions = document.createElement('div');
     actions.className = 'inv-modal-actions';
 
+    const setMainBtn = document.createElement('button');
+    setMainBtn.className = 'btn-primary';
+    const isMainDeck = GameState.deck.activeDeckId === deck.id;
+    setMainBtn.textContent = isMainDeck ? '✓ Main Deck' : '⭐ Set As Main Deck';
+    setMainBtn.disabled = isMainDeck;
+    setMainBtn.addEventListener('click', () => {
+      this._setMainDeck(deck);
+      overlay.remove();
+      this._render();
+    });
+
     const editBtn = document.createElement('button');
     editBtn.className = 'btn-primary';
     editBtn.textContent = '✏️ Edit Deck';
@@ -489,11 +502,24 @@ const InventoryScreen = {
       EventBus.emit('screen:push', { screen: DeckBuilderScreen, params: { deck } });
     });
 
+    if (!deck._isStarter) {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn-back';
+      deleteBtn.textContent = '🗑 Delete Deck';
+      deleteBtn.addEventListener('click', () => {
+        this._deleteCustomDeck(deck);
+        overlay.remove();
+        this._render();
+      });
+      actions.appendChild(deleteBtn);
+    }
+
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'btn-back';
     cancelBtn.textContent = 'Cancel';
     cancelBtn.addEventListener('click', () => overlay.remove());
 
+    actions.appendChild(setMainBtn);
     actions.appendChild(editBtn);
     actions.appendChild(cancelBtn);
     modal.appendChild(actions);
@@ -501,6 +527,52 @@ const InventoryScreen = {
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     overlay.dataset.invModal = '1';
     document.body.appendChild(overlay);
+  },
+
+  _setMainDeck(deck) {
+    if (!deck) return;
+    if (!deck.id) {
+      const match = (GameState.deck.customDecks ?? []).find(d =>
+        d === deck || (d.createdAt === deck.createdAt && d.name === deck.name)
+      );
+      if (match && !match.id) {
+        match.id = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      }
+      deck.id = match?.id ?? deck.id;
+    }
+    if (!deck.id) return;
+    GameState.deck.activeDeckId = deck.id;
+    GameState.deck.activeDeck = this._flattenDeckCardIds(deck);
+  },
+
+  _deleteCustomDeck(deck) {
+    if (!deck || deck._isStarter) return;
+    const decks = GameState.deck.customDecks ?? [];
+    const idx = decks.findIndex(d =>
+      (d.id && deck.id && d.id === deck.id) ||
+      (!d.id && !deck.id && d.createdAt === deck.createdAt && d.name === deck.name)
+    );
+    if (idx === -1) return;
+    const [removed] = decks.splice(idx, 1);
+
+    // If current main deck was removed, fall back to first starter deck.
+    if (removed?.id && GameState.deck.activeDeckId === removed.id) {
+      const fallback = STORY_STARTER_DECKS[0];
+      if (fallback) {
+        GameState.deck.activeDeckId = fallback.id;
+        GameState.deck.activeDeck = this._flattenDeckCardIds(fallback);
+      }
+    }
+  },
+
+  _flattenDeckCardIds(deck) {
+    const toIds = (arr) => (arr ?? []).map(c => c?.cardId).filter(Boolean);
+    return [
+      ...toIds(deck.champions),
+      ...toIds(deck.elites),
+      ...toIds(deck.summons),
+      ...toIds(deck.spells),
+    ];
   },
 
   _openLootBox(idx, content) {

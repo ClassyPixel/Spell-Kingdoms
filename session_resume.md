@@ -173,11 +173,68 @@ All mobile work is committed and live on GitHub Pages.
 
 ---
 
+## Dialogue UI Updates (completed 2026-03-19)
+
+### Relationship popup placement + animation
+- Relationship gain/loss popup (`.dlg-rel-feedback`) is now anchored to the NPC portrait container (`.dlg-char-wrap-npc`) instead of the dialogue box
+- Popup now animates as **slide up + fade out**
+- Popup is layered **behind** the NPC portrait image
+- Popup text format is concise:
+  - Positive: `❤️ {NPC Name} +{value}`
+  - Negative: `💔 {NPC Name} {value}`
+  - (No "friendship" word in this popup text)
+
+### Character/image resizing behavior
+- NPC/player portrait sizing is applied at dialogue overlay creation
+- Removed additional portrait resizing triggers during node/choice transitions
+- Dialogue message box is now fixed-height during conversation (`.dialogue-box`)
+- Dialogue text/choices scroll internally instead of resizing the box
+
+---
+
+## Deck Management Updates (completed 2026-03-19)
+
+### Inventory deck modal actions
+- Clicking a deck in Inventory now opens actions:
+  - `⭐ Set As Main Deck` (or `✓ Main Deck` if already active)
+  - `✏️ Edit Deck`
+  - `🗑 Delete Deck` (custom decks only)
+  - `Cancel`
+- Starter decks do not show delete option
+
+### Main deck behavior
+- Setting a deck as main updates:
+  - `GameState.deck.activeDeckId`
+  - `GameState.deck.activeDeck` (flattened cardId list)
+- Sidebar deck label text changed from `Active Deck:` to `Main deck:`
+- Sidebar deck name lookup now supports custom decks in addition to starter decks
+
+### Match system compatibility
+- `CardSystem` active deck resolution now supports custom decks via `activeDeckId`
+- Custom decks set as main are used for card matches correctly
+
+### DeckBuilder save behavior
+- `Save Changes` now overwrites the edited custom deck only
+- Removed fallback behavior that created a new deck when saving edits
+
+---
+
+## Localhost / Cache Behavior (completed 2026-03-19)
+
+- `serve.ps1` now sends no-cache headers:
+  - `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+  - `Pragma: no-cache`
+  - `Expires: 0`
+- This prevents stale JS/CSS when testing via localhost and refresh
+
+---
+
 ## Current Known State / Pending
 
-- **All changes committed and pushed** to `origin/master`
-- **No known bugs**
-- Potential next areas: conjurer side quests, romance scene writing, card match rewards for conjurer friendship
+- Working state includes dialogue popup/animation updates, fixed dialogue box behavior, and deck management improvements
+- `Save Changes` no longer creates duplicate decks
+- If UI appears stale during local testing, restart server and hard refresh (`Ctrl+F5`)
+- Potential next areas: conjurer side quests, romance scene writing, card match rewards for conjurer friendship, deck UX polish (confirm-delete/toasts)
 
 ---
 

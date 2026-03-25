@@ -213,8 +213,10 @@ function log(s, msg) {
 
 // ── State factory ──────────────────────────────────────────────────────────────
 function makeState(npcId, deckOverride, isQuickPlay = false) {
+  const customDeck = (GameState.deck.customDecks ?? []).find(d => d.id === GameState.deck.activeDeckId);
   const activeDeck = deckOverride
     ?? STORY_STARTER_DECKS.find(d => d.id === GameState.deck.activeDeckId)
+    ?? customDeck
     ?? null;
   const elites  = activeDeck?.elites  ?? ELITE_CARD_DECK;
   const summons = activeDeck?.summons ?? SUMMON_CARD_DECK;

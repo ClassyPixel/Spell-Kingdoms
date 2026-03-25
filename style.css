@@ -675,6 +675,12 @@ body {
   bottom: 0;
 }
 
+/* Editor-placed NPCs — positioned via left/bottom % from the map editor */
+.scene-npc--positioned {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
 .scene-npc:hover .npc-sprite {
   filter: brightness(1.15) drop-shadow(0 0 14px rgba(124,92,191,0.5));
 }
@@ -1001,8 +1007,13 @@ body {
 }
 
 /* NPC on right — mirror to face left toward the player */
+.dlg-char-wrap-npc {
+  position: relative;
+}
 .dlg-char-wrap-npc .dlg-char-img {
   transform: scaleX(-1);
+  position: relative;
+  z-index: 2;
 }
 .dlg-char-wrap-npc .dlg-char-img.speaking {
   transform: scaleX(-1) scale(1.04) translateY(-6px);
@@ -1045,31 +1056,41 @@ body {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: 18px 28px 16px;
   min-height: 200px;
+  height: auto;
   backdrop-filter: blur(12px);
   box-shadow: 0 -4px 30px rgba(0,0,0,0.5);
   pointer-events: all;
-  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .dlg-rel-feedback {
   position: absolute;
-  top: -36px;
-  right: 28px;
-  font-size: 0.85em;
-  font-weight: 600;
-  padding: 4px 12px;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 700;
+  padding: 5px 14px;
   border-radius: 20px;
   pointer-events: none;
+  white-space: nowrap;
   animation: dlg-rel-fade 1.8s ease forwards;
 }
 .dlg-rel-feedback.hidden { display: none; }
-.dlg-rel-feedback.rel-positive { background: rgba(74,184,124,0.2); color: #4ab87c; border: 1px solid rgba(74,184,124,0.4); }
-.dlg-rel-feedback.rel-negative { background: rgba(192,74,74,0.2);  color: #e07070; border: 1px solid rgba(192,74,74,0.4); }
+.dlg-rel-feedback.rel-positive { background: rgba(220,60,100,0.18); color: #ff6090; border: 1px solid rgba(220,60,100,0.45); }
+.dlg-rel-feedback.rel-negative { background: rgba(100,100,120,0.22); color: #9090b8; border: 1px solid rgba(100,100,140,0.45); }
+.dlg-rel-heart { font-size: 1.2em; line-height: 1; }
+.dlg-rel-delta { font-size: 1em; letter-spacing: 0.02em; }
 @keyframes dlg-rel-fade {
-  0%   { opacity: 0; transform: translateY(6px); }
-  15%  { opacity: 1; transform: translateY(0); }
-  70%  { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-6px); }
+  0%   { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  70%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
 
 .dialogue-speaker {
@@ -1097,6 +1118,9 @@ body {
   line-height: 1.6;
   font-size: 1em;
   min-height: 52px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .dialogue-continue {

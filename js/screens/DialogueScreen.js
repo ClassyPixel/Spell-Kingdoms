@@ -96,11 +96,6 @@ const DialogueScreen = {
     box.className = 'dialogue-box';
     box.id = 'dlg-box';
 
-    const relFeedback = document.createElement('div');
-    relFeedback.className = 'dlg-rel-feedback hidden';
-    relFeedback.id = 'dlg-rel-feedback';
-    box.appendChild(relFeedback);
-
     const speaker = document.createElement('div');
     speaker.className = 'dialogue-speaker';
     speaker.id = 'dlg-speaker';
@@ -134,6 +129,12 @@ const DialogueScreen = {
     // NPC character (right)
     const npcWrap = document.createElement('div');
     npcWrap.className = 'dlg-char-wrap dlg-char-wrap-npc';
+
+    const relFeedback = document.createElement('div');
+    relFeedback.className = 'dlg-rel-feedback hidden';
+    relFeedback.id = 'dlg-rel-feedback';
+    npcWrap.appendChild(relFeedback);
+
     const npcImg = document.createElement('img');
     npcImg.className = 'dlg-char-img';
     npcImg.id  = 'dlg-char-npc';
@@ -212,7 +213,6 @@ const DialogueScreen = {
 
   _showNode({ speaker, portrait, text, choices = [], canContinue = false, reaction = 'neutral' }) {
     this._showOverlayEl();
-    requestAnimationFrame(() => this._updateCharHeight());
     this._choices     = choices;
     this._canContinue = canContinue;
     this._fullText    = text ?? '';
@@ -289,7 +289,6 @@ const DialogueScreen = {
       this._setSpeaking('player');
       this._renderChoices(choicesEl);
       choicesEl?.classList.remove('hidden');
-      requestAnimationFrame(() => this._updateCharHeight());
     } else {
       if (contEl) {
         contEl.textContent = this._canContinue ? '▼ Click to continue' : '▼ Click to close';
@@ -302,7 +301,7 @@ const DialogueScreen = {
     if (!container) return;
     container.innerHTML = '';
 
-    this._choices.forEach((choice, i) => {
+    this._choices.slice(0, 5).forEach((choice, i) => {
       const btn = document.createElement('button');
       btn.className = 'choice-btn' + (choice.locked ? ' locked' : '') + (choice.charismaLocked ? ' charisma-locked' : '');
 
@@ -391,9 +390,9 @@ const DialogueScreen = {
     if (!el) return;
 
     const positive = delta > 0;
-    const name = GameState.relationships[npcId]?.name ?? npcId;
-    el.textContent = positive ? `❤️ ${name} +${delta}` : `💔 ${name} ${delta}`;
-    el.className   = `dlg-rel-feedback ${positive ? 'rel-positive' : 'rel-negative'}`;
+    const sign = positive ? `+${delta}` : `${delta}`;
+    el.innerHTML = `<span class="dlg-rel-heart">♥</span><span class="dlg-rel-delta">${sign}</span>`;
+    el.className = `dlg-rel-feedback ${positive ? 'rel-positive' : 'rel-negative'}`;
 
     clearTimeout(this._relFeedbackTimer);
     this._relFeedbackTimer = setTimeout(() => {

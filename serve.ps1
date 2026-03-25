@@ -54,6 +54,9 @@ while ($listener.IsListening) {
 
     $resp.StatusCode  = 200
     $resp.ContentType = $contentType
+    $resp.Headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    $resp.Headers['Pragma'] = 'no-cache'
+    $resp.Headers['Expires'] = '0'
     $resp.ContentLength64 = $bytes.Length
     $resp.OutputStream.Write($bytes, 0, $bytes.Length)
   } else {

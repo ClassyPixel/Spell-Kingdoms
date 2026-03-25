@@ -102,8 +102,10 @@ const SceneScreen = {
     if (id) {
       const match = STORY_STARTER_DECKS.find(d => d.id === id);
       if (match) return match.name;
+      const custom = (GameState.deck.customDecks ?? []).find(d => d.id === id);
+      if (custom) return custom.name ?? 'Custom Deck';
     }
-    return `Active Deck · ${GameState.deck.activeDeck?.length ?? 0} cards`;
+    return `Main Deck · ${GameState.deck.activeDeck?.length ?? 0} cards`;
   },
 
   // ── Sidebar ─────────────────────────────────────────────────────────────────
@@ -178,7 +180,7 @@ const SceneScreen = {
     deckIcon.className = 'scene-deck-icon';
     const deckLabelEl = document.createElement('span');
     deckLabelEl.className = 'scene-deck-label-prefix';
-    deckLabelEl.textContent = 'Active Deck:';
+    deckLabelEl.textContent = 'Main deck:';
     const deckNameEl = document.createElement('span');
     deckNameEl.textContent = this._deckLabel();
     deckPanel.appendChild(deckIcon);
@@ -265,10 +267,19 @@ const SceneScreen = {
     }
 
     npcs.forEach(npc => {
+      const posKey = `${this._locationId}:${currentArea?.id}:${npc.id}`;
+      const npcPos = window._mapNpcPositions?.[posKey];
+
       const el = document.createElement('div');
-      el.className = 'scene-npc' +
-        (npc.portraitImg              ? ' scene-npc--img'   : '') +
-        (npc.scenePosition === 'right' ? ' scene-npc--right' : '');
+      if (npcPos) {
+        el.className = 'scene-npc' + (npc.portraitImg ? ' scene-npc--img' : '') + ' scene-npc--positioned';
+        el.style.left   = `${npcPos.left}%`;
+        el.style.bottom = `${npcPos.bottom}%`;
+      } else {
+        el.className = 'scene-npc' +
+          (npc.portraitImg               ? ' scene-npc--img'   : '') +
+          (npc.scenePosition === 'right'  ? ' scene-npc--right' : '');
+      }
       el.innerHTML = `
         <div class="npc-sprite">${npc.portraitImg ? `<img src="${npc.portraitImg}" alt="${npc.name}" class="npc-sprite-img">` : (npc.portrait ?? '🧙')}</div>
         <div class="npc-name-tag">${npc.name}</div>

@@ -573,7 +573,12 @@ const DeckBuilderScreen = {
   _createDeck() {
     if (!GameState.deck.customDecks) GameState.deck.customDecks = [];
     const name = this._deckName || `Deck${GameState.deck.customDecks.length + 1}`;
-    GameState.deck.customDecks.push({ ...this._draft, name, createdAt: Date.now() });
+    GameState.deck.customDecks.push({
+      ...this._draft,
+      id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      createdAt: Date.now(),
+    });
     this._showFinishAnimation('Deck Created!', 'Your new deck has been saved.');
   },
 
@@ -581,13 +586,17 @@ const DeckBuilderScreen = {
     const decks = GameState.deck.customDecks ?? [];
     const idx   = decks.indexOf(this._editDeck);
     const name  = this._deckName || this._editDeck.name || 'Deck';
-    const updated = { ...this._editDeck, ...this._draft, name };
+    const updated = {
+      ...this._editDeck,
+      ...this._draft,
+      id: this._editDeck.id ?? `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name,
+    };
     if (idx !== -1) {
       decks[idx] = updated;
     } else {
-      // Fallback: push as new deck if reference was lost
-      if (!GameState.deck.customDecks) GameState.deck.customDecks = [];
-      GameState.deck.customDecks.push({ ...updated, createdAt: Date.now() });
+      // Save Changes should never create a new deck.
+      return;
     }
     this._showFinishAnimation('Changes Saved!', 'Your deck has been updated.');
   },

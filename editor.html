@@ -484,6 +484,53 @@
       transition: width 0.1s, height 0.1s, box-shadow 0.1s;
     }
     .map-preview-hint { font-size: 0.73em; color: var(--dim); text-align: center; padding: 6px 0 0; flex-shrink: 0; }
+
+    /* ── Voice-to-text ───────────────────────────────────── */
+    .field-ctrl { position: relative; width: 100%; }
+    .field-ctrl .field-input,
+    .field-ctrl .field-ta { padding-right: 32px; }
+    .voice-btn {
+      position: absolute; top: 6px; right: 6px;
+      width: 22px; height: 22px;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 4px; cursor: pointer; color: var(--dim);
+      font-size: 0.75em; line-height: 1; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; z-index: 2; padding: 0; flex-shrink: 0;
+    }
+    .voice-btn:hover { border-color: var(--accent); color: var(--accent2); }
+    .voice-btn.listening {
+      border-color: #c04a4a; color: #e07070;
+      background: rgba(192,74,74,0.12);
+      animation: voice-pulse 1s ease-in-out infinite;
+    }
+    .field-ctrl .field-ta ~ .voice-btn { top: 6px; }
+    @keyframes voice-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(192,74,74,0.4); }
+      50%       { box-shadow: 0 0 0 4px rgba(192,74,74,0); }
+    }
+
+    /* ── Preview overlays ────────────────────────────────── */
+    .preview-sidebar-guide {
+      position: absolute; top: 0; left: 0; bottom: 0;
+      width: 12%;          /* ≈ 230 / 1920 × 100 */
+      background: rgba(0,0,0,0.38);
+      border-right: 1px dashed rgba(160,125,224,0.4);
+      pointer-events: none; z-index: 5;
+    }
+    .preview-sidebar-label {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%) rotate(-90deg);
+      font-size: 0.52em; color: rgba(160,125,224,0.7);
+      white-space: nowrap; pointer-events: none; letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .preview-header-guide {
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 4.4%;        /* ≈ 48 / 1080 × 100 */
+      background: rgba(0,0,0,0.38);
+      border-bottom: 1px dashed rgba(160,125,224,0.4);
+      pointer-events: none; z-index: 5;
+    }
   </style>
 </head>
 <body>
@@ -619,6 +666,61 @@
 
 <script type="module">
 import { CHAPTERS, DIALOGUES, QUESTS, LOCATIONS, NPCS } from './js/Data.js';
+
+// ─────────────────────────────────────────────────────────────────
+// Voice-to-Text (Chrome webkitSpeechRecognition)
+// ─────────────────────────────────────────────────────────────────
+const VoiceInput = (() => {
+  const supported = 'webkitSpeechRecognition' in window;
+  let _current = null;
+
+  function attach(inputEl, btn) {
+    if (!supported) { btn.style.display = 'none'; return; }
+    btn.title = 'Click to dictate';
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (_current) {
+        _current.stop();
+        _current = null;
+        btn.classList.remove('listening');
+        return;
+      }
+      const rec = new webkitSpeechRecognition();
+      rec.lang = 'en-US';
+      rec.interimResults = false;
+      rec.continuous = false;
+      _current = rec;
+      btn.classList.add('listening');
+
+      rec.onresult = (ev) => {
+        const transcript = ev.results[0][0].transcript;
+        const v = inputEl.value;
+        inputEl.value = v ? v + ' ' + transcript : transcript;
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      rec.onerror = () => { _current = null; btn.classList.remove('listening'); };
+      rec.onend  = () => { _current = null; btn.classList.remove('listening'); };
+      rec.start();
+    });
+  }
+
+  function wrap(inputEl) {
+    const ctrl = document.createElement('div');
+    ctrl.className = 'field-ctrl';
+    inputEl.parentNode?.insertBefore(ctrl, inputEl);
+    ctrl.appendChild(inputEl);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'voice-btn';
+    btn.textContent = '🎤';
+    ctrl.appendChild(btn);
+    attach(inputEl, btn);
+    return ctrl;
+  }
+
+  return { attach, wrap, supported };
+})();
 
 // ─────────────────────────────────────────────────────────────────
 // Keys & state
@@ -1255,7 +1357,8 @@ function makeField({ label, value, multiline, tall = false, onChange }) {
   if (!multiline) el.type = 'text';
   el.value = value;
   el.addEventListener('input', () => { el.classList.add('changed'); onChange(el.value); });
-  wrap.appendChild(el);
+
+  VoiceInput.wrap(el);  // wraps el in .field-ctrl and appends mic button
 
   return wrap;
 }
@@ -1923,6 +2026,21 @@ function renderMapPreview(loc, area) {
   preview.style.height = `${Math.max(112, h)}px`;
 
   preview.innerHTML = '';
+
+  // ── Overlay guides — mirror the game's sidebar + header to keep positions accurate ──
+  // Sidebar: game sidebar is 230px wide; at 1920px reference ≈ 12% of viewport width
+  const sidebarGuide = document.createElement('div');
+  sidebarGuide.className = 'preview-sidebar-guide';
+  const sidebarLbl = document.createElement('span');
+  sidebarLbl.className = 'preview-sidebar-label';
+  sidebarLbl.textContent = 'Sidebar';
+  sidebarGuide.appendChild(sidebarLbl);
+  preview.appendChild(sidebarGuide);
+
+  // Header bar: game header is 48px; at 1080px reference ≈ 4.4% of viewport height
+  const headerGuide = document.createElement('div');
+  headerGuide.className = 'preview-header-guide';
+  preview.appendChild(headerGuide);
 
   // Background — mirror SceneScreen logic: area.bgImage ?? location.bgImage → else bgIcon
   const bgImage = area.bgImage ?? loc.bgImage;

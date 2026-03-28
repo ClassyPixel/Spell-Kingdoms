@@ -14,6 +14,16 @@ import QuestJournalScreen  from './QuestJournalScreen.js';
 import SettingsScreen      from './SettingsScreen.js';
 import MapScreen           from './MapScreen.js';
 
+// Applies scale and rotation from map-editor data to a scene element.
+function _applySpriteTransform(el, obj) {
+  const scale    = obj.scale    ?? 1;
+  const rotation = obj.rotation ?? 0;
+  if (scale !== 1 || rotation !== 0) {
+    const base = el.style.transform ? el.style.transform + ' ' : '';
+    el.style.transform = `${base}scale(${scale}) rotate(${rotation}deg)`;
+  }
+}
+
 const SceneScreen = {
   _container:       null,
   _locationId:      null,
@@ -27,14 +37,16 @@ const SceneScreen = {
   mount(container, params = {}) {
     this._container = container;
     this._locationId = params.locationId ?? GameState.progression.currentLocation;
-    // Restore the last visited area for this location if no specific area was requested
+    // Always prefer the live savedAreaMap so navigation via _goToDoor is preserved
+    // when returning from a pushed screen (whose stack entry may have a stale areaId).
     const savedAreaMap = GameState.progression.currentAreaByLocation ?? {};
-    this._areaId = params.areaId ?? savedAreaMap[this._locationId] ?? null;
+    this._areaId = savedAreaMap[this._locationId] ?? params.areaId ?? null;
     GameState.initGameClock();
     this._unsubHotelRest = EventBus.on('hotel:rest', (d) => this._doHotelRest(d));
 
     this._unsubDialogue = [
-      EventBus.on('dialogue:start', () => {
+      EventBus.on('dialogue:start', ({ npcId } = {}) => {
+        if (npcId === 'narrator') return; // narrator speech never fades scene sprites
         const backdrop = this._container?.querySelector('.scene-backdrop');
         if (backdrop) backdrop.classList.add('dlg-active');
       }),
@@ -305,11 +317,6 @@ const SceneScreen = {
       this._renderBarrels(currentArea.barrels, backdrop);
     }
 
-    // Decorative props (non-interactive objects)
-    if (currentArea?.objects?.length) {
-      this._renderObjects(currentArea.objects, backdrop);
-    }
-
     // World Map button — top right of backdrop
     const worldMapBtn = document.createElement('button');
     worldMapBtn.className = 'scene-worldmap-btn';
@@ -396,19 +403,6 @@ const SceneScreen = {
     }
   },
 
-  _renderObjects(objects, backdrop) {
-    objects.forEach(obj => {
-      const el = document.createElement('div');
-      el.className = 'scene-prop' + (obj.action ? ' scene-prop--interactive' : '');
-      el.title = obj.label;
-      el.textContent = obj.icon;
-      Object.assign(el.style, obj.position);
-      if (obj.action === 'rest') {
-        el.addEventListener('click', () => this._promptRest());
-      }
-      backdrop.appendChild(el);
-    });
-  },
 
   _promptRest() {
     if (document.querySelector('.scene-confirm-overlay')) return; // already open
@@ -467,6 +461,7 @@ const SceneScreen = {
         el.textContent = treasure.icon;
       }
       Object.assign(el.style, treasure.position);
+      _applySpriteTransform(el, treasure);
       el.addEventListener('click', () => this._openTreasure(treasure, el));
       backdrop.appendChild(el);
     });
@@ -475,8 +470,9 @@ const SceneScreen = {
   _openTreasure(treasure, el) {
     if (GameState.getFlag(`treasure_${treasure.id}`)) return;
     GameState.setFlag(`treasure_${treasure.id}`, true);
+    const rect = el.getBoundingClientRect();
     el.remove();
-    this._showLootPopup(this._applyLoot(treasure.loot));
+    this._showLootPopup(this._applyLoot(treasure.loot), rect);
   },
 
   _renderBarrels(barrels, backdrop) {
@@ -495,6 +491,7 @@ const SceneScreen = {
         el.textContent = barrel.icon;
       }
       Object.assign(el.style, barrel.position);
+      _applySpriteTransform(el, barrel);
       if (available) {
         el.addEventListener('click', () => this._openBarrel(barrel, el));
       }
@@ -505,10 +502,11 @@ const SceneScreen = {
   _openBarrel(barrel, el) {
     if (!this._isBarrelAvailable(barrel.id)) return;
     GameState.setFlag(`barrel_${barrel.id}`, Date.now());
+    const rect = el.getBoundingClientRect();
     el.classList.add('scene-barrel--empty');
     el.title = `${barrel.label} (refills in a day)`;
     el.replaceWith(el.cloneNode(true)); // drop click listener cleanly
-    this._showLootPopup(this._applyLoot(barrel.loot));
+    this._showLootPopup(this._applyLoot(barrel.loot), rect);
   },
 
   _isBarrelAvailable(barrelId) {
@@ -533,10 +531,15 @@ const SceneScreen = {
     return '';
   },
 
-  _showLootPopup(text) {
+  _showLootPopup(text, sourceRect) {
     const popup = document.createElement('div');
     popup.className = 'scene-loot-popup';
     popup.textContent = text;
+    if (sourceRect) {
+      popup.classList.add('scene-loot-popup--anchored');
+      popup.style.left = `${sourceRect.left + sourceRect.width / 2}px`;
+      popup.style.top  = `${sourceRect.top}px`;
+    }
     this._container.appendChild(popup);
     setTimeout(() => popup.remove(), 2200);
   },
@@ -549,6 +552,16 @@ const SceneScreen = {
       const currentHour = (GameState.gameTime.baseHour + elapsed) % 24;
       GameState.gameTime.baseHour  = (currentHour + hours) % 24;
       GameState.gameTime.startedAt = Date.now();
+
+      // Roll barrel loot timestamps back by the skipped real-time equivalent
+      // (1 game-hour = 1 real-minute = 60 000 ms) so they respawn correctly
+      const skipMs = hours * 60 * 1000;
+      const flags  = GameState.progression.gameFlags;
+      Object.keys(flags).forEach(key => {
+        if (key.startsWith('barrel_') && typeof flags[key] === 'number') {
+          GameState.setFlag(key, flags[key] - skipMs);
+        }
+      });
     });
   },
 
@@ -728,74 +741,6 @@ const SceneScreen = {
     });
     panel.appendChild(areaMapWorldBtn);
 
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
-  },
-
-  _showObjectsList() {
-    const location = LOCATIONS.find(l => l.id === this._locationId);
-    const currentArea = location?.areas
-      ? (location.areas.find(a => a.id === this._areaId) ?? location.areas[0])
-      : null;
-    const objects = currentArea?.objects ?? [];
-
-    const overlay = document.createElement('div');
-    overlay.className = 'area-map-overlay';
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-
-    const panel = document.createElement('div');
-    panel.className = 'area-map-panel objects-list-panel';
-
-    const header = document.createElement('div');
-    header.className = 'area-map-header';
-    header.innerHTML = `<span class="area-map-title">${currentArea?.name ?? 'Area'} — Objects</span>`;
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'area-map-close';
-    closeBtn.textContent = '✕';
-    closeBtn.addEventListener('click', () => overlay.remove());
-    header.appendChild(closeBtn);
-    panel.appendChild(header);
-
-    const list = document.createElement('div');
-    list.className = 'objects-list-body';
-
-    if (objects.length === 0) {
-      const empty = document.createElement('p');
-      empty.className = 'objects-list-empty';
-      empty.textContent = 'Nothing of interest here.';
-      list.appendChild(empty);
-    } else {
-      objects.forEach(obj => {
-        const row = document.createElement('div');
-        row.className = 'objects-list-row' + (obj.action ? ' objects-list-row--interactive' : '');
-
-        const icon = document.createElement('span');
-        icon.className = 'objects-list-icon';
-        icon.textContent = obj.icon;
-
-        const label = document.createElement('span');
-        label.className = 'objects-list-label';
-        label.textContent = obj.label;
-
-        row.appendChild(icon);
-        row.appendChild(label);
-
-        if (obj.action === 'rest') {
-          const actionBtn = document.createElement('button');
-          actionBtn.className = 'btn-secondary objects-list-action';
-          actionBtn.textContent = 'Rest';
-          actionBtn.addEventListener('click', () => {
-            overlay.remove();
-            this._promptRest();
-          });
-          row.appendChild(actionBtn);
-        }
-
-        list.appendChild(row);
-      });
-    }
-
-    panel.appendChild(list);
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
   },

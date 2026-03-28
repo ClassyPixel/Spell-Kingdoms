@@ -8,6 +8,7 @@
  */
 import EventBus from '../EventBus.js';
 import GameState from '../GameState.js';
+import ScreenManager from './ScreenManager.js';
 import {
   CHAMPION_CARDS, ELITE_CARD_DECK, SUMMON_CARD_DECK, SPELL_CARD_DECK,
 } from '../Data.js';
@@ -108,7 +109,7 @@ const DeckBuilderScreen = {
     const backBtn = document.createElement('button');
     backBtn.className = 'btn-back';
     backBtn.textContent = '← Back';
-    backBtn.addEventListener('click', () => EventBus.emit('screen:pop'));
+    backBtn.addEventListener('click', () => this._doTransition(() => EventBus.emit('screen:pop')));
     const title = document.createElement('h2');
     title.textContent = '🃏 Deck Builder';
 
@@ -183,20 +184,14 @@ const DeckBuilderScreen = {
     tile.className = 'db-tile' + (complete ? ' complete' : '') + (isActive ? ' active' : '');
     tile.id = `db-tile-${sub}`;
 
-    // Art preview strip (up to 6 icons)
-    const arts = cards.slice(0, 6).map(c => `<span title="${c.name}">${c.art ?? '✨'}</span>`).join('');
-    const more = cards.length > 6 ? `<span class="db-tile-more">+${cards.length - 6}</span>` : '';
-
     // Count display
     const countStr = r.exact
       ? `${count} / ${r.max}`
       : `${count} / ${r.min}+`;
 
     tile.innerHTML = `
-      <div class="db-tile-icon">${r.icon}</div>
       <div class="db-tile-label">${r.label}</div>
       <div class="db-tile-count ${complete ? 'ok' : 'need'}">${countStr}</div>
-      <div class="db-tile-arts">${arts || '<span class="db-tile-empty">No cards yet</span>'}${more}</div>
       <div class="db-tile-hint">${r.hint}</div>
       ${complete ? '<div class="db-tile-check">✓ Ready</div>' : ''}
     `;
@@ -540,6 +535,17 @@ const DeckBuilderScreen = {
 
   // ── Create / Save Deck ──────────────────────────────────────────────────────
 
+  _hasChanges() {
+    if (!this._editDeck) return false;
+    const orig = {
+      champions: this._editDeck.champions ?? [],
+      elites:    this._editDeck.elites    ?? [],
+      summons:   this._editDeck.summons   ?? [],
+      spells:    this._editDeck.spells    ?? [],
+    };
+    return JSON.stringify(orig) !== JSON.stringify(this._draft);
+  },
+
   _isComplete() {
     const { champions, elites, summons, spells } = this._draft;
     if (champions.length < 1)  return false;
@@ -561,10 +567,19 @@ const DeckBuilderScreen = {
     const btn = document.createElement('button');
     btn.className = 'db-create-btn btn-primary';
     if (this._editDeck) {
+      // Hide Save Changes while a sub-deck picker is open, or if nothing changed
+      if (this._activeSub !== null || !this._hasChanges()) return;
       btn.textContent = '💾 Save Changes';
       btn.addEventListener('click', () => this._saveDeck());
     } else {
-      btn.textContent = '✦ Create Deck ✦';
+      const customCount = (GameState.deck.customDecks ?? []).length;
+      const atLimit = customCount >= 40;
+      btn.textContent = atLimit ? `✦ Deck Limit Reached (40/40) ✦` : '✦ Create Deck ✦';
+      btn.disabled = atLimit;
+      if (atLimit) {
+        btn.title = 'Delete a custom deck to make space.';
+        btn.style.opacity = '0.5';
+      }
       btn.addEventListener('click', () => this._createDeck());
     }
     container.appendChild(btn);
@@ -572,6 +587,7 @@ const DeckBuilderScreen = {
 
   _createDeck() {
     if (!GameState.deck.customDecks) GameState.deck.customDecks = [];
+    if (GameState.deck.customDecks.length >= 40) return;
     const name = this._deckName || `Deck${GameState.deck.customDecks.length + 1}`;
     GameState.deck.customDecks.push({
       ...this._draft,
@@ -584,7 +600,7 @@ const DeckBuilderScreen = {
 
   _saveDeck() {
     const decks = GameState.deck.customDecks ?? [];
-    const idx   = decks.indexOf(this._editDeck);
+    const idx   = decks.findIndex(d => d === this._editDeck || (d.id && d.id === this._editDeck?.id));
     const name  = this._deckName || this._editDeck.name || 'Deck';
     const updated = {
       ...this._editDeck,
@@ -601,12 +617,25 @@ const DeckBuilderScreen = {
     this._showFinishAnimation('Changes Saved!', 'Your deck has been updated.');
   },
 
+  // Full-screen dark transition: fades to black, fires action(), then fades back in
+  _doTransition(action) {
+    const overlay = document.createElement('div');
+    overlay.className = 'db-transition-overlay';
+    document.body.appendChild(overlay);
+    setTimeout(() => {
+      action();
+      setTimeout(() => {
+        overlay.classList.add('db-transition-overlay--out');
+        setTimeout(() => overlay.remove(), 420);
+      }, 50);
+    }, 300);
+  },
+
   _showFinishAnimation(headline, sub) {
     const root = document.getElementById('game-root') ?? document.body;
-    const overlay = document.createElement('div');
-    overlay.className = 'db-created-overlay';
-
-    overlay.innerHTML = `
+    const flash = document.createElement('div');
+    flash.className = 'db-created-overlay';
+    flash.innerHTML = `
       <div class="db-created-burst">
         <div class="db-created-sparks">✦ ✦ ✦ ✦ ✦</div>
         <div class="db-created-text">${headline}</div>
@@ -614,15 +643,15 @@ const DeckBuilderScreen = {
         <div class="db-created-sparks">✦ ✦ ✦ ✦ ✦</div>
       </div>
     `;
-    root.appendChild(overlay);
-
+    root.appendChild(flash);
     setTimeout(() => {
-      overlay.classList.add('fade-out');
-      setTimeout(() => {
-        overlay.remove();
+      flash.remove();
+      this._doTransition(() => {
+        const prev = ScreenManager._stack[ScreenManager._stack.length - 2];
+        if (prev) prev.params = { ...prev.params, tab: 'Decks' };
         EventBus.emit('screen:pop');
-      }, 600);
-    }, 2400);
+      });
+    }, 1400);
   },
 
   // ── Refresh helpers ─────────────────────────────────────────────────────────
